@@ -1,0 +1,11 @@
+[Unit]
+Description=Fire evening rollup at 6 PM {{TENANT_TIMEZONE}} (handles AST/ADT)
+
+[Timer]
+OnCalendar=*-*-* 18:00:00 {{TENANT_TIMEZONE}}
+Persistent=true
+RandomizedDelaySec=30
+Unit=evening-rollup.service
+
+[Install]
+WantedBy=timers.target

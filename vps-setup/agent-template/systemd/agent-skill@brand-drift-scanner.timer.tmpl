@@ -1,0 +1,11 @@
+[Unit]
+Description=Brand drift scan (daily 23:00 {{TENANT_TIMEZONE}})
+
+[Timer]
+OnCalendar=*-*-* 23:00:00 {{TENANT_TIMEZONE}}
+Persistent=true
+RandomizedDelaySec=120
+Unit=agent-skill@brand-drift-scanner.service
+
+[Install]
+WantedBy=timers.target

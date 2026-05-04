@@ -1,0 +1,58 @@
+# macOS / editor / IDE noise
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.idea/
+.vscode/
+*.swp
+*.swo
+.history/
+
+# Per-tenant config — NEVER commit
+agent-stack/config/client.env
+vps-setup/tenants/*.yml
+!vps-setup/tenants/EXAMPLE_TENANT.yml
+
+# Per-tenant rendered output (regenerated from tenant.yml + template)
+vps-setup/agents-config/
+
+# Implementation logs (per-VPS, append-only — local only)
+agent-stack/implementation-log.md
+agent-stack/install.log
+
+# Local data stores (paths set in client.env, but if they happen to land inside repo, ignore)
+memory.json
+chroma_db/
+graphify-out/
+.cache/
+
+# Node / Python
+node_modules/
+**/node_modules/
+package-lock.json
+yarn.lock
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Logs
+*.log
+*.tmp
+
+# Credentials — never commit, ever
+**/server-credentials/
+**/*credentials*.md
+**/*credentials*.rtf
+**/*credentials*.txt
+**/.env
+**/.env-*
+.cloudflare-token
+
+# Build artifacts
+dist/
+build/
+*.egg-info/

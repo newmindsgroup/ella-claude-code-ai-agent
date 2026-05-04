@@ -1,0 +1,181 @@
+#!/usr/bin/env bash
+# bootstrap-tenant.sh — provision a tenant on the current VPS.
+#
+# Idempotent. Run as root on the target Vultr box.
+# Reads vps-setup/tenants/{tenant_id}.yml, ensures the rendered files exist,
+# creates the Linux user, copies files into /opt/{user}/agents/, installs
+# systemd units. Walks Daniel through the manual steps that need a browser
+# (Claude login, BotFather, GHL PIT) at the right time.
+#
+# Usage (on a Vultr root shell):
+#   git clone <repo> /tmp/{tenant}-stack
+#   cd /tmp/{tenant}-stack
+#   sudo bash vps-setup/scripts/bootstrap-tenant.sh tenants/{tenant_id}.yml
+
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+TENANT_FILE="${1:-}"
+
+if [[ -z "$TENANT_FILE" ]]; then
+  echo "usage: $0 <path-to-tenant.yml>"
+  echo "example: $0 vps-setup/tenants/example.yml"
+  exit 1
+fi
+[[ ! -f "$TENANT_FILE" ]] && { echo "tenant file not found: $TENANT_FILE" >&2; exit 1; }
+
+if [[ "$EUID" -ne 0 ]]; then
+  echo "ERROR: bootstrap-tenant.sh must run as root (creates system users + systemd units)" >&2
+  exit 1
+fi
+
+# ---- read tenant config ----
+python3 -c "import yaml" 2>/dev/null || pip install pyyaml --break-system-packages --quiet
+
+read_yaml() { python3 -c "import yaml,sys; print(yaml.safe_load(open('$TENANT_FILE')).get('$1','') or '')"; }
+
+TENANT_ID=$(read_yaml tenant_id)
+LINUX_USER=$(read_yaml linux_user); LINUX_USER="${LINUX_USER:-$TENANT_ID}"
+USER_HOME=$(read_yaml user_home);   USER_HOME="${USER_HOME:-/opt/$LINUX_USER}"
+AGENT_HOME=$(read_yaml agent_home); AGENT_HOME="${AGENT_HOME:-$USER_HOME/agents}"
+BRAND_REPO_URL=$(read_yaml brand_repo_url)
+BRAND_REPO_BRANCH=$(read_yaml brand_repo_branch); BRAND_REPO_BRANCH="${BRAND_REPO_BRANCH:-main}"
+BRAND_REPO_NAME=$(read_yaml brand_repo_name);     BRAND_REPO_NAME="${BRAND_REPO_NAME:-$TENANT_ID}"
+PERSON_FULL_NAME=$(read_yaml person_full_name)
+TELEGRAM_BOT_USERNAME=$(read_yaml telegram_bot_username)
+
+echo "=== bootstrapping tenant: $TENANT_ID ==="
+echo "  linux_user:      $LINUX_USER"
+echo "  agent_home:      $AGENT_HOME"
+echo "  brand_repo:      $BRAND_REPO_URL ($BRAND_REPO_BRANCH)"
+echo "  person:          $PERSON_FULL_NAME"
+echo "  telegram_bot:    @$TELEGRAM_BOT_USERNAME"
+echo
+
+read -rp "Continue with this configuration? [y/N] " yn
+[[ "$yn" != "y" && "$yn" != "Y" ]] && { echo "aborted"; exit 0; }
+
+# ---- step 1: render template ----
+echo
+echo "[1/8] Rendering template from tenant config…"
+bash "$REPO_ROOT/vps-setup/scripts/render-tenant.sh" "$TENANT_FILE"
+RENDERED_DIR="$REPO_ROOT/vps-setup/agents-config/$TENANT_ID"
+[[ ! -d "$RENDERED_DIR" ]] && { echo "render failed: no $RENDERED_DIR"; exit 1; }
+
+# ---- step 2: create Linux user if missing ----
+echo
+echo "[2/8] Ensuring Linux user '$LINUX_USER' exists…"
+if id "$LINUX_USER" &>/dev/null; then
+  echo "  user exists — skipping"
+else
+  adduser "$LINUX_USER" --disabled-password --gecos "" --home "$USER_HOME"
+  echo "  created"
+fi
+
+# ---- step 3: ensure agent_home + agent_skills_dir ----
+echo
+echo "[3/8] Ensuring directories…"
+mkdir -p "$AGENT_HOME" "$AGENT_HOME/scripts" "$AGENT_HOME/.claude/agents" \
+         "$AGENT_HOME/tasks" "$AGENT_HOME/drafts" "$AGENT_HOME/logs" "$AGENT_HOME/reports"
+chown -R "$LINUX_USER:$LINUX_USER" "$USER_HOME"
+
+# ---- step 4: install Node 20, Bun, Claude Code, jq if missing ----
+echo
+echo "[4/8] Ensuring base tooling…"
+if ! command -v node >/dev/null 2>&1; then
+  echo "  installing Node 20…"
+  curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+  apt install -y nodejs
+fi
+if ! command -v claude >/dev/null 2>&1; then
+  echo "  installing Claude Code…"
+  npm install -g @anthropic-ai/claude-code
+fi
+if ! command -v bun >/dev/null 2>&1; then
+  echo "  installing bun (as $LINUX_USER)…"
+  sudo -u "$LINUX_USER" -H bash -c 'curl -fsSL https://bun.sh/install | bash'
+  ln -sf "$USER_HOME/.bun/bin/bun" /usr/local/bin/bun
+  ln -sf "$USER_HOME/.bun/bin/bunx" /usr/local/bin/bunx
+fi
+command -v jq    >/dev/null 2>&1 || apt install -y jq
+command -v tmux  >/dev/null 2>&1 || apt install -y tmux
+
+# ---- step 5: clone brand canon ----
+echo
+echo "[5/8] Cloning brand canon…"
+if [[ -d "$AGENT_HOME/$BRAND_REPO_NAME" ]]; then
+  echo "  exists — pulling latest"
+  sudo -u "$LINUX_USER" -H bash -c "cd '$AGENT_HOME/$BRAND_REPO_NAME' && git pull --ff-only"
+else
+  sudo -u "$LINUX_USER" -H git clone -b "$BRAND_REPO_BRANCH" "$BRAND_REPO_URL" "$AGENT_HOME/$BRAND_REPO_NAME"
+fi
+
+# ---- step 6: copy rendered config into agent_home ----
+echo
+echo "[6/8] Placing rendered files into $AGENT_HOME…"
+sudo -u "$LINUX_USER" cp "$RENDERED_DIR/CLAUDE.md" "$AGENT_HOME/CLAUDE.md"
+sudo -u "$LINUX_USER" cp "$RENDERED_DIR/.claude/settings.json" "$AGENT_HOME/.claude/settings.json"
+sudo -u "$LINUX_USER" cp "$RENDERED_DIR"/.claude/agents/*.md "$AGENT_HOME/.claude/agents/"
+sudo -u "$LINUX_USER" cp "$RENDERED_DIR"/scripts/*.sh "$RENDERED_DIR"/scripts/*.py "$AGENT_HOME/scripts/" 2>/dev/null || true
+sudo -u "$LINUX_USER" chmod +x "$AGENT_HOME"/scripts/*.sh
+[[ -f "$AGENT_HOME/tasks/README.md" ]] || sudo -u "$LINUX_USER" cp "$RENDERED_DIR/tasks/README.md" "$AGENT_HOME/tasks/README.md"
+
+# ---- step 7: install systemd units ----
+echo
+echo "[7/8] Installing systemd units…"
+for f in "$RENDERED_DIR"/systemd/*; do
+  base=$(basename "$f")
+  cp "$f" "/etc/systemd/system/$base"
+done
+systemctl daemon-reload
+
+# enable timers (services they trigger don't need to be enabled)
+TIMERS=(claude-agent.service)
+[[ -f "/etc/systemd/system/morning-brief.timer" ]]   && TIMERS+=(morning-brief.timer)
+[[ -f "/etc/systemd/system/evening-rollup.timer" ]]  && TIMERS+=(evening-rollup.timer)
+[[ -f "/etc/systemd/system/stale-watcher.timer" ]]   && TIMERS+=(stale-watcher.timer)
+systemctl enable "${TIMERS[@]}"
+
+# ---- step 8: print remaining manual steps ----
+echo
+echo "[8/8] ============================================================"
+echo "      Tenant '$TENANT_ID' bootstrapped on this VPS."
+echo "      ============================================================"
+echo
+echo "  Three manual steps remain that need a browser / phone:"
+echo
+echo "  A) AUTHENTICATE CLAUDE CODE WITH MAX SUBSCRIPTION"
+echo "     sudo -u $LINUX_USER -H tmux new -s claude-setup"
+echo "     # inside tmux:"
+echo "     claude --dangerously-skip-permissions"
+echo "     # → choose 'Login with subscription', browser auth, paste code"
+echo "     # → exit (Ctrl-D), then: tmux kill-session -t claude-setup"
+echo
+echo "  B) CREATE TELEGRAM BOT WITH BOTFATHER"
+echo "     # On Telegram, message @BotFather:  /newbot  →  name + username"
+echo "     # Save the HTTP API token. Then create:"
+echo "     mkdir -p $USER_HOME/.claude/channels/telegram"
+echo "     echo 'TELEGRAM_BOT_TOKEN=<paste-token-here>' > $USER_HOME/.claude/channels/telegram/.env"
+echo "     chown -R $LINUX_USER:$LINUX_USER $USER_HOME/.claude"
+echo "     chmod 600 $USER_HOME/.claude/channels/telegram/.env"
+echo "     # Get your Telegram chat ID via @userinfobot, then:"
+echo "     systemctl start claude-agent.service"
+echo "     # In Claude Code: /plugin install telegram@claude-plugins-official → /telegram:configure <token>"
+echo "     # DM your bot anything → get a 6-char pairing code → /telegram:access pair <code>"
+echo "     # then: /telegram:access policy allowlist"
+echo
+echo "  C) CONFIGURE GHL CREDENTIALS"
+echo "     # Render your .mcp.json from the example:"
+echo "     cat $RENDERED_DIR/.mcp.json.example"
+echo "     # Replace \${GHL_PRIVATE_INTEGRATIONS_TOKEN} and \${GHL_LOCATION_ID} with actuals,"
+echo "     # then save to $AGENT_HOME/.mcp.json (chmod 600)."
+echo "     chmod 600 $AGENT_HOME/.mcp.json"
+echo "     # Optional: clone the GHL MCP server (mastanley13/GoHighLevel-MCP) at $AGENT_HOME/ghl-mcp"
+echo "     # and npm install + build."
+echo
+echo "  Once those three are done:"
+echo "     systemctl restart claude-agent.service"
+echo "     systemctl start morning-brief.timer evening-rollup.timer stale-watcher.timer"
+echo
+echo "  Test by DMing the Telegram bot anything. Should respond in under 30s."
+echo

@@ -1,0 +1,13 @@
+[Unit]
+Description={{TENANT_PERSON_FULL_NAME}} stale-task watcher
+After=network.target
+
+[Service]
+Type=oneshot
+User={{TENANT_LINUX_USER}}
+Group={{TENANT_LINUX_GROUP}}
+WorkingDirectory={{TENANT_AGENT_HOME}}
+Environment="HOME={{TENANT_USER_HOME}}"
+ExecStart={{TENANT_AGENT_HOME}}/scripts/stale-watcher.sh
+StandardOutput=append:{{TENANT_AGENT_HOME}}/logs/stale-watcher.log
+StandardError=append:{{TENANT_AGENT_HOME}}/logs/stale-watcher.log

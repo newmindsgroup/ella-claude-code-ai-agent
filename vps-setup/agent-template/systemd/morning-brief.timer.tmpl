@@ -1,0 +1,11 @@
+[Unit]
+Description=Fire morning brief at 9 AM {{TENANT_TIMEZONE}} (DST-aware via systemd OnCalendar TZ)
+
+[Timer]
+OnCalendar=*-*-* 09:00:00 {{TENANT_TIMEZONE}}
+Persistent=true
+RandomizedDelaySec=30
+Unit=morning-brief.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,7 @@
+[Unit]
+Description=Sync agent JSON state to dashboard webroot
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/opt/{{TENANT_LINUX_USER}}/agents/scripts/dashboard-sync.sh

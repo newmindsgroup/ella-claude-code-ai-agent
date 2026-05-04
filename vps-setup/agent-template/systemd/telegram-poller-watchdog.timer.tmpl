@@ -1,0 +1,13 @@
+[Unit]
+Description=Run telegram-poller-watchdog every 5 minutes for {{TENANT_LINUX_USER}}
+
+[Timer]
+# Fire 2 min after boot (give claude-agent time to come up first), then every 5 min.
+OnBootSec=2min
+OnUnitActiveSec=5min
+# If the system was off when a fire was due, run once on next boot.
+Persistent=true
+Unit=telegram-poller-watchdog.service
+
+[Install]
+WantedBy=timers.target

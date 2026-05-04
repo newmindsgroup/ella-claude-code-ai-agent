@@ -1,0 +1,35 @@
+[Unit]
+Description={{TENANT_PERSON_FULL_NAME}} personal-brand AI agent (Claude Code in tmux, Telegram bridge)
+Documentation=https://github.com/{{TENANT_BRAND_REPO_GH_PATH}}
+After=network.target {{TENANT_WEBSITE_SYSTEMD_SERVICE}}
+Wants=network-online.target
+
+[Service]
+Type=forking
+User={{TENANT_LINUX_USER}}
+Group={{TENANT_LINUX_GROUP}}
+WorkingDirectory={{TENANT_AGENT_HOME}}
+Environment="HOME={{TENANT_USER_HOME}}"
+Environment="PATH=/usr/local/bin:/usr/bin:/bin:{{TENANT_USER_HOME}}/.bun/bin:{{TENANT_USER_HOME}}/.local/bin"
+ExecStartPre=-/usr/bin/tmux kill-session -t claude
+# v2.23.0: re-apply the patch on every restart. Idempotent — no-op if already
+# applied. Catches the case where upstream channels-plugin updates and wipes
+# our deploy: callback_query handler. If the patch fails to apply (upstream
+# refactored the anchor), the service start fails loudly rather than silently
+# shipping an unpatched plugin. Plus it captures bun-death diagnostics on the
+# OUT-OF-CGROUP "the plugin spontaneously died" wedge that the watchdog catches.
+ExecStartPre={{TENANT_AGENT_HOME}}/scripts/patch-channels-plugin.sh
+ExecStart=/usr/bin/tmux new-session -d -s claude -c {{TENANT_AGENT_HOME}} 'claude --channels plugin:telegram@claude-plugins-official --permission-mode dontAsk'
+# v2.25.0: mid-flight resume — if claude-agent restarted while a /deploy was
+# in `ready_to_ship` phase, scan deploys/ and re-nudge Telegram so Daniel
+# isn't left with an orphaned approval gate. Idempotent (30-min re-nudge
+# threshold tracked in state file). `=-` prefix: don't fail service start
+# if the nudge script fails (e.g. Telegram unreachable).
+ExecStartPost=-{{TENANT_AGENT_HOME}}/scripts/deploy-resume-nudge.sh
+ExecStop=/usr/bin/tmux kill-session -t claude
+Restart=on-failure
+RestartSec=10
+RestartPreventExitStatus=0
+
+[Install]
+WantedBy=multi-user.target

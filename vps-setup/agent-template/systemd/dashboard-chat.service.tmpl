@@ -1,0 +1,19 @@
+[Unit]
+Description=Mission control chat backend for {{TENANT_ID}}
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{TENANT_LINUX_USER}}
+Group={{TENANT_LINUX_GROUP}}
+WorkingDirectory={{TENANT_AGENT_HOME}}/dashboard-chat
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 -m uvicorn server:app --host 127.0.0.1 --port 8001
+Restart=on-failure
+RestartSec=10
+StandardOutput=append:/var/log/{{TENANT_LINUX_USER}}-dashboard-chat.log
+StandardError=append:/var/log/{{TENANT_LINUX_USER}}-dashboard-chat.log
+
+[Install]
+WantedBy=multi-user.target

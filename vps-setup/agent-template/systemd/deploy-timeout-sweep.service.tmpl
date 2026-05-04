@@ -1,0 +1,27 @@
+[Unit]
+Description=Auto-cancel stale ready_to_ship deploy state files for {{TENANT_LINUX_USER}} (v2.24.1+)
+Documentation=https://github.com/{{TENANT_BRAND_REPO_GH_PATH}}
+After=claude-agent.service
+
+[Service]
+Type=oneshot
+User={{TENANT_LINUX_USER}}
+Group={{TENANT_LINUX_GROUP}}
+WorkingDirectory={{TENANT_AGENT_HOME}}
+Environment="HOME={{TENANT_USER_HOME}}"
+Environment="PATH=/usr/local/bin:/usr/bin:/bin:{{TENANT_USER_HOME}}/.bun/bin:{{TENANT_USER_HOME}}/.local/bin"
+ExecStart={{TENANT_AGENT_HOME}}/scripts/deploy-timeout-sweep.sh
+
+# Hardening — same shape as the watchdog. NoNewPrivileges OMITTED on purpose:
+# the script may need to read state files written by other processes (the
+# agent itself), and any fork+exec chain that involves group changes would
+# fail with NoNewPrivileges=true.
+ProtectKernelTunables=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+RestrictRealtime=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

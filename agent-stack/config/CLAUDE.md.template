@@ -1,0 +1,109 @@
+# CLAUDE.md Template — Project-Instructions Block
+
+Drop the block below into the `CLAUDE.md` at the root of any project where this agent stack should fire its engineering rituals. If a `CLAUDE.md` already exists, append this as a new section.
+
+The block does not need editing per-project unless you want to tighten the project-specific quality bar (last section).
+
+---
+
+```markdown
+## Agent Stack — Engineering Rituals
+
+This project runs on a Claude Code VPS configured with the agent-stack baseline (Superpowers plugin + Memory / Fetch / Filesystem / Playwright / Chroma MCP servers).
+
+### Mandatory rituals (use unless explicitly told to skip)
+
+- Before any non-trivial code change, fire `writing-plans` and produce a written plan with file list, dependencies, and verification steps.
+- For any new feature or refactor, fire `test-driven-development`. Write the failing test first, then the implementation. RED → GREEN → REFACTOR.
+- For any bug, fire `systematic-debugging`. Reproduce, isolate, hypothesize, verify. Do not patch without a root cause.
+- Before declaring any task complete, fire `verification-before-completion`. Run tests, run a clean build, check the actual behavior matches the spec.
+- Before merge, fire `requesting-code-review`. Self-review against the project's quality criteria.
+- At the end of a feature branch, fire `finishing-a-development-branch`. Clean history, PR description, merge.
+
+### Use when relevant
+
+- For multi-step builds, prefer `subagent-driven-development` over monolithic execution.
+- For independent workstreams, fire `dispatching-parallel-agents`.
+- For parallel branch work, use `using-git-worktrees` so branches do not collide.
+- For open-ended product/strategy questions, fire `brainstorming` before committing to an approach.
+- When a recurring pattern emerges, fire `writing-skills` and capture it as a project-local skill.
+
+### When to skip
+
+The user can override any of the above per-session with explicit instruction (e.g. "skip TDD, this is a one-off script"). Honor those overrides.
+
+Do NOT fire engineering rituals on:
+- Pure content edits (markdown copy, blog posts).
+- One-off shell commands.
+- Configuration-only edits.
+
+### MCP servers available
+
+- **Memory** — persistent knowledge graph across sessions; use it to remember client-specific facts, brand voice rules, and recurring patterns.
+- **Fetch** — single-URL HTML→markdown reads; use for research and reference lookups.
+- **Filesystem** — scoped file operations within configured directory roots.
+- **Playwright** — headless browser; use for sites that need JS rendering or unattended scrapes.
+- **Chroma** — local vector RAG over the project's knowledge library.
+- **Firecrawl** (if configured) — 14 tools: scrape, search, crawl, structured extract, persistent browser sessions. Use for JS-heavy sites, bulk crawls, or AI-search visibility audits.
+
+### Sub-agents available (via agency-agents cherry-pick)
+
+16 specialist sub-agents from `msitarzewski/agency-agents` are installed in `~/.claude/agents/`. They auto-route via "Use PROACTIVELY when..." trigger phrases — you don't need to remember names. Coverage: ai-engineer, autonomous-optimization-architect, incident-response-commander, sre, code-reviewer, database-optimizer, agents-orchestrator, workflow-architect, document-generator, agentic-identity-trust, identity-graph-operator, linkedin-content-creator, carousel-growth-engine, ai-citation-strategist, image-prompt-engineer, reality-checker.
+
+The five content-producing agents (linkedin-content-creator, carousel-growth-engine, ai-citation-strategist, image-prompt-engineer, document-generator) defer to the brand voice precedence below before drafting.
+
+### Knowledge-graph navigation
+
+If `graphify-out/` exists in this repo, prefer querying the graph (`/graphify query "..."`) over grepping. Build the graph with `/graphify .` if it doesn't exist yet. Re-extract code-only changes with `graphify update .` (free, no API cost). The graph surfaces god nodes, surprising cross-file connections, and the "why" extracted from `# NOTE:` / `# WHY:` / `# HACK:` comments.
+
+### Brand Voice — Single Source of Truth
+
+For ANY human-facing copy (LinkedIn posts, newsletters, landing-page text, social posts, emails, decks, captions, even chat replies that will be sent to a person), the canonical voice spec lives in this exact order of precedence (paths customize per client):
+
+1. **`<brand voice playbook>`** — voice DNA spec, banned phrases, tone rules
+2. **`<brand identity doc>`** — positioning + voice attributes
+3. **`<messaging framework>`** — headlines + key phrases
+4. **`<AI tells guide>`** — patterns that read as AI-generated and must be avoided
+5. **`AGENTS.md`** — brand ground rules
+
+If a sub-agent or skill provides its own tone/personality guidance that conflicts with the playbook, the playbook wins.
+
+### Brand Visual — Single Source of Truth
+
+For ANY visual artifact (UI generation, landing pages, decks, social images, AI image prompts, illustrations), the canonical visual spec lives in this exact order:
+
+1. **`DESIGN.md`** (project root) — agent-facing visual SSOT in Stitch 9-section format. Read first.
+2. **`<design tokens JSON>`** — machine-canonical token values. If `DESIGN.md` and tokens.json disagree, tokens.json wins.
+3. **`<visual identity doc>`** — human-readable visual identity spec.
+4. **`<design north-star doc>`** — design philosophy, motion rules, reference targets.
+
+`DESIGN.md` is the agent navigator; the tokens file is the machine source of truth.
+
+### Project-specific quality bar
+
+For this repo, "done" means:
+1. A plan was written.
+2. Tests cover the new behavior and pass.
+3. A self-review was completed.
+4. Verification ran in a clean environment or preview deploy.
+5. Branch wrap-up rituals are complete.
+
+If any of these is missing, do not declare the task done. Surface the gap and complete it.
+
+[Customize this section per project: add brand-voice checks, accessibility requirements, license requirements for OSS repos, deploy preconditions, etc.]
+```
+
+---
+
+## How to use this template
+
+For a new client repo:
+
+```bash
+cd <client-repo>
+cat /path/to/agent-stack/config/CLAUDE.md.template >> CLAUDE.md
+$EDITOR CLAUDE.md
+# Trim the comment header, customize the project-specific quality bar
+git add CLAUDE.md
+git commit -m "Add agent-stack engineering rituals to CLAUDE.md"
+```

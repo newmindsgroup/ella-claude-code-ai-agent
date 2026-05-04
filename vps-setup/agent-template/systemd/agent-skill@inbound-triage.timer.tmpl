@@ -1,0 +1,11 @@
+[Unit]
+Description=Inbound triage scheduled run (Mon-Fri 9, 13, 17 {{TENANT_TIMEZONE}})
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* 09,13,17:00:00 {{TENANT_TIMEZONE}}
+Persistent=true
+RandomizedDelaySec=60
+Unit=agent-skill@inbound-triage.service
+
+[Install]
+WantedBy=timers.target

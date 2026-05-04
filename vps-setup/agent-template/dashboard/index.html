@@ -1,0 +1,2170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Daniel Gonell — Mission Control</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
+          mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace']
+        }
+      }
+    }
+  };
+</script>
+<style>
+  html, body { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+  .num, .mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace; font-variant-numeric: tabular-nums; }
+  .num { font-feature-settings: 'tnum'; }
+  .scroll-soft::-webkit-scrollbar { width: 8px; height: 8px; }
+  .scroll-soft::-webkit-scrollbar-thumb { background: rgba(100,116,139,0.3); border-radius: 9999px; }
+  .scroll-soft::-webkit-scrollbar-track { background: transparent; }
+  @keyframes shimmer { 0% { background-position: -800px 0; } 100% { background-position: 800px 0; } }
+  .shimmer {
+    background: linear-gradient(90deg, rgba(148,163,184,0.08) 0%, rgba(148,163,184,0.18) 40%, rgba(148,163,184,0.08) 80%);
+    background-size: 800px 100%;
+    animation: shimmer 1.6s infinite linear;
+    border-radius: 0.5rem;
+  }
+  @keyframes liveDot { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.45; transform: scale(0.92); } }
+  .live-dot { animation: liveDot 1.6s ease-in-out infinite; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-in { animation: fadeIn 220ms ease-out both; }
+  @keyframes blink { 0%,80%,100% { opacity: 0.25; } 40% { opacity: 1; } }
+  .typing-dot { animation: blink 1.2s infinite; display: inline-block; width: 4px; height: 4px; border-radius: 9999px; background: currentColor; margin: 0 1px; }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+  .nav-active { box-shadow: inset 3px 0 0 0 #6366f1; }
+  .dark .card-shadow { box-shadow: none; }
+  .card-shadow { box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.04), 0 1px 3px 0 rgba(15, 23, 42, 0.06); }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .tnum { font-variant-numeric: tabular-nums; }
+  .masonry { column-count: 1; column-gap: 1.5rem; }
+  @media (min-width: 640px) { .masonry { column-count: 2; } }
+  @media (min-width: 1024px) { .masonry { column-count: 3; } }
+  .masonry > * { break-inside: avoid; margin-bottom: 1.5rem; }
+  .progress-track { background: rgb(226 232 240); }
+  .dark .progress-track { background: rgb(30 41 59); }
+  .sidebar-hidden { transform: translateX(-100%); }
+  @media (min-width: 768px) { .sidebar-hidden { transform: none; } }
+  .bar-segment { transition: opacity 120ms ease; }
+  .bar-segment:hover { opacity: 0.85; }
+</style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen">
+
+<div class="flex min-h-screen">
+
+  <div id="sidebar-backdrop" class="fixed inset-0 bg-slate-900/60 z-30 hidden md:hidden" data-action="close-sidebar"></div>
+
+  <aside id="sidebar" class="fixed md:sticky md:top-0 inset-y-0 left-0 z-40 w-60 shrink-0 bg-slate-900 dark:bg-slate-950 text-slate-200 flex flex-col border-r border-slate-800 sidebar-hidden md:translate-x-0 transition-transform duration-200 ease-out md:h-screen">
+    <div class="h-[60px] px-5 flex items-center gap-3 border-b border-slate-800">
+      <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-semibold">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6v6c0 5 3.4 9.4 8 10 4.6-.6 8-5 8-10V6l-8-4Z"/></svg>
+      </div>
+      <div class="leading-tight">
+        <div class="text-sm font-semibold text-white">Mission Control</div>
+        <div class="text-[11px] text-slate-400 mono">v{{TENANT_DASHBOARD_VERSION}}</div>
+      </div>
+    </div>
+
+    <nav class="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto scroll-soft">
+      <a href="#" data-action="nav" data-tab="overview" class="nav-link group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/70 transition-colors">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Overview
+      </a>
+      <a href="#" data-action="nav" data-tab="tasks" class="nav-link group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/70 transition-colors">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h12M9 12h12M9 18h12"/><circle cx="4" cy="6" r="1.5"/><circle cx="4" cy="12" r="1.5"/><circle cx="4" cy="18" r="1.5"/></svg>
+        Tasks <span data-bind="taskCount" class="ml-auto text-[11px] mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">0</span>
+      </a>
+      <a href="#" data-action="nav" data-tab="goals" class="nav-link group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/70 transition-colors">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>
+        Goals <span data-bind="goalCount" class="ml-auto text-[11px] mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">0</span>
+      </a>
+      <a href="#" data-action="nav" data-tab="memory" class="nav-link group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/70 transition-colors">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a4 4 0 0 0-4 4 4 4 0 0 0-4 4 4 4 0 0 0 1.3 2.96A4 4 0 0 0 8 21a4 4 0 0 0 4-2 4 4 0 0 0 4 2 4 4 0 0 0 2.7-7.04A4 4 0 0 0 16 7a4 4 0 0 0-4-4Z"/></svg>
+        Memory <span data-bind="memoryCount" class="ml-auto text-[11px] mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">0</span>
+      </a>
+      <a href="#" data-action="nav" data-tab="drafts" class="nav-link group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/70 transition-colors">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        Drafts <span data-bind="draftCount" class="ml-auto text-[11px] mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">0</span>
+      </a>
+      <a href="#" data-action="nav" data-tab="inbound" class="nav-link group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/70 transition-colors">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/></svg>
+        Inbound <span data-bind="inboundCount" class="ml-auto text-[11px] mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">0</span>
+      </a>
+      <a href="#" data-action="nav" data-tab="improvements" class="nav-link group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/70 transition-colors">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        Improvements <span data-bind="improvementsCount" class="ml-auto text-[11px] mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">0</span>
+      </a>
+      <a href="#" data-action="nav" data-tab="drift" class="nav-link group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/70 transition-colors">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+        Drift <span data-bind="driftCount" class="ml-auto text-[11px] mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">0</span>
+      </a>
+      <a href="#" data-action="nav" data-tab="competitive" class="nav-link group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/70 transition-colors">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg>
+        Competitive <span data-bind="competitiveCount" class="ml-auto text-[11px] mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">0</span>
+      </a>
+      <a href="#" data-action="nav" data-tab="schedule" class="nav-link group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/70 transition-colors">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>
+        Schedule
+      </a>
+      <a href="#" data-action="nav" data-tab="telemetry" class="nav-link group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/70 transition-colors">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-7"/></svg>
+        Telemetry
+      </a>
+      <a href="#" data-action="nav" data-tab="chat" class="nav-link group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/70 transition-colors">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-12.6 6.5L4 20l1.5-4.4A8 8 0 1 1 21 12Z"/></svg>
+        Chat
+      </a>
+    </nav>
+
+    <div class="px-3 pb-4 border-t border-slate-800 pt-3">
+      <a href="#" data-action="nav" data-tab="settings" class="nav-link group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/70 transition-colors">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1A2 2 0 1 1 4.4 17l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.8L4.2 7A2 2 0 1 1 7 4.2l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1A2 2 0 1 1 19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>
+        Settings
+      </a>
+      <div class="mt-3 px-3 text-[11px] text-slate-500">
+        <div class="mono">tenant_id: <span data-bind="tenantId">—</span></div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="flex-1 min-w-0 flex flex-col">
+
+    <header class="h-[60px] sticky top-0 z-20 bg-white/80 dark:bg-slate-950/80 backdrop-blur border-b border-slate-200 dark:border-slate-800 flex items-center px-4 md:px-6 gap-3">
+      <button data-action="toggle-sidebar" class="md:hidden p-2 -ml-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <h1 id="page-title" class="text-base md:text-lg font-semibold text-slate-900 dark:text-slate-50">Overview</h1>
+
+      <div class="hidden md:flex items-center flex-1 max-w-md mx-4">
+        <div class="relative w-full">
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          <input id="global-search" type="search" placeholder="Search tasks, goals, memory…" class="w-full pl-9 pr-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-900 border border-transparent focus:bg-white dark:focus:bg-slate-950 focus:border-slate-300 dark:focus:border-slate-700 outline-none text-sm placeholder-slate-400" />
+        </div>
+      </div>
+
+      <div class="ml-auto flex items-center gap-2">
+        <div id="status-pill" class="hidden md:flex items-center gap-2 text-[12px] px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 live-dot"></span>
+          <span class="mono">live</span>
+          <span class="opacity-60 mono">· <span data-bind="lastPoll">—</span></span>
+        </div>
+        <button data-action="toggle-theme" title="Toggle theme" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300">
+          <svg id="icon-sun" class="hidden dark:block" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+          <svg id="icon-moon" class="block dark:hidden" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+        </button>
+        <div class="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-sm font-semibold" data-bind="avatarInitial">A</div>
+      </div>
+    </header>
+
+    <main id="main" class="flex-1 overflow-y-auto scroll-soft">
+      <div class="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">
+
+        <section data-tab-content="overview" class="tab-section">
+          <div class="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 md:p-8 card-shadow mb-6">
+            <div class="text-2xl md:text-3xl font-semibold tracking-tight" data-bind="greeting">Hello.</div>
+            <div class="text-sm text-slate-500 dark:text-slate-400 mt-1 mono" data-bind="dateline">—</div>
+          </div>
+
+          <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6 mb-6">
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">Active Tasks</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="kpiActiveTasks">—</div>
+              <div class="mt-1 text-xs flex items-center gap-1" data-bind="kpiActiveTasksDelta"><span class="text-slate-400">·</span></div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">Goals on Track</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="kpiGoalsOnTrack">—</div>
+              <div class="mt-1 text-xs flex items-center gap-1" data-bind="kpiGoalsOnTrackDelta"><span class="text-slate-400">·</span></div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">Tokens Today</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="kpiTokensToday">—</div>
+              <div class="mt-1 text-xs flex items-center gap-1" data-bind="kpiTokensTodayDelta"><span class="text-slate-400">·</span></div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">API Cost Today</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="kpiApiCostToday">—</div>
+              <div class="mt-1 text-xs text-slate-400 mono" data-bind="kpiApiCostWeekSub">—</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">Value Created Today</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="kpiValueToday">—</div>
+              <div class="mt-1 text-xs flex items-center gap-1" data-bind="kpiValueTodayDelta"><span class="text-slate-400">·</span></div>
+            </div>
+          </div>
+
+          <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow mb-6">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-sm font-semibold tracking-tight flex items-center gap-2">
+                <span>Today's signal</span>
+                <span data-bind="signalTotalBadge" class="text-[11px] mono px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">0 need attention</span>
+              </h2>
+              <span class="text-xs text-slate-400 mono">unified view across all surfaces</span>
+            </div>
+            <div id="signal-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+            <div id="signal-empty" class="hidden p-6 text-center text-sm text-slate-500">
+              Nothing waiting on you across any surface. <span class="ml-1">✨</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+            <div class="lg:col-span-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="flex items-center justify-between mb-4">
+                <h2 class="text-sm font-semibold tracking-tight">Approval queue</h2>
+                <span class="text-xs text-slate-400 mono" data-bind="approvalCount">0 waiting</span>
+              </div>
+              <div id="approval-list" class="space-y-3"></div>
+            </div>
+
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="flex items-center justify-between mb-4">
+                <h2 class="text-sm font-semibold tracking-tight">Recent activity</h2>
+                <span class="text-xs text-slate-400">last 10</span>
+              </div>
+              <ul id="activity-list" class="space-y-3 text-sm"></ul>
+            </div>
+          </div>
+        </section>
+
+        <section data-tab-content="tasks" class="tab-section hidden">
+          <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow mb-6">
+            <div class="flex flex-wrap gap-2 items-center">
+              <div id="state-pills" class="flex flex-wrap gap-1.5">
+                <button data-action="filter-state" data-state="all" class="state-filter px-3 py-1.5 text-xs rounded-full border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">All</button>
+                <button data-action="filter-state" data-state="queued" class="state-filter px-3 py-1.5 text-xs rounded-full border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">Queued</button>
+                <button data-action="filter-state" data-state="in_progress" class="state-filter px-3 py-1.5 text-xs rounded-full border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">In progress</button>
+                <button data-action="filter-state" data-state="in_review" class="state-filter px-3 py-1.5 text-xs rounded-full border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">In review</button>
+                <button data-action="filter-state" data-state="done" class="state-filter px-3 py-1.5 text-xs rounded-full border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">Done</button>
+                <button data-action="filter-state" data-state="blocked" class="state-filter px-3 py-1.5 text-xs rounded-full border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">Blocked</button>
+              </div>
+              <select id="owner-filter" class="ml-auto text-sm rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent px-3 py-1.5 outline-none">
+                <option value="">All owners</option>
+              </select>
+              <input id="task-search" type="search" placeholder="Search summaries…" class="text-sm rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent px-3 py-1.5 outline-none w-48" />
+            </div>
+          </div>
+
+          <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 card-shadow overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="bg-slate-50 dark:bg-slate-900/40 text-xs uppercase tracking-wider text-slate-500">
+                  <tr>
+                    <th class="text-left px-4 py-3 font-medium">Created</th>
+                    <th class="text-left px-4 py-3 font-medium">State</th>
+                    <th class="text-left px-4 py-3 font-medium">Summary</th>
+                    <th class="text-left px-4 py-3 font-medium">Owner</th>
+                    <th class="text-left px-4 py-3 font-medium">Source</th>
+                    <th class="text-right px-4 py-3 font-medium">Duration</th>
+                    <th class="text-right px-4 py-3 font-medium">Tokens</th>
+                    <th class="text-right px-4 py-3 font-medium">Value</th>
+                    <th class="text-right px-4 py-3 font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="tasks-tbody" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+              </table>
+            </div>
+            <div id="tasks-empty" class="hidden p-10 text-center text-sm text-slate-500">No tasks yet. Talk to your agent in Telegram or in the Chat tab to create one.</div>
+          </div>
+        </section>
+
+        <section data-tab-content="goals" class="tab-section hidden">
+          <div class="flex items-center justify-between mb-6">
+            <p class="text-sm text-slate-500">Open goals and milestones. Progress is computed from the latest check-in or milestone state.</p>
+            <button class="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700">+ Add goal</button>
+          </div>
+          <div id="goals-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6"></div>
+          <div id="goals-empty" class="hidden p-10 text-center text-sm text-slate-500 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">No open goals. Add one to start tracking.</div>
+        </section>
+
+        <section data-tab-content="memory" class="tab-section hidden">
+          <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 card-shadow mb-6">
+            <div class="flex items-center justify-between mb-3 gap-3 flex-wrap">
+              <div id="memory-types" class="flex flex-wrap gap-1.5"></div>
+              <input id="memory-search" type="search" placeholder="Search memory…" class="text-sm rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent px-3 py-1.5 outline-none w-56" />
+            </div>
+          </div>
+          <div id="memory-grid" class="masonry"></div>
+          <div id="memory-empty" class="hidden p-10 text-center text-sm text-slate-500 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">No memory entries match this filter.</div>
+        </section>
+
+        <section data-tab-content="drafts" class="tab-section hidden">
+          <div class="flex items-center justify-between mb-6">
+            <p class="text-sm text-slate-500">Local drafts not staged in GHL — primarily X threads. LinkedIn and Instagram drafts live in GHL.</p>
+            <div class="flex items-center gap-2">
+              <div id="draft-platform-filters" class="flex flex-wrap gap-1.5"></div>
+              <input id="draft-search" type="search" placeholder="Search drafts…" class="text-sm rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent px-3 py-1.5 outline-none w-44" />
+            </div>
+          </div>
+          <div id="drafts-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6"></div>
+          <div id="drafts-empty" class="hidden p-10 text-center text-sm text-slate-500 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">No local drafts in the last 14 days.</div>
+        </section>
+
+        <section data-tab-content="inbound" class="tab-section hidden">
+          <div class="flex items-center justify-between mb-6">
+            <p class="text-sm text-slate-500">Inbound triage runs (M-F 9/13/17 ET) — what the agent handled vs flagged for you. HIGH items need a personal reply.</p>
+            <div class="flex items-center gap-2">
+              <input id="inbound-search" type="search" placeholder="Search inbound…" class="text-sm rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent px-3 py-1.5 outline-none w-44" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">HIGH (14d)</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum text-rose-600 dark:text-rose-400" data-bind="inboundHighCount">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">need personal reply</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">MEDIUM (14d)</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum text-amber-600 dark:text-amber-400" data-bind="inboundMediumCount">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">drafted, awaiting review</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Auto-handled (14d)</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="inboundIgnoredCount">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">automated systems skipped</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Triage runs (14d)</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="inboundRunsCount">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">9, 13, 17 ET on weekdays</div>
+            </div>
+          </div>
+
+          <div id="inbound-feed" class="space-y-4"></div>
+          <div id="inbound-empty" class="hidden p-10 text-center text-sm text-slate-500 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">No triage runs in the last 14 days.</div>
+        </section>
+
+        <section data-tab-content="improvements" class="tab-section hidden">
+          <div class="flex items-center justify-between mb-6">
+            <p class="text-sm text-slate-500">Self-improvement proposals from the agent's weekly review (Sundays). Apply with <code class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-xs mono">/improve apply &lt;id&gt;</code> in Telegram, or skip with <code class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-xs mono">/improve skip &lt;id&gt;</code>.</p>
+            <input id="improvements-search" type="search" placeholder="Search proposals…" class="text-sm rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent px-3 py-1.5 outline-none w-48" />
+          </div>
+
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Pending</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum text-indigo-600 dark:text-indigo-400" data-bind="improvementsPending">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">awaiting your call</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Total Proposals</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="improvementsTotal">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">last 60 days</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Reviews</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="improvementsReviews">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">weekly cadence</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Latest review</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="improvementsLatest">—</div>
+              <div class="mt-1 text-xs text-slate-400 mono" data-bind="improvementsLatestSub">—</div>
+            </div>
+          </div>
+
+          <div id="improvements-feed" class="space-y-6"></div>
+          <div id="improvements-empty" class="hidden p-10 text-center text-sm text-slate-500 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">No self-improvement proposals in the last 60 days.</div>
+        </section>
+
+        <section data-tab-content="drift" class="tab-section hidden">
+          <div class="flex items-center justify-between mb-6">
+            <p class="text-sm text-slate-500">Brand drift scans (daily 23:00 ET) — banned phrases, off-canon claims, non-canonical CTAs on {{TENANT_TLD}}. Persistent items have stayed unfixed across multiple scans.</p>
+            <input id="drift-search" type="search" placeholder="Search drift items…" class="text-sm rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent px-3 py-1.5 outline-none w-48" />
+          </div>
+
+          <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">RED</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum text-red-600 dark:text-red-400" data-bind="driftRed">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">entity-separation</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">HIGH</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum text-rose-600 dark:text-rose-400" data-bind="driftHigh">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">voice violations</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">MEDIUM</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum text-amber-600 dark:text-amber-400" data-bind="driftMedium">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">positioning drift</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">LOW</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum text-slate-600 dark:text-slate-400" data-bind="driftLow">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">mechanics</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Persistent</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum text-purple-600 dark:text-purple-400" data-bind="driftPersistent">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">unfixed for 2+ scans</div>
+            </div>
+          </div>
+
+          <div id="drift-feed" class="space-y-6"></div>
+          <div id="drift-empty" class="hidden p-10 text-center text-sm text-slate-500 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">No drift scans in the last 14 days.</div>
+        </section>
+
+        <section data-tab-content="competitive" class="tab-section hidden">
+          <div class="flex items-center justify-between mb-6">
+            <p class="text-sm text-slate-500">Competitive monitor (daily 07:00 ET) — what The Futur, April Dunford, Jay Acunzo, and Ann Handley shipped vs yesterday's snapshot.</p>
+            <input id="competitive-search" type="search" placeholder="Search competitors…" class="text-sm rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent px-3 py-1.5 outline-none w-48" />
+          </div>
+
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Changes today</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum text-amber-600 dark:text-amber-400" data-bind="competitiveChangesLatest">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">moves vs yesterday</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Threats today</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum text-red-600 dark:text-red-400" data-bind="competitiveThreatsLatest">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">positioning overlap</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Changes (14d)</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="competitiveChanges14d">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">tempo across peers</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Targets tracked</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="competitiveTargets">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">latest scan</div>
+            </div>
+          </div>
+
+          <div id="competitive-feed" class="space-y-6"></div>
+          <div id="competitive-empty" class="hidden p-10 text-center text-sm text-slate-500 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">No competitive scans in the last 14 days.</div>
+        </section>
+
+        <section data-tab-content="schedule" class="tab-section hidden">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="flex items-center justify-between mb-4">
+                <h2 class="text-sm font-semibold">Today</h2>
+                <span class="text-xs mono text-slate-400" data-bind="todayDate">—</span>
+              </div>
+              <div id="schedule-day" class="relative"></div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <h2 class="text-sm font-semibold mb-4">Next 7 days</h2>
+              <div id="schedule-week" class="space-y-3"></div>
+            </div>
+          </div>
+
+          <div class="mt-6 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+            <h2 class="text-sm font-semibold mb-4">Scheduled jobs</h2>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="text-xs uppercase tracking-wider text-slate-500">
+                  <tr>
+                    <th class="text-left px-3 py-2 font-medium">Job</th>
+                    <th class="text-left px-3 py-2 font-medium">Cadence</th>
+                    <th class="text-left px-3 py-2 font-medium">Last run</th>
+                    <th class="text-left px-3 py-2 font-medium">Status</th>
+                    <th class="text-left px-3 py-2 font-medium">Next run</th>
+                  </tr>
+                </thead>
+                <tbody id="jobs-tbody" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section data-tab-content="telemetry" class="tab-section hidden">
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Tokens This Week</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="telemTokensWeek">—</div>
+              <div class="mt-1 text-xs text-slate-400 mono" data-bind="telemTokensWeekSub">—</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">API Cost This Week</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="telemCostWeek">—</div>
+              <div class="mt-1 text-xs text-slate-400 mono">Sonnet 4.6 list pricing</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Human-Equiv Hours</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="telemHours">—</div>
+              <div class="mt-1 text-xs text-slate-400 mono">based on rate per task type</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Net Savings</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum text-emerald-600 dark:text-emerald-400" data-bind="telemSavings">—</div>
+              <div class="mt-1 text-xs text-slate-400 mono">human cost − api cost</div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <div class="lg:col-span-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="flex items-center justify-between mb-4">
+                <h2 class="text-sm font-semibold">Tokens per day · last 7d</h2>
+                <div class="text-xs flex gap-3 text-slate-500">
+                  <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-sm bg-indigo-500"></span>input</span>
+                  <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-sm bg-indigo-300"></span>output</span>
+                  <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-sm bg-emerald-400"></span>cache_read</span>
+                  <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-sm bg-amber-400"></span>cache_write</span>
+                </div>
+              </div>
+              <div id="tokens-chart" class="w-full"></div>
+            </div>
+
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <h2 class="text-sm font-semibold mb-4">Cache hit ratio</h2>
+              <div id="cache-gauge" class="flex items-center justify-center"></div>
+            </div>
+          </div>
+
+          <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 card-shadow overflow-hidden mb-6">
+            <div class="px-5 pt-5">
+              <h2 class="text-sm font-semibold">Top tasks by value</h2>
+            </div>
+            <div class="overflow-x-auto mt-3">
+              <table class="w-full text-sm">
+                <thead class="bg-slate-50 dark:bg-slate-900/40 text-xs uppercase tracking-wider text-slate-500">
+                  <tr>
+                    <th class="text-left px-4 py-3 font-medium">Task</th>
+                    <th class="text-left px-4 py-3 font-medium">Type</th>
+                    <th class="text-right px-4 py-3 font-medium">Wall time</th>
+                    <th class="text-right px-4 py-3 font-medium">Human eq.</th>
+                    <th class="text-right px-4 py-3 font-medium">API cost</th>
+                    <th class="text-right px-4 py-3 font-medium">Value</th>
+                  </tr>
+                </thead>
+                <tbody id="top-tasks-tbody" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <h3 class="text-sm font-semibold mb-2">What we're tracking</h3>
+              <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">We attribute tokens to tasks via timestamp windows on lifecycle events. Human-equivalent value uses industry-standard hourly rates per task type (drafts at $75/hr, research at $150/hr, strategy at $200/hr, creative at $125/hr). API cost is computed at Sonnet 4.6 list pricing — $3 per Mtok input, $15 per Mtok output, with cache reads at 10% and cache writes at 125% of input pricing. Net savings is human-equivalent cost minus api cost.</p>
+            </div>
+            <div class="rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 p-5">
+              <h3 class="text-sm font-semibold text-amber-900 dark:text-amber-200 mb-2">What you might be missing</h3>
+              <ul class="text-sm text-amber-900/90 dark:text-amber-200/90 leading-relaxed space-y-1.5 list-disc pl-5">
+                <li>Approval rates — % of drafts shipped without edits.</li>
+                <li>Edit-distance per draft — how much you actually changed.</li>
+                <li>Sub-agent delegation graph — who called whom, how deep.</li>
+                <li>Response latency p50 / p95 — tail behavior, not averages.</li>
+                <li>Cost per outcome — per booked call, per closed deal.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section data-tab-content="chat" class="tab-section hidden">
+          <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 card-shadow flex flex-col" style="min-height: calc(100vh - 200px); max-height: calc(100vh - 140px);">
+            <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              <div>
+                <div class="text-sm font-semibold">Conversation with agent</div>
+                <div class="text-xs text-slate-500">Each message you send creates a task in the ledger and tracks its own telemetry.</div>
+              </div>
+              <button data-action="clear-chat" class="text-xs text-slate-500 hover:text-rose-600 px-2 py-1 rounded">Clear history</button>
+            </div>
+            <div id="chat-messages" class="flex-1 overflow-y-auto scroll-soft px-5 py-6 space-y-5"></div>
+            <div class="px-5 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40">
+              <div class="flex gap-3 items-end">
+                <textarea id="chat-input" rows="2" placeholder="Message your agent…" class="flex-1 resize-none rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 px-3 py-2 outline-none focus:border-indigo-500 dark:focus:border-indigo-500 text-sm"></textarea>
+                <button data-action="send-chat" class="h-10 px-4 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 flex items-center gap-1.5">
+                  Send
+                  <span class="hidden md:inline text-[10px] opacity-70 mono">⌘↵</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section data-tab-content="settings" class="tab-section hidden">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <h3 class="text-sm font-semibold mb-3">Theme</h3>
+              <div class="flex gap-2">
+                <button data-action="theme" data-mode="light" class="theme-btn px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-sm">Light</button>
+                <button data-action="theme" data-mode="dark" class="theme-btn px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-sm">Dark</button>
+                <button data-action="theme" data-mode="system" class="theme-btn px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-sm">System</button>
+              </div>
+              <div class="text-xs text-slate-500 mt-2">Saved to <span class="mono">localStorage</span> as <span class="mono">dashboard-theme</span>.</div>
+            </div>
+
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <h3 class="text-sm font-semibold mb-3">Tenant</h3>
+              <dl class="text-sm space-y-2">
+                <div class="flex justify-between"><dt class="text-slate-500">tenant_id</dt><dd class="mono" data-bind="tenantId2">—</dd></div>
+                <div class="flex justify-between"><dt class="text-slate-500">person</dt><dd data-bind="tenantPerson">—</dd></div>
+                <div class="flex justify-between"><dt class="text-slate-500">contact</dt><dd class="mono text-xs" data-bind="tenantEmail">—</dd></div>
+              </dl>
+            </div>
+
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <h3 class="text-sm font-semibold mb-3">Agent connection</h3>
+              <div class="flex items-center gap-2 mb-2">
+                <span id="health-pill" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs bg-slate-100 dark:bg-slate-800 text-slate-500">
+                  <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span> unknown
+                </span>
+              </div>
+              <div class="text-xs text-slate-500">last poll: <span class="mono" data-bind="lastPoll2">—</span></div>
+              <button data-action="reload" class="mt-3 px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700">Reload data</button>
+            </div>
+
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <h3 class="text-sm font-semibold mb-3">About</h3>
+              <dl class="text-sm space-y-2">
+                <div class="flex justify-between"><dt class="text-slate-500">version</dt><dd class="mono">{{TENANT_DASHBOARD_VERSION}}</dd></div>
+                <div class="flex justify-between"><dt class="text-slate-500">build</dt><dd class="mono">single-file</dd></div>
+                <div class="flex justify-between"><dt class="text-slate-500">repo</dt><dd><a href="#" class="text-indigo-600 dark:text-indigo-400 hover:underline mono text-xs">github</a></dd></div>
+              </dl>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  const TENANT = {
+    id: 'example-tenant',
+    name: 'Daniel',
+    email: 'info@newmindsgroup.com',
+    title: 'Daniel Gonell — Mission Control'
+  };
+
+  const state = {
+    tasks: [], goals: [], memory: [], drafts: [],
+    triage: { runs: [], totals: {} },
+    improvements: { reviews: [], totals: {} },
+    drift: { scans: [], latest: {}, persistent_in_latest: 0 },
+    competitive: { reports: [], totals: {} },
+    queue: { jobs: [] },
+    telemetry: { daily: [], top: [], cache_ratio: 0 },
+    theme: 'system',
+    activeTab: 'overview',
+    chat: [],
+    health: 'unknown',
+    lastPoll: null,
+    stale: false,
+    filters: { state: 'all', owner: '', search: '', memoryType: 'all', memorySearch: '', draftPlatform: 'all', draftSearch: '' },
+    chatTyping: false
+  };
+
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+
+  const fmtInt = new Intl.NumberFormat('en-US');
+  const fmtMoney = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
+  const fmtMoneySmall = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 4 });
+  const fmtPct = (n) => (n * 100).toFixed(1) + '%';
+
+  const escapeHtml = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;" }[c]));
+
+  const relTime = (iso) => {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (isNaN(d)) return '—';
+    const sec = Math.round((Date.now() - d.getTime()) / 1000);
+    if (sec < 60) return sec + 's ago';
+    const min = Math.round(sec / 60);
+    if (min < 60) return min + 'm ago';
+    const hr = Math.round(min / 60);
+    if (hr < 24) return hr + 'h ago';
+    const day = Math.round(hr / 24);
+    if (day < 7) return day + 'd ago';
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  };
+
+  const fmtTimeMono = (iso) => {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (isNaN(d)) return '—';
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+  };
+
+  const fmtDuration = (ms) => {
+    if (!ms || ms < 0) return '—';
+    if (ms < 1000) return ms + 'ms';
+    const s = ms / 1000;
+    if (s < 60) return s.toFixed(1) + 's';
+    const m = s / 60;
+    if (m < 60) return m.toFixed(1) + 'm';
+    return (m / 60).toFixed(1) + 'h';
+  };
+
+  const greetingFor = (d = new Date()) => {
+    const h = d.getHours();
+    if (h < 12) return 'morning';
+    if (h < 18) return 'afternoon';
+    return 'evening';
+  };
+
+  const STATE_META = {
+    queued:      { label: 'queued',      cls: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' },
+    in_progress: { label: 'in progress', cls: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300' },
+    in_review:   { label: 'in review',   cls: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' },
+    done:        { label: 'done',        cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' },
+    blocked:     { label: 'blocked',     cls: 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300' },
+    failed:      { label: 'failed',      cls: 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300' }
+  };
+
+  const statePill = (st) => {
+    const meta = STATE_META[st] || STATE_META.queued;
+    return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ' + meta.cls + '">' + meta.label + '</span>';
+  };
+
+  const MEMORY_META = {
+    fact:         { cls: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300' },
+    decision:     { cls: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300' },
+    relationship: { cls: 'bg-pink-100 text-pink-700 dark:bg-pink-950 dark:text-pink-300' },
+    preference:   { cls: 'bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-300' },
+    pattern:      { cls: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300' },
+    commitment:   { cls: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' },
+    goal:         { cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' },
+    context:      { cls: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' }
+  };
+
+  const memoryPill = (type) => {
+    const meta = MEMORY_META[type] || MEMORY_META.context;
+    return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ' + meta.cls + '">' + type + '</span>';
+  };
+
+  // ---------------------------------------------------------------------------
+  // Shape-tolerant task accessors. Server (telemetry-calc.py) emits flat fields
+  // (input_tokens, wall_seconds, api_cost_usd, ...). Older code paths used a
+  // nested {tokens:{input,output,...}} shape. These helpers accept both.
+  // ---------------------------------------------------------------------------
+  const taskId = (t) => t.task_id || t.id || '';
+  const taskTokens = (t) => {
+    const tk = t.tokens || {};
+    return {
+      input:       (t.input_tokens       != null ? t.input_tokens       : (tk.input       || tk.input_tokens       || 0)),
+      output:      (t.output_tokens      != null ? t.output_tokens      : (tk.output      || tk.output_tokens      || 0)),
+      cache_read:  (t.cache_read_tokens  != null ? t.cache_read_tokens  : (tk.cache_read  || tk.cache_read_tokens  || 0)),
+      cache_write: (t.cache_write_tokens != null ? t.cache_write_tokens : (tk.cache_write || tk.cache_write_tokens || 0)),
+    };
+  };
+  const taskTokensTotal = (t) => {
+    const tk = t.tokens || {};
+    if (typeof tk.total === 'number') return tk.total;
+    const x = taskTokens(t);
+    return x.input + x.output + x.cache_read + x.cache_write;
+  };
+  const taskDurationMs = (t) => {
+    if (typeof t.wall_seconds === 'number') return t.wall_seconds * 1000;
+    if (typeof t.duration_seconds === 'number') return t.duration_seconds * 1000;
+    if (typeof t.duration_ms === 'number') return t.duration_ms;
+    return null;
+  };
+  const taskApiCost = (t) =>
+    (t.api_cost_usd != null ? t.api_cost_usd : (t.api_cost != null ? t.api_cost : null));
+  const taskValueUsd = (t) =>
+    (t.value_usd != null ? t.value_usd : null);
+  const taskHumanEquivUsd = (t) => {
+    if (t.human_equivalent_usd != null) return t.human_equivalent_usd;
+    if (typeof t.human_eq_minutes === 'number' && typeof t.human_hourly_rate_usd === 'number') {
+      return (t.human_eq_minutes / 60) * t.human_hourly_rate_usd;
+    }
+    return null;
+  };
+  // Synthesize a lifecycle list from the per-state timestamps the server emits
+  // (created_at / in_progress_at / completed_at / failed_at). Older shape with
+  // `events: [{at, state}, ...]` still supported.
+  const taskLifecycle = (t) => {
+    if (Array.isArray(t.events) && t.events.length) return t.events;
+    const evts = [];
+    if (t.created_at)     evts.push({ at: t.created_at,     state: 'queued' });
+    if (t.in_progress_at) evts.push({ at: t.in_progress_at, state: 'in_progress' });
+    if (t.completed_at)   evts.push({ at: t.completed_at,   state: 'done' });
+    if (t.failed_at)      evts.push({ at: t.failed_at,      state: 'failed' });
+    return evts;
+  };
+
+  const applyTheme = (mode) => {
+    state.theme = mode;
+    localStorage.setItem('dashboard-theme', mode);
+    const useDark = mode === 'dark' || (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.classList.toggle('dark', useDark);
+    $$('.theme-btn').forEach(b => {
+      const on = b.dataset.mode === mode;
+      b.classList.toggle('bg-indigo-600', on);
+      b.classList.toggle('text-white', on);
+      b.classList.toggle('border-indigo-600', on);
+    });
+  };
+  const initTheme = () => {
+    const saved = localStorage.getItem('dashboard-theme');
+    applyTheme(saved || 'system');
+    const mql = window.matchMedia('(prefers-color-scheme: dark)');
+    if (mql.addEventListener) mql.addEventListener('change', () => { if (state.theme === 'system') applyTheme('system'); });
+  };
+
+  const TAB_TITLES = {
+    overview: 'Overview', tasks: 'Tasks', goals: 'Goals', memory: 'Memory',
+    schedule: 'Schedule', telemetry: 'Telemetry', chat: 'Chat', settings: 'Settings'
+  };
+  const setActiveTab = (tab) => {
+    state.activeTab = tab;
+    localStorage.setItem('dashboard-active-tab', tab);
+    $$('.tab-section').forEach(s => s.classList.toggle('hidden', s.dataset.tabContent !== tab));
+    $$('.nav-link').forEach(l => {
+      const active = l.dataset.tab === tab;
+      l.classList.toggle('text-white', active);
+      l.classList.toggle('bg-indigo-600/15', active);
+      l.classList.toggle('nav-active', active);
+    });
+    $('#page-title').textContent = TAB_TITLES[tab] || 'Dashboard';
+    $('#sidebar').classList.add('sidebar-hidden');
+    $('#sidebar-backdrop').classList.add('hidden');
+    if (tab === 'chat') setTimeout(scrollChatToBottom, 0);
+  };
+  const initTab = () => {
+    const saved = localStorage.getItem('dashboard-active-tab') || 'overview';
+    setActiveTab(saved);
+  };
+
+  const safeFetch = async (url, opts) => {
+    try {
+      const res = await fetch(url, opts);
+      if (!res.ok) throw new Error(String(res.status));
+      return await res.json();
+    } catch (e) {
+      console.warn('[fetch] ' + url + ' failed:', e.message);
+      return null;
+    }
+  };
+
+  const refreshAll = async () => {
+    const results = await Promise.all([
+      safeFetch('/api/tasks.json'),
+      safeFetch('/api/goals.json'),
+      safeFetch('/api/queue.json'),
+      safeFetch('/api/memory.json'),
+      safeFetch('/api/telemetry.json'),
+      safeFetch('/api/health.json'),
+      safeFetch('/api/drafts.json'),
+      safeFetch('/api/triage.json'),
+      safeFetch('/api/improvements.json'),
+      safeFetch('/api/drift.json'),
+      safeFetch('/api/competitive.json')
+    ]);
+    const [tasks, goals, queue, memory, telemetry, health, draftsData, triageData, improvementsData, driftData, competitiveData] = results;
+    // tasks.json may be: an array, {tasks:[...]} envelope, or a dict-by-id (telemetry-calc.py shape).
+    if (tasks) {
+      state.tasks = Array.isArray(tasks) ? tasks
+                  : (Array.isArray(tasks.tasks) ? tasks.tasks
+                  : (tasks && typeof tasks === 'object' ? Object.values(tasks) : []));
+    }
+    if (goals) state.goals = Array.isArray(goals) ? goals : (goals.goals || []);
+    if (queue) state.queue = queue;
+    if (memory) state.memory = Array.isArray(memory) ? memory : (memory.memory || []);
+    if (telemetry) state.telemetry = telemetry;
+    // Merge token/cost telemetry from telemetry.json.top_tasks INTO state.tasks
+    // by task_id, so the Tasks tab shows real numbers (not "—") for any task
+    // the telemetry pipeline has attributed.
+    if (state.telemetry && Array.isArray(state.telemetry.top_tasks) && state.tasks.length) {
+      const telemBy = {};
+      for (const r of state.telemetry.top_tasks) {
+        const k = r.task_id || r.id;
+        if (k) telemBy[k] = r;
+      }
+      state.tasks = state.tasks.map(t => {
+        const k = t.task_id || t.id;
+        const r = k && telemBy[k];
+        // Server fields layer on top — telemetry never overwrites lifecycle.
+        return r ? Object.assign({}, r, t, {
+          input_tokens:       r.input_tokens,
+          output_tokens:      r.output_tokens,
+          cache_read_tokens:  r.cache_read_tokens,
+          cache_write_tokens: r.cache_write_tokens,
+          wall_seconds:       r.wall_seconds,
+          api_cost_usd:       r.api_cost_usd,
+          value_usd:          r.value_usd,
+          human_eq_minutes:   r.human_eq_minutes,
+          human_hourly_rate_usd: r.human_hourly_rate_usd,
+          net_savings_usd:    r.net_savings_usd,
+          type_label:         r.type_label,
+        }) : t;
+      });
+    }
+    state.health = (health && health.ok) ? 'ok' : (health === null ? 'down' : 'unknown');
+    if (draftsData) state.drafts = Array.isArray(draftsData.drafts) ? draftsData.drafts : [];
+    if (triageData) {
+      state.triage = {
+        runs: Array.isArray(triageData.runs) ? triageData.runs : [],
+        totals: triageData.totals_14d || {},
+      };
+    }
+    if (improvementsData) {
+      state.improvements = {
+        reviews: Array.isArray(improvementsData.reviews) ? improvementsData.reviews : [],
+        totals: improvementsData.totals || {},
+      };
+    }
+    if (driftData) {
+      state.drift = {
+        scans: Array.isArray(driftData.scans) ? driftData.scans : [],
+        latest: driftData.latest || {},
+        persistent_in_latest: driftData.persistent_in_latest || 0,
+      };
+    }
+    if (competitiveData) {
+      state.competitive = {
+        reports: Array.isArray(competitiveData.reports) ? competitiveData.reports : [],
+        totals: competitiveData.totals || {},
+      };
+    }
+    state.lastPoll = new Date();
+    state.stale = !tasks && !goals && !queue && !memory && !telemetry;
+    render();
+  };
+
+  const render = () => {
+    renderHeader();
+    renderOverview();
+    renderTasks();
+    renderGoals();
+    renderMemory();
+    renderDrafts();
+    renderInbound();
+    renderImprovements();
+    renderDrift();
+    renderCompetitive();
+    renderSchedule();
+    renderTelemetry();
+    renderChat();
+    renderSettings();
+  };
+
+  const renderHeader = () => {
+    const initial = (TENANT.name && TENANT.name !== 'Daniel') ? TENANT.name[0].toUpperCase() : 'A';
+    $$('[data-bind="avatarInitial"]').forEach(el => el.textContent = initial);
+    $$('[data-bind="tenantId"]').forEach(el => el.textContent = TENANT.id);
+    $$('[data-bind="tenantId2"]').forEach(el => el.textContent = TENANT.id);
+    $$('[data-bind="tenantPerson"]').forEach(el => el.textContent = TENANT.name);
+    $$('[data-bind="tenantEmail"]').forEach(el => el.textContent = TENANT.email);
+    $$('[data-bind="taskCount"]').forEach(el => el.textContent = state.tasks.length);
+    $$('[data-bind="goalCount"]').forEach(el => el.textContent = state.goals.length);
+    $$('[data-bind="draftCount"]').forEach(el => el.textContent = state.drafts.length);
+    $$('[data-bind="memoryCount"]').forEach(el => el.textContent = state.memory.length);
+    const lp = state.lastPoll ? state.lastPoll.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—';
+    $$('[data-bind="lastPoll"]').forEach(el => el.textContent = lp);
+    $$('[data-bind="lastPoll2"]').forEach(el => el.textContent = lp);
+    const pill = $('#status-pill');
+    if (pill) {
+      const klassesToRemove = ['bg-emerald-50','bg-amber-50','bg-rose-50','dark:bg-emerald-950/60','dark:bg-amber-950/60','dark:bg-rose-950/60','text-emerald-700','text-amber-700','text-rose-700','dark:text-emerald-300','dark:text-amber-300','dark:text-rose-300','border-emerald-200','border-amber-200','border-rose-200','dark:border-emerald-900','dark:border-amber-900','dark:border-rose-900'];
+      klassesToRemove.forEach(c => pill.classList.remove(c));
+      let add = ['bg-emerald-50','dark:bg-emerald-950/60','text-emerald-700','dark:text-emerald-300','border-emerald-200','dark:border-emerald-900'];
+      if (state.health === 'down' || state.stale) add = ['bg-rose-50','dark:bg-rose-950/60','text-rose-700','dark:text-rose-300','border-rose-200','dark:border-rose-900'];
+      else if (state.health === 'unknown') add = ['bg-amber-50','dark:bg-amber-950/60','text-amber-700','dark:text-amber-300','border-amber-200','dark:border-amber-900'];
+      add.forEach(c => pill.classList.add(c));
+    }
+    const hp = $('#health-pill');
+    if (hp) {
+      const map = {
+        ok:      ['bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300','bg-emerald-500','connected'],
+        down:    ['bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300','bg-rose-500','offline'],
+        unknown: ['bg-slate-100 dark:bg-slate-800 text-slate-500','bg-slate-400','unknown']
+      };
+      const [cls, dot, label] = map[state.health] || map.unknown;
+      hp.className = 'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs ' + cls;
+      hp.innerHTML = '<span class="w-1.5 h-1.5 rounded-full ' + dot + '"></span> ' + label;
+    }
+  };
+
+  const setKPI = (id, value, delta) => {
+    const el = document.querySelector('[data-bind="' + id + '"]');
+    if (!el) return;
+    el.textContent = value;
+    const deltaEl = document.querySelector('[data-bind="' + id + 'Delta"]');
+    if (deltaEl) {
+      if (delta == null || !isFinite(delta)) {
+        deltaEl.innerHTML = '<span class="text-slate-400">—</span>';
+      } else {
+        const up = delta >= 0;
+        const color = up ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
+        const arrow = up ? '↑' : '↓';
+        deltaEl.innerHTML = '<span class="' + color + ' mono">' + arrow + ' ' + Math.abs(delta).toFixed(1) + '%</span> <span class="text-slate-400">vs yesterday</span>';
+      }
+    }
+  };
+
+  // v2.33.0: Today's Signal — unified action queue. Aggregates urgent items
+  // across all 5 surface tabs (Drafts/Inbound/Improvements/Drift/Competitive)
+  // plus task-queue (in_review/awaiting_external/blocked) so the user sees
+  // everything that needs attention in one place. Each card links to its tab.
+  const renderTodaysSignal = () => {
+    const grid = $('#signal-grid');
+    const empty = $('#signal-empty');
+    if (!grid) return;
+
+    // Count items needing attention from each surface
+    const draftsPending = (state.drafts || []).filter(d => !d.in_ghl).length;
+    const inboundHigh = ((state.triage || {}).totals || {}).high || 0;
+    const improvementsPending = ((state.improvements || {}).totals || {}).pending || 0;
+    const driftPersistent = (state.drift || {}).persistent_in_latest || 0;
+    const competitiveChanges = ((state.competitive || {}).totals || {}).changes_latest || 0;
+    const competitiveThreats = ((state.competitive || {}).totals || {}).threats_latest || 0;
+
+    // Tasks needing attention (in_review + awaiting_external + blocked)
+    const tasksByState = {};
+    for (const t of (state.tasks || [])) {
+      tasksByState[t.state] = (tasksByState[t.state] || 0) + 1;
+    }
+    const tasksInReview = tasksByState.in_review || 0;
+    const tasksAwaiting = tasksByState.awaiting_external || 0;
+    const tasksBlocked = tasksByState.blocked || 0;
+
+    const total = draftsPending + inboundHigh + improvementsPending +
+                  driftPersistent + competitiveThreats +
+                  tasksInReview + tasksAwaiting + tasksBlocked;
+    $$('[data-bind="signalTotalBadge"]').forEach(el => {
+      el.textContent = total + (total === 1 ? ' needs attention' : ' need attention');
+    });
+
+    if (total === 0) {
+      grid.classList.add('hidden');
+      empty.classList.remove('hidden');
+      return;
+    }
+    grid.classList.remove('hidden');
+    empty.classList.add('hidden');
+
+    // Each entry: { count, label, sub, tab, color }
+    const entries = [];
+    if (tasksInReview > 0) entries.push({
+      count: tasksInReview, label: tasksInReview === 1 ? 'task in review' : 'tasks in review',
+      sub: 'awaiting your ✅', tab: 'tasks',
+      color: 'emerald',
+    });
+    if (draftsPending > 0) entries.push({
+      count: draftsPending, label: draftsPending === 1 ? 'draft pending' : 'drafts pending',
+      sub: 'review and approve in Drafts tab', tab: 'drafts',
+      color: 'indigo',
+    });
+    if (inboundHigh > 0) entries.push({
+      count: inboundHigh, label: inboundHigh === 1 ? 'HIGH inbound' : 'HIGH inbound',
+      sub: 'needs personal reply (14d)', tab: 'inbound',
+      color: 'rose',
+    });
+    if (driftPersistent > 0) entries.push({
+      count: driftPersistent, label: driftPersistent === 1 ? 'persistent drift item' : 'persistent drift items',
+      sub: 'unfixed for 2+ scans', tab: 'drift',
+      color: 'purple',
+    });
+    if (competitiveThreats > 0) entries.push({
+      count: competitiveThreats, label: competitiveThreats === 1 ? 'competitive threat' : 'competitive threats',
+      sub: 'positioning overlap detected', tab: 'competitive',
+      color: 'red',
+    });
+    if (competitiveChanges > 0 && competitiveThreats === 0) entries.push({
+      count: competitiveChanges, label: competitiveChanges === 1 ? 'competitor change' : 'competitor changes',
+      sub: 'peer activity to review', tab: 'competitive',
+      color: 'amber',
+    });
+    if (improvementsPending > 0) entries.push({
+      count: improvementsPending, label: improvementsPending === 1 ? 'self-improvement' : 'self-improvements',
+      sub: 'proposed CLAUDE.md updates', tab: 'improvements',
+      color: 'indigo',
+    });
+    if (tasksAwaiting > 0) entries.push({
+      count: tasksAwaiting, label: tasksAwaiting === 1 ? 'task awaiting you' : 'tasks awaiting you',
+      sub: 'external decision/info needed', tab: 'tasks',
+      color: 'amber',
+    });
+    if (tasksBlocked > 0) entries.push({
+      count: tasksBlocked, label: tasksBlocked === 1 ? 'blocked task' : 'blocked tasks',
+      sub: 'agent is stuck', tab: 'tasks',
+      color: 'rose',
+    });
+
+    const colorClasses = {
+      emerald: 'border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400',
+      indigo:  'border-indigo-200 dark:border-indigo-900 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400',
+      rose:    'border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400',
+      purple:  'border-purple-200 dark:border-purple-900 bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400',
+      amber:   'border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400',
+      red:     'border-red-300 dark:border-red-900 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400',
+    };
+
+    grid.innerHTML = entries.map(e => {
+      const cc = colorClasses[e.color] || colorClasses.indigo;
+      return '<a href="#" data-action="nav" data-tab="' + e.tab + '" ' +
+        'class="signal-card rounded-lg border ' + cc + ' p-4 transition-all hover:scale-[1.02] hover:shadow-md cursor-pointer block">' +
+        '<div class="flex items-baseline gap-2">' +
+          '<div class="text-2xl font-mono font-semibold tnum">' + e.count + '</div>' +
+          '<div class="text-sm font-medium text-slate-700 dark:text-slate-200">' + escapeHtml(e.label) + '</div>' +
+        '</div>' +
+        '<div class="mt-1 text-xs text-slate-500 dark:text-slate-400">' + escapeHtml(e.sub) + '</div>' +
+        '<div class="mt-2 text-[11px] mono opacity-70">→ ' + escapeHtml(e.tab) + ' tab</div>' +
+        '</a>';
+    }).join('');
+  };
+
+  const renderOverview = () => {
+    const now = new Date();
+    const name = TENANT.name === 'Daniel' ? 'there' : TENANT.name;
+    $('[data-bind="greeting"]').textContent = 'Good ' + greetingFor(now) + ', ' + name + '.';
+    $('[data-bind="dateline"]').textContent = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+    renderTodaysSignal();
+
+    const active = state.tasks.filter(t => ['queued','in_progress','in_review'].includes(t.state)).length;
+    const onTrack = state.goals.filter(g => g.status === 'in_progress' || g.status === 'on_track').length;
+    const today = new Date(); today.setHours(0,0,0,0);
+    const ts = today.getTime();
+    const todayTasks = state.tasks.filter(t => new Date(t.created_at || 0).getTime() >= ts);
+    const tokensToday = todayTasks.reduce((sum, t) => sum + taskTokensTotal(t), 0);
+    const valueToday = todayTasks.reduce((sum, t) => sum + (taskValueUsd(t) || 0), 0);
+    setKPI('kpiActiveTasks', active, null);
+    setKPI('kpiGoalsOnTrack', onTrack, null);
+    setKPI('kpiTokensToday', fmtInt.format(tokensToday), null);
+    setKPI('kpiValueToday', valueToday > 0 ? fmtMoney.format(valueToday) : '$0', null);
+
+    // v2.27.0: API cost today (with week sub-line). Pulls from telemetry rollup
+    // already populated by hydrate from /api/telemetry.json.
+    const rollupToday = (state.telemetry && state.telemetry.rollup && state.telemetry.rollup.today) || {};
+    const rollupWeek  = (state.telemetry && state.telemetry.rollup && state.telemetry.rollup.week)  || {};
+    const apiCostToday = rollupToday.api_cost_usd != null ? rollupToday.api_cost_usd : null;
+    const apiCostWeek  = rollupWeek.api_cost_usd  != null ? rollupWeek.api_cost_usd  : null;
+    setKPI('kpiApiCostToday', apiCostToday != null ? fmtMoney.format(apiCostToday) : '$0', null);
+    $('[data-bind="kpiApiCostWeekSub"]').textContent = apiCostWeek != null
+      ? ('week: ' + fmtMoney.format(apiCostWeek))
+      : '—';
+
+    const reviews = state.tasks.filter(t => t.state === 'in_review').sort((a,b) => new Date(b.created_at)-new Date(a.created_at));
+    $('[data-bind="approvalCount"]').textContent = reviews.length + ' waiting';
+    const al = $('#approval-list');
+    if (reviews.length === 0) {
+      al.innerHTML = '<div class="text-center py-10 text-sm text-slate-500">Nothing waiting on you. <span class="ml-1">✨</span></div>';
+    } else {
+      al.innerHTML = reviews.map(t =>
+        '<div class="rounded-lg border border-slate-200 dark:border-slate-800 p-4 fade-in">' +
+        '<div class="flex items-start gap-3">' +
+        '<div class="flex-1 min-w-0">' +
+        '<div class="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">' + escapeHtml(t.summary || t.title || 'Untitled') + '</div>' +
+        '<div class="mt-1 text-xs text-slate-500 mono">' + relTime(t.created_at) + ' · ' + escapeHtml(t.source || 'agent') + '</div>' +
+        '</div>' +
+        '<div class="flex gap-2 shrink-0">' +
+        '<button data-action="approve" data-task-id="' + escapeHtml(t.id) + '" class="px-2.5 py-1 text-xs rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">Approve</button>' +
+        '<button data-action="edit-task" data-task-id="' + escapeHtml(t.id) + '" class="px-2.5 py-1 text-xs rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">Edit</button>' +
+        '</div></div></div>'
+      ).join('');
+    }
+
+    // v2.34.0: fixed the activity feed. Events use `ts` (not `at`), and
+    // each event has its own `msg` that's more informative than the task
+    // summary (e.g. "Triage complete — 1 HIGH" beats the static task title).
+    const events = [];
+    state.tasks.forEach(t => {
+      const evs = t.events || [];
+      if (evs.length) {
+        evs.forEach(e => events.push({
+          ts: e.ts || e.at || t.created_at,
+          state: e.state || t.state,
+          event: e.event,
+          msg: e.msg || e.summary || t.summary || t.title || '',
+          owner: t.owner || 'agent',
+          taskId: t.id,
+        }));
+      } else if (t.created_at) {
+        events.push({
+          ts: t.created_at, state: t.state, event: 'create',
+          msg: t.summary || t.title || '', owner: t.owner || 'agent', taskId: t.id,
+        });
+      }
+    });
+    events.sort((a,b) => new Date(b.ts) - new Date(a.ts));
+    const top10 = events.slice(0,10);
+    const ul = $('#activity-list');
+    if (!top10.length) {
+      ul.innerHTML = '<li class="text-sm text-slate-500">No activity yet.</li>';
+    } else {
+      ul.innerHTML = top10.map(e => {
+        const trimmedMsg = (e.msg || '').slice(0, 120);
+        return '<li class="flex items-start gap-3">' +
+          '<div class="text-[11px] mono text-slate-400 w-12 shrink-0 pt-0.5">' + fmtTimeMono(e.ts) + '</div>' +
+          '<div class="flex-1 min-w-0">' +
+          '<div class="flex items-center gap-2 flex-wrap">' + statePill(e.state) + '<span class="text-xs text-slate-700 dark:text-slate-300 truncate">' + escapeHtml(trimmedMsg || '—') + '</span></div>' +
+          '<div class="text-[11px] text-slate-400 mt-0.5 mono">' + escapeHtml(e.owner) + '</div>' +
+          '</div></li>';
+      }).join('');
+    }
+  };
+
+  const renderTasks = () => {
+    const owners = Array.from(new Set(state.tasks.map(t => t.owner).filter(Boolean))).sort();
+    const ownerSel = $('#owner-filter');
+    if (ownerSel) {
+      const cur = ownerSel.value;
+      ownerSel.innerHTML = '<option value="">All owners</option>' + owners.map(o => '<option ' + (o===cur?'selected':'') + ' value="' + escapeHtml(o) + '">' + escapeHtml(o) + '</option>').join('');
+    }
+    $$('.state-filter').forEach(b => {
+      const active = b.dataset.state === state.filters.state;
+      b.classList.toggle('bg-indigo-600', active);
+      b.classList.toggle('text-white', active);
+      b.classList.toggle('border-indigo-600', active);
+    });
+    const q = state.filters.search.toLowerCase();
+    const filtered = state.tasks.filter(t => {
+      if (state.filters.state !== 'all' && t.state !== state.filters.state) return false;
+      if (state.filters.owner && t.owner !== state.filters.owner) return false;
+      if (q && !((t.summary || '') + (t.title || '')).toLowerCase().includes(q)) return false;
+      return true;
+    }).sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+    const tb = $('#tasks-tbody');
+    const empty = $('#tasks-empty');
+    if (!filtered.length) { tb.innerHTML = ''; empty.classList.remove('hidden'); return; }
+    empty.classList.add('hidden');
+    tb.innerHTML = filtered.map(t => {
+      const id = taskId(t);
+      const dms = taskDurationMs(t);
+      const totalTok = taskTokensTotal(t);
+      const tk = taskTokens(t);
+      const apiCost = taskApiCost(t);
+      const humanEq = taskHumanEquivUsd(t);
+      const value = taskValueUsd(t);
+      const lifecycle = taskLifecycle(t);
+      return '<tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40 cursor-pointer" data-action="expand-task" data-task-id="' + escapeHtml(id) + '">' +
+        '<td class="px-4 py-3 text-xs text-slate-500 mono whitespace-nowrap">' + relTime(t.created_at) + '</td>' +
+        '<td class="px-4 py-3">' + statePill(t.state) + '</td>' +
+        '<td class="px-4 py-3 text-sm max-w-md truncate" title="' + escapeHtml(t.summary || '') + '">' + escapeHtml(t.summary || t.title || '—') + '</td>' +
+        '<td class="px-4 py-3"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">' + escapeHtml(t.owner || 'agent') + '</span></td>' +
+        '<td class="px-4 py-3 text-xs text-slate-500">' + escapeHtml(t.source || '—') + '</td>' +
+        '<td class="px-4 py-3 text-right text-xs mono">' + (dms != null ? fmtDuration(dms) : '—') + '</td>' +
+        '<td class="px-4 py-3 text-right text-xs mono">' + (totalTok > 0 ? fmtInt.format(totalTok) : '—') + '</td>' +
+        '<td class="px-4 py-3 text-right text-xs mono">' + (value != null ? fmtMoney.format(value) : '—') + '</td>' +
+        '<td class="px-4 py-3 text-right">' + (t.state === 'in_review'
+          ? '<button data-action="approve" data-task-id="' + escapeHtml(id) + '" class="text-xs px-2 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700">Approve</button>'
+          : '<span class="text-xs text-slate-400">—</span>') + '</td>' +
+        '</tr>' +
+        '<tr class="task-detail hidden" data-task-detail="' + escapeHtml(id) + '">' +
+        '<td colspan="9" class="px-6 py-4 bg-slate-50 dark:bg-slate-900/60">' +
+        '<div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">' +
+        '<div><div class="font-semibold mb-1 text-slate-700 dark:text-slate-200">Lifecycle</div>' +
+        '<ol class="space-y-1">' + (lifecycle.length ? lifecycle.map(e => '<li class="flex gap-2"><span class="mono text-slate-400 w-12">' + fmtTimeMono(e.at) + '</span>' + statePill(e.state) + '</li>').join('') : '<li class="text-slate-400">no events</li>') + '</ol></div>' +
+        '<div><div class="font-semibold mb-1 text-slate-700 dark:text-slate-200">Tokens</div>' +
+        '<dl class="space-y-1 mono">' +
+        '<div class="flex justify-between"><dt class="text-slate-500">input</dt><dd>' + fmtInt.format(tk.input) + '</dd></div>' +
+        '<div class="flex justify-between"><dt class="text-slate-500">output</dt><dd>' + fmtInt.format(tk.output) + '</dd></div>' +
+        '<div class="flex justify-between"><dt class="text-slate-500">cache_read</dt><dd>' + fmtInt.format(tk.cache_read) + '</dd></div>' +
+        '<div class="flex justify-between"><dt class="text-slate-500">cache_write</dt><dd>' + fmtInt.format(tk.cache_write) + '</dd></div>' +
+        '</dl></div>' +
+        '<div><div class="font-semibold mb-1 text-slate-700 dark:text-slate-200">Telemetry</div>' +
+        '<dl class="space-y-1 mono">' +
+        '<div class="flex justify-between"><dt class="text-slate-500">api_cost</dt><dd>' + (apiCost != null ? fmtMoneySmall.format(apiCost) : '—') + '</dd></div>' +
+        '<div class="flex justify-between"><dt class="text-slate-500">human_eq</dt><dd>' + (humanEq != null ? fmtMoney.format(humanEq) : '—') + '</dd></div>' +
+        '<div class="flex justify-between"><dt class="text-slate-500">value</dt><dd class="text-emerald-600 dark:text-emerald-400">' + (value != null ? fmtMoney.format(value) : '—') + '</dd></div>' +
+        '<div class="flex justify-between"><dt class="text-slate-500">duration</dt><dd>' + (dms != null ? fmtDuration(dms) : '—') + '</dd></div>' +
+        '</dl></div></div></td></tr>';
+    }).join('');
+  };
+
+  const renderGoals = () => {
+    const grid = $('#goals-grid');
+    const empty = $('#goals-empty');
+    if (!state.goals.length) { grid.innerHTML = ''; empty.classList.remove('hidden'); return; }
+    empty.classList.add('hidden');
+    grid.innerHTML = state.goals.map(g => {
+      const pct = Math.max(0, Math.min(100, Math.round((g.progress || 0) * 100)));
+      const stat = g.status === 'on_track' ? 'in_progress' : (g.status === 'at_risk' ? 'in_review' : (g.status === 'done' ? 'done' : 'queued'));
+      return '<div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">' +
+        '<div class="flex items-start justify-between gap-3 mb-3">' +
+        '<div><h3 class="text-sm font-semibold">' + escapeHtml(g.title || 'Untitled goal') + '</h3>' +
+        '<div class="text-xs text-slate-500 mt-0.5">' + escapeHtml(g.description || '') + '</div></div>' +
+        statePill(stat) + '</div>' +
+        '<div class="mb-3"><div class="flex items-center justify-between text-xs mb-1.5"><span class="text-slate-500">Progress</span><span class="mono font-medium">' + pct + '%</span></div>' +
+        '<div class="h-2 rounded-full progress-track overflow-hidden"><div class="h-full bg-indigo-500 rounded-full transition-all" style="width:' + pct + '%"></div></div></div>' +
+        '<dl class="text-xs space-y-1.5 mb-3">' +
+        '<div class="flex justify-between"><dt class="text-slate-500">Due</dt><dd class="mono">' + (g.due_at ? new Date(g.due_at).toLocaleDateString() : '—') + '</dd></div>' +
+        '<div class="flex justify-between"><dt class="text-slate-500">Last check-in</dt><dd class="mono">' + (g.last_check_in ? relTime(g.last_check_in) : '—') + '</dd></div>' +
+        '</dl>' +
+        (g.milestones && g.milestones.length ? ('<div class="border-t border-slate-200 dark:border-slate-800 pt-3 mt-2 space-y-1.5">' + g.milestones.map(m =>
+          '<label class="flex items-center gap-2 text-xs"><input type="checkbox" ' + (m.done ? 'checked' : '') + ' class="rounded border-slate-300 dark:border-slate-700" disabled><span class="' + (m.done ? 'line-through text-slate-400' : '') + '">' + escapeHtml(m.title) + '</span></label>'
+        ).join('') + '</div>') : '') +
+        '</div>';
+    }).join('');
+  };
+
+  const MEMORY_TYPES = ['fact','decision','relationship','preference','pattern','commitment','goal','context'];
+  const renderMemory = () => {
+    const counts = MEMORY_TYPES.reduce((a,t) => { a[t] = state.memory.filter(m => m.type === t).length; return a; }, { all: state.memory.length });
+    const types = $('#memory-types');
+    if (types) {
+      types.innerHTML = ['all'].concat(MEMORY_TYPES).map(t => {
+        const active = state.filters.memoryType === t;
+        const cls = active ? 'bg-indigo-600 text-white border-indigo-600' : 'border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800';
+        return '<button data-action="filter-memory" data-type="' + t + '" class="px-3 py-1.5 text-xs rounded-full border ' + cls + '">' + t + ' <span class="opacity-60 mono ml-1">' + (counts[t] || 0) + '</span></button>';
+      }).join('');
+    }
+    const q = state.filters.memorySearch.toLowerCase();
+    const filtered = state.memory.filter(m => {
+      if (state.filters.memoryType !== 'all' && m.type !== state.filters.memoryType) return false;
+      if (q && !((m.body || '') + (m.tags || []).join(' ')).toLowerCase().includes(q)) return false;
+      return true;
+    });
+    const grid = $('#memory-grid');
+    const empty = $('#memory-empty');
+    if (!filtered.length) { grid.innerHTML = ''; empty.classList.remove('hidden'); return; }
+    empty.classList.add('hidden');
+    grid.innerHTML = filtered.map(m => {
+      const body = m.body || '';
+      const long = body.length > 200;
+      const display = long ? body.slice(0,200) + '…' : body;
+      return '<div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 card-shadow">' +
+        '<div class="flex items-center justify-between mb-2">' + memoryPill(m.type) + '<span class="text-[10px] mono text-slate-400">' + relTime(m.created_at) + '</span></div>' +
+        (m.tags && m.tags.length ? ('<div class="flex flex-wrap gap-1 mb-2">' + m.tags.map(t => '<span class="text-[10px] mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">#' + escapeHtml(t) + '</span>').join('') + '</div>') : '') +
+        '<div class="text-sm leading-relaxed text-slate-700 dark:text-slate-200">' + escapeHtml(display) + (long ? ' <button class="text-indigo-600 dark:text-indigo-400 text-xs ml-1">Read more</button>' : '') + '</div>' +
+        '<div class="mt-2 text-[10px] mono text-slate-400">' + escapeHtml(m.source || '—') + '</div>' +
+        '</div>';
+    }).join('');
+  };
+
+  const PLATFORM_BADGE = {
+    'LinkedIn': 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300',
+    'X':        'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
+    'Instagram':'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300',
+  };
+  const platformBadge = (p) => '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ' + (PLATFORM_BADGE[p] || 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300') + '">' + escapeHtml(p) + '</span>';
+
+  const renderDrafts = () => {
+    const grid = $('#drafts-grid');
+    const empty = $('#drafts-empty');
+    const pfFilters = $('#draft-platform-filters');
+    const searchEl = $('#draft-search');
+    if (!grid) return;
+
+    const pf = state.filters.draftPlatform;
+    const ds = (state.filters.draftSearch || '').toLowerCase();
+
+    // Build platform filter pills
+    if (pfFilters && !pfFilters.dataset.init) {
+      pfFilters.dataset.init = '1';
+      const platforms = ['all', ...new Set(state.drafts.map(d => d.platform))];
+      pfFilters.innerHTML = platforms.map(p =>
+        '<button data-pf="' + escapeHtml(p) + '" class="draft-pf px-3 py-1.5 text-xs rounded-full border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800' + (p === pf ? ' bg-indigo-600 text-white border-indigo-600 dark:border-indigo-600' : '') + '">' + escapeHtml(p === 'all' ? 'All' : p) + '</button>'
+      ).join('');
+      pfFilters.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-pf]');
+        if (!btn) return;
+        state.filters.draftPlatform = btn.dataset.pf;
+        pfFilters.dataset.init = '';
+        renderDrafts();
+      });
+    }
+    if (searchEl && !searchEl.dataset.init) {
+      searchEl.dataset.init = '1';
+      searchEl.addEventListener('input', () => { state.filters.draftSearch = searchEl.value; renderDrafts(); });
+    }
+
+    const filtered = state.drafts.filter(d => {
+      if (pf && pf !== 'all' && d.platform !== pf) return false;
+      if (ds && !d.title.toLowerCase().includes(ds) && !d.preview.toLowerCase().includes(ds)) return false;
+      return true;
+    });
+
+    if (!filtered.length) {
+      grid.classList.add('hidden');
+      empty.classList.remove('hidden');
+      return;
+    }
+    grid.classList.remove('hidden');
+    empty.classList.add('hidden');
+
+    grid.innerHTML = filtered.map(d => {
+      const approved = d.in_ghl;
+      const statusBadge = approved
+        ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 mono">in GHL</span>'
+        : '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 mono">pending review</span>';
+      const actions = approved ? '' :
+        '<div class="flex gap-2 pt-1">' +
+          '<button data-draft-action="approve" data-filename="' + escapeHtml(d.filename) + '" class="flex-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium transition-colors">Approve</button>' +
+          '<button data-draft-action="revise" data-filename="' + escapeHtml(d.filename) + '" class="flex-1 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium transition-colors">Revise</button>' +
+          '<button data-draft-action="reject" data-filename="' + escapeHtml(d.filename) + '" class="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-rose-100 dark:hover:bg-rose-950 text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 text-xs font-medium transition-colors">Reject</button>' +
+        '</div>' +
+        '<div data-revise-box="' + escapeHtml(d.filename) + '" class="hidden">' +
+          '<textarea placeholder="What to change? Be specific…" class="w-full text-sm rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-slate-300 dark:focus:border-slate-600 px-3 py-2 outline-none resize-none" rows="3"></textarea>' +
+          '<div class="flex gap-2 mt-2">' +
+            '<button data-draft-action="revise-submit" data-filename="' + escapeHtml(d.filename) + '" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium">Send feedback</button>' +
+            '<button data-draft-action="revise-cancel" data-filename="' + escapeHtml(d.filename) + '" class="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-medium">Cancel</button>' +
+          '</div>' +
+        '</div>';
+      return '<div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow flex flex-col gap-3" data-draft-card="' + escapeHtml(d.filename) + '">' +
+        '<div class="flex items-center justify-between gap-2">' +
+          '<div class="flex items-center gap-2">' + platformBadge(d.platform) + statusBadge + '</div>' +
+          '<span class="text-[11px] mono text-slate-400">' + escapeHtml(d.date || '') + '</span>' +
+        '</div>' +
+        '<div class="font-medium text-sm leading-snug">' + escapeHtml(d.title) + '</div>' +
+        '<div class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">' + escapeHtml(d.preview) + '</div>' +
+        '<div class="text-[10px] mono text-slate-400 truncate">' + escapeHtml(d.filename) + '</div>' +
+        actions +
+        '</div>';
+    }).join('');
+
+    // Wire action buttons
+    grid.querySelectorAll('[data-draft-action]').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const action = btn.dataset.draftAction;
+        const filename = btn.dataset.filename;
+        const card = grid.querySelector('[data-draft-card="' + filename + '"]');
+
+        if (action === 'revise') {
+          const box = grid.querySelector('[data-revise-box="' + filename + '"]');
+          if (box) box.classList.toggle('hidden');
+          return;
+        }
+        if (action === 'revise-cancel') {
+          const box = grid.querySelector('[data-revise-box="' + filename + '"]');
+          if (box) box.classList.add('hidden');
+          return;
+        }
+
+        let msg = '';
+        if (action === 'approve') {
+          msg = 'approve draft:' + filename;
+        } else if (action === 'revise-submit') {
+          const box = grid.querySelector('[data-revise-box="' + filename + '"]');
+          const feedback = box ? box.querySelector('textarea').value.trim() : '';
+          if (!feedback) return;
+          msg = 'revise draft:' + filename + ' — ' + feedback;
+        } else if (action === 'reject') {
+          if (!confirm('Reject this draft and remove it from the queue?')) return;
+          msg = 'reject draft:' + filename;
+        }
+
+        if (!msg) return;
+        if (card) card.style.opacity = '0.5';
+        btn.disabled = true;
+
+        try {
+          await safeFetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: msg }) });
+          await refreshAll();
+        } catch (err) {
+          if (card) card.style.opacity = '1';
+          btn.disabled = false;
+        }
+      });
+    });
+  };
+
+  // v2.28.0: Inbound triage feed. Reads state.triage (hydrated from
+  // /api/triage.json). Shows per-run summary cards with HIGH/MEDIUM
+  // items inline so the day's inbound state is visible at a glance.
+  const renderInbound = () => {
+    const feed = $('#inbound-feed');
+    const empty = $('#inbound-empty');
+    const searchEl = $('#inbound-search');
+    if (!feed) return;
+
+    const totals = state.triage.totals || {};
+    const setBind = (key, val) => $$('[data-bind="' + key + '"]').forEach(el => el.textContent = val);
+    setBind('inboundHighCount', totals.high || 0);
+    setBind('inboundMediumCount', totals.medium || 0);
+    setBind('inboundIgnoredCount', totals.ignored || 0);
+    setBind('inboundRunsCount', totals.runs || 0);
+    setBind('inboundCount', (totals.high || 0) + (totals.medium || 0));
+
+    if (searchEl && !searchEl.dataset.init) {
+      searchEl.dataset.init = '1';
+      searchEl.addEventListener('input', () => { state.filters.inboundSearch = searchEl.value; renderInbound(); });
+    }
+    const q = (state.filters.inboundSearch || '').toLowerCase();
+
+    const runs = state.triage.runs || [];
+    if (!runs.length) {
+      feed.classList.add('hidden');
+      empty.classList.remove('hidden');
+      return;
+    }
+    feed.classList.remove('hidden');
+    empty.classList.add('hidden');
+
+    const itemHtml = (it, level) => {
+      const blob = (it.title + ' ' + (it.from || '') + ' ' + (it.subject || '') + ' ' + (it.why || '')).toLowerCase();
+      if (q && !blob.includes(q)) return '';
+      const levelStyles = level === 'HIGH'
+        ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900'
+        : 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900';
+      const levelBadge = level === 'HIGH'
+        ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-rose-600 text-white mono">HIGH</span>'
+        : '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-600 text-white mono">MEDIUM</span>';
+      return '<div class="rounded-lg border ' + levelStyles + ' p-3 space-y-1.5">' +
+        '<div class="flex items-center justify-between gap-2">' +
+          '<div class="font-medium text-sm">' + escapeHtml(it.title) + '</div>' +
+          levelBadge +
+        '</div>' +
+        (it.from    ? '<div class="text-xs text-slate-500 mono truncate">From: '    + escapeHtml(it.from) + '</div>'    : '') +
+        (it.subject ? '<div class="text-xs text-slate-500 mono truncate">Subject: ' + escapeHtml(it.subject) + '</div>' : '') +
+        (it.why     ? '<div class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">' + escapeHtml(it.why) + '</div>' : '') +
+        '</div>';
+    };
+
+    feed.innerHTML = runs.map(run => {
+      const summary = run.summary || {};
+      const hi = (run.high_items || []).map(i => itemHtml(i, 'HIGH')).filter(Boolean).join('');
+      const md = (run.medium_items || []).map(i => itemHtml(i, 'MEDIUM')).filter(Boolean).join('');
+      const visibleItems = hi + md;
+      // If a search is active and nothing matches in this run's items, hide the run.
+      if (q && !visibleItems &&
+          !(String(run.date) + ' ' + String(run.time)).toLowerCase().includes(q)) return '';
+      const counts = [
+        summary.total != null ? summary.total + ' processed' : null,
+        (run.high_items && run.high_items.length) ? run.high_items.length + ' HIGH' : null,
+        (run.medium_items && run.medium_items.length) ? run.medium_items.length + ' MED' : null,
+        summary.ignored ? summary.ignored + ' auto-skipped' : null,
+      ].filter(Boolean).join(' · ');
+      return '<div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow space-y-3">' +
+        '<div class="flex items-baseline justify-between">' +
+          '<div class="font-semibold text-sm">' + escapeHtml(run.date || '') + ' · ' + escapeHtml(run.time || '') + '</div>' +
+          '<div class="text-[11px] mono text-slate-400">' + escapeHtml(counts) + '</div>' +
+        '</div>' +
+        (visibleItems ? '<div class="space-y-2">' + visibleItems + '</div>'
+                      : '<div class="text-xs text-slate-400 italic">No items needed your attention.</div>') +
+        '</div>';
+    }).filter(Boolean).join('');
+  };
+
+  // v2.29.0: Self-improvement proposals feed. Reads state.improvements
+  // (hydrated from /api/improvements.json). Shows per-review cards with
+  // proposal cards expanded inline. Each proposal shows pattern + rule +
+  // why + the slash-command snippet to apply or skip via Telegram.
+  const renderImprovements = () => {
+    const feed = $('#improvements-feed');
+    const empty = $('#improvements-empty');
+    const searchEl = $('#improvements-search');
+    if (!feed) return;
+
+    const totals = state.improvements.totals || {};
+    const setBind = (key, val) => $$('[data-bind="' + key + '"]').forEach(el => el.textContent = val);
+    setBind('improvementsPending', totals.pending || 0);
+    setBind('improvementsTotal', totals.proposals || 0);
+    setBind('improvementsReviews', totals.reviews || 0);
+    setBind('improvementsCount', totals.pending || 0);
+
+    const reviews = state.improvements.reviews || [];
+    if (reviews.length && reviews[0].review_date) {
+      setBind('improvementsLatest', reviews[0].review_date);
+      setBind('improvementsLatestSub', (reviews[0].proposals || []).length + ' proposals');
+    } else {
+      setBind('improvementsLatest', '—');
+      setBind('improvementsLatestSub', '—');
+    }
+
+    if (searchEl && !searchEl.dataset.init) {
+      searchEl.dataset.init = '1';
+      searchEl.addEventListener('input', () => {
+        state.filters.improvementsSearch = searchEl.value;
+        renderImprovements();
+      });
+    }
+    const q = (state.filters.improvementsSearch || '').toLowerCase();
+
+    if (!reviews.length) {
+      feed.classList.add('hidden');
+      empty.classList.remove('hidden');
+      return;
+    }
+    feed.classList.remove('hidden');
+    empty.classList.add('hidden');
+
+    const statusBadge = (status) => {
+      if (status === 'applied')
+        return '<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 mono">applied</span>';
+      if (status === 'skipped')
+        return '<span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 mono">skipped</span>';
+      return '<span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 mono">pending</span>';
+    };
+
+    const proposalHtml = (p) => {
+      const blob = (p.title + ' ' + p.pattern + ' ' + p.rule + ' ' + p.why).toLowerCase();
+      if (q && !blob.includes(q)) return '';
+      const cmdApply = '/improve apply ' + p.id;
+      const cmdSkip  = '/improve skip ' + p.id;
+      return '<div class="rounded-lg border border-slate-200 dark:border-slate-800 p-4 space-y-2.5">' +
+        '<div class="flex items-start justify-between gap-3">' +
+          '<div class="flex items-center gap-2">' +
+            '<span class="text-[11px] mono text-slate-400">#' + p.number + '</span>' +
+            '<div class="font-medium text-sm leading-snug">' + escapeHtml(p.title) + '</div>' +
+          '</div>' +
+          statusBadge(p.status) +
+        '</div>' +
+        (p.pattern ? '<div class="text-xs"><span class="font-semibold text-slate-700 dark:text-slate-300">Pattern: </span><span class="text-slate-600 dark:text-slate-400">' + escapeHtml(p.pattern) + '</span></div>' : '') +
+        (p.rule    ? '<div class="text-xs rounded bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 p-2.5"><span class="font-semibold text-slate-700 dark:text-slate-300">Proposed rule: </span>' + escapeHtml(p.rule) + '</div>' : '') +
+        (p.where   ? '<div class="text-[11px] mono text-slate-400">→ ' + escapeHtml(p.where) + '</div>' : '') +
+        (p.why     ? '<div class="text-xs italic text-slate-500">' + escapeHtml(p.why) + '</div>' : '') +
+        (p.status === 'pending' ? (
+          '<div class="flex items-center gap-2 pt-1">' +
+            '<code class="flex-1 px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-[11px] mono text-slate-700 dark:text-slate-300">' + cmdApply + '</code>' +
+            '<button data-improve-copy="' + escapeHtml(cmdApply) + '" class="text-[11px] px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white">Copy apply</button>' +
+            '<button data-improve-copy="' + escapeHtml(cmdSkip) + '" class="text-[11px] px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400">Copy skip</button>' +
+          '</div>'
+        ) : '') +
+        '</div>';
+    };
+
+    feed.innerHTML = reviews.map(r => {
+      const props = (r.proposals || []).map(proposalHtml).filter(Boolean).join('');
+      if (!props) return '';
+      const ctxLine = r.context ? '<div class="text-xs italic text-slate-500 dark:text-slate-400">' + escapeHtml(r.context) + '</div>' : '';
+      return '<div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow space-y-4">' +
+        '<div class="flex items-baseline justify-between">' +
+          '<div class="font-semibold text-sm">Review · ' + escapeHtml(r.review_date || '') + '</div>' +
+          '<div class="text-[11px] mono text-slate-400">' + (r.proposals || []).length + ' proposals</div>' +
+        '</div>' +
+        ctxLine +
+        '<div class="space-y-3">' + props + '</div>' +
+        '</div>';
+    }).filter(Boolean).join('');
+
+    // Wire copy buttons
+    feed.querySelectorAll('[data-improve-copy]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const cmd = btn.dataset.improveCopy;
+        try {
+          await navigator.clipboard.writeText(cmd);
+          const orig = btn.textContent;
+          btn.textContent = 'Copied!';
+          setTimeout(() => { btn.textContent = orig; }, 1200);
+        } catch (e) { /* ignore */ }
+      });
+    });
+  };
+
+  // v2.31.0: Brand drift feed.
+  const renderDrift = () => {
+    const feed = $('#drift-feed');
+    const empty = $('#drift-empty');
+    const searchEl = $('#drift-search');
+    if (!feed) return;
+
+    const latest = state.drift.latest || {};
+    const setBind = (key, val) => $$('[data-bind="' + key + '"]').forEach(el => el.textContent = val);
+    setBind('driftRed', latest.red || 0);
+    setBind('driftHigh', latest.high || 0);
+    setBind('driftMedium', latest.medium || 0);
+    setBind('driftLow', latest.low || 0);
+    setBind('driftPersistent', state.drift.persistent_in_latest || 0);
+    setBind('driftCount', (latest.red || 0) + (latest.high || 0) + (latest.medium || 0) + (latest.low || 0));
+
+    if (searchEl && !searchEl.dataset.init) {
+      searchEl.dataset.init = '1';
+      searchEl.addEventListener('input', () => {
+        state.filters.driftSearch = searchEl.value;
+        renderDrift();
+      });
+    }
+    const q = (state.filters.driftSearch || '').toLowerCase();
+
+    const scans = state.drift.scans || [];
+    if (!scans.length) {
+      feed.classList.add('hidden');
+      empty.classList.remove('hidden');
+      return;
+    }
+    feed.classList.remove('hidden');
+    empty.classList.add('hidden');
+
+    const levelStyles = {
+      red:    { badge: 'bg-red-600 text-white',    box: 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-900' },
+      high:   { badge: 'bg-rose-600 text-white',   box: 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900' },
+      medium: { badge: 'bg-amber-600 text-white',  box: 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900' },
+      low:    { badge: 'bg-slate-500 text-white',  box: 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800' },
+    };
+    const levelLabel = { red:'RED', high:'HIGH', medium:'MEDIUM', low:'LOW' };
+
+    const itemHtml = (it, levelKey) => {
+      const blob = (it.title + ' ' + (it.source||'') + ' ' + (it.item||'') + ' ' + (it.violation||'') + ' ' + (it.fix||'')).toLowerCase();
+      if (q && !blob.includes(q)) return '';
+      const styles = levelStyles[levelKey];
+      const persistRing = it.persistence_days >= 2 ? ' ring-2 ring-purple-400 dark:ring-purple-700' : '';
+      const persistBadge = it.persistence_days >= 2
+        ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-600 text-white mono">' + it.persistence_days + 'd persistent</span>'
+        : '';
+      return '<div class="rounded-lg border ' + styles.box + persistRing + ' p-3 space-y-1.5">' +
+        '<div class="flex items-start justify-between gap-2">' +
+          '<div class="font-medium text-sm leading-snug">' + escapeHtml(it.title) + '</div>' +
+          '<div class="flex items-center gap-1.5 shrink-0">' +
+            persistBadge +
+            '<span class="text-[10px] px-1.5 py-0.5 rounded ' + styles.badge + ' mono">' + levelLabel[levelKey] + '</span>' +
+          '</div>' +
+        '</div>' +
+        (it.source    ? '<div class="text-xs mono text-slate-500 truncate">' + escapeHtml(it.source) + '</div>' : '') +
+        (it.item      ? '<div class="text-xs"><span class="font-semibold text-slate-700 dark:text-slate-300">Item: </span><span class="text-slate-600 dark:text-slate-400">' + escapeHtml(it.item) + '</span></div>' : '') +
+        (it.violation ? '<div class="text-xs"><span class="font-semibold text-slate-700 dark:text-slate-300">Why: </span><span class="text-slate-600 dark:text-slate-400">' + escapeHtml(it.violation) + '</span></div>' : '') +
+        (it.fix       ? '<div class="text-xs rounded bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 p-2"><span class="font-semibold text-emerald-700 dark:text-emerald-300">Recommended fix: </span><span class="text-slate-700 dark:text-slate-200">' + escapeHtml(it.fix) + '</span></div>' : '') +
+        '</div>';
+    };
+
+    feed.innerHTML = scans.map(s => {
+      const items = s.items || {};
+      const allHtml = ['red','high','medium','low']
+        .map(lvl => (items[lvl] || []).map(i => itemHtml(i, lvl)).filter(Boolean).join(''))
+        .filter(Boolean).join('');
+      if (q && !allHtml &&
+          !(String(s.scan_date) + ' ' + String(s.summary_text || '')).toLowerCase().includes(q)) return '';
+      const counts = s.counts || {};
+      const countsLine = ['red','high','medium','low']
+        .map(lvl => (counts[lvl] || 0) + ' ' + lvl.toUpperCase()).join(' · ');
+      const callout = s.callout
+        ? '<div class="text-xs italic text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900 rounded p-2">' + escapeHtml(s.callout) + '</div>'
+        : '';
+      return '<div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow space-y-3">' +
+        '<div class="flex items-baseline justify-between">' +
+          '<div class="font-semibold text-sm">Scan · ' + escapeHtml(s.scan_date || '') + '</div>' +
+          '<div class="text-[11px] mono text-slate-400">' + escapeHtml(countsLine) + '</div>' +
+        '</div>' +
+        callout +
+        (allHtml ? '<div class="space-y-2">' + allHtml + '</div>'
+                 : '<div class="text-xs text-slate-400 italic">No items in this scan.</div>') +
+        '</div>';
+    }).filter(Boolean).join('');
+  };
+
+  // v2.32.0: Competitive monitor feed.
+  const renderCompetitive = () => {
+    const feed = $('#competitive-feed');
+    const empty = $('#competitive-empty');
+    const searchEl = $('#competitive-search');
+    if (!feed) return;
+
+    const totals = state.competitive.totals || {};
+    const setBind = (key, val) => $$('[data-bind="' + key + '"]').forEach(el => el.textContent = val);
+    setBind('competitiveChangesLatest', totals.changes_latest || 0);
+    setBind('competitiveThreatsLatest', totals.threats_latest || 0);
+    setBind('competitiveChanges14d', totals.changes_14d || 0);
+    setBind('competitiveTargets', totals.targets_latest || 0);
+    setBind('competitiveCount', totals.changes_latest || 0);
+
+    if (searchEl && !searchEl.dataset.init) {
+      searchEl.dataset.init = '1';
+      searchEl.addEventListener('input', () => {
+        state.filters.competitiveSearch = searchEl.value;
+        renderCompetitive();
+      });
+    }
+    const q = (state.filters.competitiveSearch || '').toLowerCase();
+
+    const reports = state.competitive.reports || [];
+    if (!reports.length) {
+      feed.classList.add('hidden');
+      empty.classList.remove('hidden');
+      return;
+    }
+    feed.classList.remove('hidden');
+    empty.classList.add('hidden');
+
+    const statusStyles = {
+      threat:  { box: 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-900',       badge: 'bg-red-600 text-white',    label: 'THREAT' },
+      change:  { box: 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900', badge: 'bg-amber-600 text-white',  label: 'CHANGE' },
+      ok:      { box: 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900', badge: 'bg-emerald-600 text-white', label: 'NO CHANGE' },
+      dormant: { box: 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800',  badge: 'bg-slate-500 text-white',  label: 'DORMANT' },
+      unknown: { box: 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800',  badge: 'bg-slate-400 text-white',  label: '—' },
+    };
+
+    const targetHtml = (t) => {
+      const blob = (t.name + ' ' + t.descriptor + ' ' + t.summary + ' ' + (t.implication||'') + ' ' + (t.new_thing||'')).toLowerCase();
+      if (q && !blob.includes(q)) return '';
+      const styles = statusStyles[t.status] || statusStyles.unknown;
+      const urlHtml = t.url
+        ? '<a href="' + escapeHtml(t.url) + '" target="_blank" rel="noopener" class="text-[11px] mono text-indigo-600 dark:text-indigo-400 hover:underline truncate block">' + escapeHtml(t.url) + '</a>'
+        : '';
+      return '<div class="rounded-lg border ' + styles.box + ' p-3 space-y-1.5">' +
+        '<div class="flex items-start justify-between gap-2">' +
+          '<div class="font-medium text-sm leading-snug">' + escapeHtml(t.name) + '</div>' +
+          '<span class="text-[10px] px-1.5 py-0.5 rounded ' + styles.badge + ' mono shrink-0">' + styles.label + '</span>' +
+        '</div>' +
+        (t.descriptor   ? '<div class="text-xs italic text-slate-600 dark:text-slate-400">' + escapeHtml(t.descriptor) + '</div>' : '') +
+        urlHtml +
+        (t.new_thing    ? '<div class="text-xs"><span class="font-semibold text-slate-700 dark:text-slate-300">New: </span><span class="text-slate-600 dark:text-slate-400">' + escapeHtml(t.new_thing) + '</span></div>' : '') +
+        (t.before       ? '<div class="text-xs"><span class="font-semibold text-slate-700 dark:text-slate-300">Before: </span><span class="text-slate-600 dark:text-slate-400">' + escapeHtml(t.before) + '</span></div>' : '') +
+        (t.change_text && !t.new_thing ? '<div class="text-xs"><span class="font-semibold text-slate-700 dark:text-slate-300">Change: </span><span class="text-slate-600 dark:text-slate-400">' + escapeHtml(t.change_text) + '</span></div>' : '') +
+        (t.implication  ? '<div class="text-xs rounded bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900 p-2"><span class="font-semibold text-purple-700 dark:text-purple-300">Implication: </span><span class="text-slate-700 dark:text-slate-200">' + escapeHtml(t.implication) + '</span></div>' : '') +
+        '</div>';
+    };
+
+    feed.innerHTML = reports.map(r => {
+      const targets = r.targets || [];
+      const html = targets.map(targetHtml).filter(Boolean).join('');
+      if (q && !html && !(String(r.report_date)).toLowerCase().includes(q)) return '';
+      const c = r.counts || {};
+      const countsLine = (c.changes||0) + ' changes · ' + (c.ok||0) + ' unchanged' + ((c.threats||0) ? ' · ' + c.threats + ' threats' : '');
+      return '<div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow space-y-3">' +
+        '<div class="flex items-baseline justify-between">' +
+          '<div class="font-semibold text-sm">Scan · ' + escapeHtml(r.report_date || '') + '</div>' +
+          '<div class="text-[11px] mono text-slate-400">' + escapeHtml(countsLine) + '</div>' +
+        '</div>' +
+        (html ? '<div class="space-y-2">' + html + '</div>'
+              : '<div class="text-xs text-slate-400 italic">No targets in this scan.</div>') +
+        '</div>';
+    }).filter(Boolean).join('');
+  };
+
+  const sameDay = (a,b) => a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+  const renderSchedule = () => {
+    const dayEl = $('#schedule-day');
+    const td = new Date();
+    $('[data-bind="todayDate"]').textContent = td.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' });
+    if (dayEl) {
+      const hours = Array.from({length:24}, (_,i)=>i);
+      const nowMin = td.getHours()*60 + td.getMinutes();
+      const nowPct = (nowMin/1440)*100;
+      const jobs = (state.queue && state.queue.jobs) || [];
+      const todays = jobs.filter(j => j.next_run && sameDay(new Date(j.next_run), td));
+      dayEl.innerHTML = '<div class="relative h-[480px] border-l border-slate-200 dark:border-slate-800 ml-12">' +
+        hours.map((h,i)=>'<div class="absolute left-0 right-0 border-t border-slate-100 dark:border-slate-800/60" style="top:' + ((i/24)*100) + '%"><div class="absolute -left-12 -top-2 text-[10px] mono text-slate-400 w-10 text-right pr-2">' + String(h).padStart(2,'0') + ':00</div></div>').join('') +
+        '<div class="absolute left-0 right-0 z-10" style="top:' + nowPct + '%"><div class="h-px bg-rose-500"></div><div class="absolute -left-1 -top-1 w-2 h-2 rounded-full bg-rose-500"></div></div>' +
+        todays.map(j => {
+          const dt = new Date(j.next_run);
+          const top = ((dt.getHours()*60 + dt.getMinutes())/1440)*100;
+          return '<div class="absolute left-2 right-2 rounded-lg bg-indigo-100 dark:bg-indigo-950 border border-indigo-200 dark:border-indigo-900/60 px-3 py-1.5 text-xs" style="top:' + top + '%"><div class="font-medium text-indigo-900 dark:text-indigo-200">' + escapeHtml(j.name) + '</div><div class="mono text-[10px] text-indigo-700 dark:text-indigo-300">' + fmtTimeMono(j.next_run) + '</div></div>';
+        }).join('') +
+        '</div>';
+    }
+    const wk = $('#schedule-week');
+    if (wk) {
+      const days = Array.from({length:7}, (_,i)=> { const d = new Date(td); d.setDate(td.getDate()+i); return d; });
+      const jobs = (state.queue && state.queue.jobs) || [];
+      wk.innerHTML = days.map(d => {
+        const dayJobs = jobs.filter(j => j.next_run && sameDay(new Date(j.next_run), d));
+        return '<div class="rounded-lg border border-slate-200 dark:border-slate-800 p-3">' +
+          '<div class="flex items-center justify-between mb-1.5"><div class="text-xs font-medium">' + d.toLocaleDateString(undefined,{weekday:'short'}) + '</div><div class="text-[10px] mono text-slate-400">' + d.toLocaleDateString(undefined,{month:'short',day:'numeric'}) + '</div></div>' +
+          (dayJobs.length === 0 ? '<div class="text-[11px] text-slate-400">—</div>' : '<ul class="space-y-1">' + dayJobs.map(j=>'<li class="text-[11px] flex justify-between"><span class="truncate pr-2">' + escapeHtml(j.name) + '</span><span class="mono text-slate-400">' + fmtTimeMono(j.next_run) + '</span></li>').join('') + '</ul>') +
+          '</div>';
+      }).join('');
+    }
+    const jt = $('#jobs-tbody');
+    const jobs = (state.queue && state.queue.jobs) || [];
+    if (jt) {
+      if (!jobs.length) {
+        jt.innerHTML = '<tr><td colspan="5" class="px-3 py-6 text-center text-xs text-slate-500">No scheduled jobs.</td></tr>';
+      } else {
+        jt.innerHTML = jobs.map(j =>
+          '<tr><td class="px-3 py-2 text-sm">' + escapeHtml(j.name) + '</td>' +
+          '<td class="px-3 py-2 text-xs mono text-slate-500">' + escapeHtml(j.cadence || '—') + '</td>' +
+          '<td class="px-3 py-2 text-xs mono text-slate-500">' + (j.last_run ? relTime(j.last_run) : 'never') + '</td>' +
+          '<td class="px-3 py-2">' + (j.last_status ? statePill(j.last_status === 'success' ? 'done' : 'failed') : '<span class="text-xs text-slate-400">—</span>') + '</td>' +
+          '<td class="px-3 py-2 text-xs mono text-slate-500">' + (j.next_run ? new Date(j.next_run).toLocaleString() : '—') + '</td></tr>'
+        ).join('');
+      }
+    }
+  };
+
+  const renderTelemetry = () => {
+    const t = state.telemetry || {};
+    // Server shape is {rollup:{week:{...}, today:{...}}, daily_token_history:[...], top_tasks:[...]}.
+    // Older flat shape (t.tokens_week, t.cost_week, ...) still supported as fallback.
+    const week = (t.rollup && t.rollup.week) || {};
+    const tokensWeek = (t.tokens_week != null)
+      ? t.tokens_week
+      : ((week.input_tokens || 0) + (week.output_tokens || 0));
+    const costWeek = (t.cost_week != null) ? t.cost_week
+      : (week.api_cost_usd != null ? week.api_cost_usd : null);
+    const hoursWeek = (t.human_hours_week != null) ? t.human_hours_week
+      : (week.human_eq_hours != null ? week.human_eq_hours
+      : (week.human_eq_minutes != null ? week.human_eq_minutes / 60 : null));
+    const savingsWeek = (t.savings_week != null) ? t.savings_week
+      : (week.net_savings_usd != null ? week.net_savings_usd : null);
+    const cacheRatio = (t.cache_ratio != null) ? t.cache_ratio
+      : (week.cache_hit_ratio != null ? week.cache_hit_ratio : 0);
+
+    $('[data-bind="telemTokensWeek"]').textContent = tokensWeek > 0 ? fmtInt.format(tokensWeek) : '—';
+    // Server doesn't yet expose previous-week rollup; fall back to '—'.
+    $('[data-bind="telemTokensWeekSub"]').textContent = (t.tokens_prev_week != null) ? ('prev wk: ' + fmtInt.format(t.tokens_prev_week)) : '—';
+    $('[data-bind="telemCostWeek"]').textContent = costWeek != null ? fmtMoney.format(costWeek) : '—';
+    $('[data-bind="telemHours"]').textContent = hoursWeek != null ? (hoursWeek.toFixed(1) + 'h') : '—';
+    $('[data-bind="telemSavings"]').textContent = savingsWeek != null ? fmtMoney.format(savingsWeek) : '—';
+
+    // Daily chart: server returns daily_token_history with {date, input, output, cache_read, cache_write}
+    // — those keys already match the chart's render contract, so pass through.
+    drawTokensChart(t.daily_token_history || t.daily || []);
+    drawCacheGauge(cacheRatio);
+
+    const top = ((t.top_tasks || t.top) || []).slice(0,10);
+    const tb = $('#top-tasks-tbody');
+    if (tb) {
+      if (!top.length) {
+        tb.innerHTML = '<tr><td colspan="6" class="px-4 py-6 text-center text-xs text-slate-500">No telemetry yet.</td></tr>';
+      } else {
+        tb.innerHTML = top.map(r => {
+          const dms = taskDurationMs(r);
+          const apiCost = taskApiCost(r);
+          const humanEq = taskHumanEquivUsd(r);
+          const value = taskValueUsd(r);
+          const typeLabel = r.type_label || r.type || '—';
+          return '<tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40">' +
+            '<td class="px-4 py-3 text-sm max-w-xs truncate">' + escapeHtml(r.summary || r.task || '—') + '</td>' +
+            '<td class="px-4 py-3 text-xs"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">' + escapeHtml(typeLabel) + '</span></td>' +
+            '<td class="px-4 py-3 text-right text-xs mono">' + (dms != null ? fmtDuration(dms) : '—') + '</td>' +
+            '<td class="px-4 py-3 text-right text-xs mono">' + (humanEq != null ? fmtMoney.format(humanEq) : '—') + '</td>' +
+            '<td class="px-4 py-3 text-right text-xs mono">' + (apiCost != null ? fmtMoneySmall.format(apiCost) : '—') + '</td>' +
+            '<td class="px-4 py-3 text-right text-xs mono text-emerald-600 dark:text-emerald-400">' + (value != null ? fmtMoney.format(value) : '—') + '</td>' +
+            '</tr>';
+        }).join('');
+      }
+    }
+  };
+
+  const drawTokensChart = (days) => {
+    const root = $('#tokens-chart');
+    if (!root) return;
+    const W = 720, H = 240, P = { l: 36, r: 12, t: 12, b: 28 };
+    const data = days.length ? days : Array.from({length:7}, (_,i)=>{ const d=new Date(); d.setDate(d.getDate()-(6-i)); return { date: d.toISOString().slice(0,10), input:0, output:0, cache_read:0, cache_write:0 }; });
+    const max = Math.max(1, ...data.map(d => (d.input||0)+(d.output||0)+(d.cache_read||0)+(d.cache_write||0)));
+    const bw = (W - P.l - P.r) / data.length;
+    const innerH = H - P.t - P.b;
+    const yticks = 4;
+    const colors = { input:'#6366f1', output:'#a5b4fc', cache_read:'#34d399', cache_write:'#fbbf24' };
+    let bars = '';
+    data.forEach((d,i) => {
+      let acc = 0;
+      const x = P.l + bw*i + 4;
+      const w = bw - 8;
+      ['input','output','cache_read','cache_write'].forEach(k => {
+        const v = d[k] || 0;
+        const h = (v/max)*innerH;
+        const y = P.t + innerH - acc - h;
+        bars += '<rect class="bar-segment" x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" fill="' + colors[k] + '"><title>' + k + ': ' + fmtInt.format(v) + '</title></rect>';
+        acc += h;
+      });
+    });
+    let yLabels = '';
+    for (let i = 0; i <= yticks; i++) {
+      const y = P.t + innerH - (innerH * (i / yticks));
+      const v = max * (i / yticks);
+      yLabels += '<line x1="' + P.l + '" y1="' + y + '" x2="' + (W-P.r) + '" y2="' + y + '" stroke="currentColor" stroke-opacity="0.08"/>';
+      yLabels += '<text x="' + (P.l-6) + '" y="' + (y+3) + '" font-size="10" text-anchor="end" fill="currentColor" opacity="0.45" font-family="JetBrains Mono">' + fmtInt.format(Math.round(v)) + '</text>';
+    }
+    let xLabels = '';
+    data.forEach((d,i) => {
+      const x = P.l + bw*i + bw/2;
+      const dt = new Date(d.date);
+      const lbl = dt.toLocaleDateString(undefined,{weekday:'short'});
+      xLabels += '<text x="' + x + '" y="' + (H-8) + '" font-size="10" text-anchor="middle" fill="currentColor" opacity="0.55" font-family="JetBrains Mono">' + lbl + '</text>';
+    });
+    root.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" class="w-full h-60 text-slate-500">' + yLabels + bars + xLabels + '</svg>';
+  };
+
+  const drawCacheGauge = (ratio) => {
+    const root = $('#cache-gauge');
+    if (!root) return;
+    const r = 60, sw = 14, c = Math.max(0, Math.min(1, ratio));
+    const circ = 2 * Math.PI * r;
+    const dash = circ * c;
+    root.innerHTML = '<svg viewBox="0 0 160 160" class="w-44 h-44">' +
+      '<circle cx="80" cy="80" r="' + r + '" fill="none" stroke="currentColor" stroke-opacity="0.1" stroke-width="' + sw + '"/>' +
+      '<circle cx="80" cy="80" r="' + r + '" fill="none" stroke="#10b981" stroke-width="' + sw + '" stroke-linecap="round" stroke-dasharray="' + dash + ' ' + (circ-dash) + '" transform="rotate(-90 80 80)"/>' +
+      '<text x="80" y="84" text-anchor="middle" font-size="22" font-weight="600" font-family="JetBrains Mono" fill="currentColor">' + fmtPct(c) + '</text>' +
+      '<text x="80" y="104" text-anchor="middle" font-size="10" fill="currentColor" opacity="0.55">cache hit ratio</text>' +
+      '</svg>';
+  };
+
+  const loadChatHistory = () => {
+    try { const raw = localStorage.getItem('dashboard-chat-history'); state.chat = raw ? JSON.parse(raw) : []; } catch(e) { state.chat = []; }
+  };
+  const saveChatHistory = () => {
+    const trimmed = state.chat.slice(-50);
+    localStorage.setItem('dashboard-chat-history', JSON.stringify(trimmed));
+  };
+
+  const renderChat = () => {
+    const root = $('#chat-messages');
+    if (!root) return;
+    if (!state.chat.length && !state.chatTyping) {
+      root.innerHTML = '<div class="text-center text-sm text-slate-500 py-12">Start a conversation. The agent has full access to your memory, task ledger, and tools — same as in Telegram.</div>';
+      return;
+    }
+    const initial = (TENANT.name && TENANT.name !== 'Daniel') ? TENANT.name[0].toUpperCase() : 'D';
+    let html = state.chat.map(m => {
+      const isUser = m.role === 'user';
+      const avatar = isUser
+        ? ('<div class="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-semibold shrink-0">' + initial + '</div>')
+        : '<div class="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-center shrink-0"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6v6c0 5 3.4 9.4 8 10 4.6-.6 8-5 8-10V6l-8-4Z"/></svg></div>';
+      // tokens is the API shape {input_tokens, output_tokens, cache_*}; sum input+output for display.
+      const tokenTotal = (() => {
+        const t = m.tokens;
+        if (t == null) return null;
+        if (typeof t === 'number') return t;
+        return (t.input_tokens || t.input || 0) + (t.output_tokens || t.output || 0);
+      })();
+      const meta = (tokenTotal != null || m.cost_usd || m.duration_ms)
+        ? ('<div class="mt-1.5 text-[10px] mono text-slate-400">' + (tokenTotal != null ? (fmtInt.format(tokenTotal) + ' tok') : '') + (m.cost_usd ? (' · ' + fmtMoneySmall.format(m.cost_usd)) : '') + (m.duration_ms ? (' · ' + fmtDuration(m.duration_ms)) : '') + '</div>')
+        : '';
+      const senderName = isUser ? (TENANT.name === 'Daniel' ? 'You' : escapeHtml(TENANT.name)) : 'Agent';
+      return '<div class="flex gap-3 fade-in">' + avatar +
+        '<div class="flex-1 min-w-0">' +
+        '<div class="flex items-center gap-2 mb-1"><span class="text-sm font-semibold">' + senderName + '</span><span class="text-[10px] mono text-slate-400">' + fmtTimeMono(m.ts) + '</span></div>' +
+        '<div class="text-sm leading-relaxed text-slate-800 dark:text-slate-100 whitespace-pre-wrap">' + escapeHtml(m.body || '') + '</div>' +
+        meta + '</div></div>';
+    }).join('');
+    if (state.chatTyping) {
+      html += '<div class="flex gap-3 fade-in">' +
+        '<div class="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-center shrink-0"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6v6c0 5 3.4 9.4 8 10 4.6-.6 8-5 8-10V6l-8-4Z"/></svg></div>' +
+        '<div class="flex-1"><div class="text-sm font-semibold mb-1">Agent</div><div class="text-slate-400 text-sm"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div></div>' +
+        '</div>';
+    }
+    root.innerHTML = html;
+    setTimeout(scrollChatToBottom, 0);
+  };
+  const scrollChatToBottom = () => { const r = $('#chat-messages'); if (r) r.scrollTop = r.scrollHeight; };
+
+  const sendChat = async () => {
+    const ta = $('#chat-input');
+    const msg = (ta.value || '').trim();
+    if (!msg) return;
+    ta.value = '';
+    state.chat.push({ role:'user', body: msg, ts: new Date().toISOString() });
+    state.chatTyping = true;
+    saveChatHistory();
+    renderChat();
+    try {
+      const res = await fetch('/api/chat', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ message: msg }) });
+      const data = res.ok ? await res.json() : null;
+      state.chatTyping = false;
+      // server returns {response, tokens, cost_usd, duration_seconds, finished_at, ...}
+      if (data && data.response) {
+        const dms = typeof data.duration_seconds === 'number' ? data.duration_seconds * 1000 : (data.duration_ms || null);
+        state.chat.push({ role:'agent', body: data.response, ts: data.finished_at || data.ts || new Date().toISOString(), tokens: data.tokens, cost_usd: data.cost_usd, duration_ms: dms });
+      } else {
+        state.chat.push({ role:'agent', body: '(Agent did not respond. Check that /api/chat is wired up.)', ts: new Date().toISOString() });
+      }
+    } catch (e) {
+      state.chatTyping = false;
+      state.chat.push({ role:'agent', body: '(Network error: ' + e.message + ')', ts: new Date().toISOString() });
+    }
+    saveChatHistory();
+    renderChat();
+  };
+
+  // Each server-side history entry is one {prompt,response} round-trip.
+  // Render it as TWO chat bubbles: one user (prompt) + one agent (response).
+  const flattenHistoryEntry = (e) => {
+    const dms = typeof e.duration_seconds === 'number' ? e.duration_seconds * 1000 : (e.duration_ms || null);
+    return [
+      { role: 'user',  body: e.prompt   || '', ts: e.started_at  || e.finished_at || null },
+      { role: 'agent', body: e.response || '', ts: e.finished_at || e.started_at  || null,
+        tokens: e.tokens, cost_usd: e.cost_usd, duration_ms: dms },
+    ];
+  };
+
+  const hydrateChatFromServer = async () => {
+    const data = await safeFetch('/api/chat/history?limit=50');
+    if (data && Array.isArray(data.messages) && data.messages.length) {
+      state.chat = data.messages.flatMap(flattenHistoryEntry);
+      saveChatHistory();
+      renderChat();
+    }
+  };
+
+  const renderSettings = () => {
+    $$('.theme-btn').forEach(b => {
+      const on = b.dataset.mode === state.theme;
+      b.classList.toggle('bg-indigo-600', on);
+      b.classList.toggle('text-white', on);
+      b.classList.toggle('border-indigo-600', on);
+    });
+  };
+
+  document.addEventListener('click', async (e) => {
+    const target = e.target.closest('[data-action]');
+    if (!target) return;
+    const action = target.dataset.action;
+    if (action === 'nav') { e.preventDefault(); setActiveTab(target.dataset.tab); return; }
+    if (action === 'toggle-theme') {
+      const next = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
+      applyTheme(next);
+      return;
+    }
+    if (action === 'theme') { applyTheme(target.dataset.mode); return; }
+    if (action === 'toggle-sidebar') { $('#sidebar').classList.remove('sidebar-hidden'); $('#sidebar-backdrop').classList.remove('hidden'); return; }
+    if (action === 'close-sidebar') { $('#sidebar').classList.add('sidebar-hidden'); $('#sidebar-backdrop').classList.add('hidden'); return; }
+    if (action === 'reload') { await refreshAll(); return; }
+    if (action === 'filter-state') { state.filters.state = target.dataset.state; renderTasks(); return; }
+    if (action === 'filter-memory') { state.filters.memoryType = target.dataset.type; renderMemory(); return; }
+    if (action === 'expand-task') {
+      const id = target.dataset.taskId;
+      const detail = document.querySelector('[data-task-detail="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]');
+      if (detail) detail.classList.toggle('hidden');
+      return;
+    }
+    if (action === 'approve') {
+      e.stopPropagation();
+      const id = target.dataset.taskId;
+      target.disabled = true;
+      try {
+        await fetch('/api/approve/' + encodeURIComponent(id), { method:'POST' });
+        const t = state.tasks.find(x => x.id === id);
+        if (t) t.state = 'done';
+        render();
+      } catch (err) { console.warn('approve failed', err); target.disabled = false; }
+      return;
+    }
+    if (action === 'edit-task') {
+      e.stopPropagation();
+      const id = target.dataset.taskId;
+      const t = state.tasks.find(x => x.id === id);
+      const summary = (t && (t.summary || t.title)) || 'this task';
+      setActiveTab('chat');
+      const ta = $('#chat-input');
+      ta.value = 'Help me revise: ' + summary;
+      ta.focus();
+      return;
+    }
+    if (action === 'send-chat') { sendChat(); return; }
+    if (action === 'clear-chat') {
+      if (confirm('Clear chat history?')) { state.chat = []; saveChatHistory(); renderChat(); }
+      return;
+    }
+  });
+
+  document.addEventListener('input', (e) => {
+    if (e.target.id === 'task-search') { state.filters.search = e.target.value; renderTasks(); }
+    if (e.target.id === 'owner-filter') { state.filters.owner = e.target.value; renderTasks(); }
+    if (e.target.id === 'memory-search') { state.filters.memorySearch = e.target.value; renderMemory(); }
+    if (e.target.id === 'global-search') {
+      const q = e.target.value;
+      state.filters.search = q;
+      state.filters.memorySearch = q;
+      if (state.activeTab === 'tasks') renderTasks();
+      if (state.activeTab === 'memory') renderMemory();
+    }
+  });
+  document.addEventListener('change', (e) => {
+    if (e.target.id === 'owner-filter') { state.filters.owner = e.target.value; renderTasks(); }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    const ae = document.activeElement;
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && ae && ae.id === 'chat-input') {
+      e.preventDefault();
+      sendChat();
+    }
+  });
+
+  initTheme();
+  initTab();
+  loadChatHistory();
+  render();
+  refreshAll();
+  hydrateChatFromServer();
+  setInterval(refreshAll, 30000);
+})();
+</script>
+</body>
+</html>

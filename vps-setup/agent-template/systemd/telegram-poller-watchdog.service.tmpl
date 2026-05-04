@@ -1,0 +1,32 @@
+[Unit]
+Description=Telegram poller watchdog for {{TENANT_LINUX_USER}} (restart claude-agent if --channels poller has wedged)
+Documentation=https://github.com/{{TENANT_BRAND_REPO_GH_PATH}}
+# After= for boot ordering only. NO Requisite=/Requires= on claude-agent.service —
+# the watchdog's job is to restart claude-agent, which momentarily makes it
+# inactive; a hard dependency would TERM the watchdog mid-execution. The script
+# itself early-exits if claude-agent is down (out of scope for the poller check).
+After=claude-agent.service
+
+[Service]
+Type=oneshot
+# Runs as root because it needs to systemctl restart claude-agent.service.
+# The escalation step drops to {{TENANT_LINUX_USER}} via sudo for tg-send.
+User=root
+Group=root
+ExecStart={{TENANT_AGENT_HOME}}/scripts/telegram-poller-watchdog.sh
+
+# Tighten the blast radius. NOTE: NoNewPrivileges= is intentionally OMITTED —
+# the script needs to drop from root to {{TENANT_LINUX_USER}} via runuser to
+# invoke tg-send.sh during circuit-breaker escalation, which requires
+# setresuid() — a syscall NoNewPrivileges blocks even for already-root callers.
+# The remaining protections still meaningfully reduce blast radius without
+# crippling the escalation path.
+ProtectKernelTunables=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+RestrictRealtime=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

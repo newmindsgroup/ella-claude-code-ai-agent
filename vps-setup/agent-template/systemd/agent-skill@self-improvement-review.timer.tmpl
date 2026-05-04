@@ -1,0 +1,11 @@
+[Unit]
+Description=Weekly self-improvement review (Sun 17:00 {{TENANT_TIMEZONE}})
+
+[Timer]
+OnCalendar=Sun *-*-* 17:00:00 {{TENANT_TIMEZONE}}
+Persistent=true
+RandomizedDelaySec=120
+Unit=agent-skill@self-improvement-review.service
+
+[Install]
+WantedBy=timers.target

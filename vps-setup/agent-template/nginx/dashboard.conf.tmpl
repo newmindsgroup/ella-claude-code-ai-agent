@@ -1,0 +1,69 @@
+# {{TENANT_DASHBOARD_HOSTNAME}} — agent mission control.
+server {
+    listen 80;
+    listen [::]:80;
+    server_name {{TENANT_DASHBOARD_HOSTNAME}};
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name {{TENANT_DASHBOARD_HOSTNAME}};
+
+    ssl_certificate     {{TENANT_TLS_CERT_PATH}};
+    ssl_certificate_key {{TENANT_TLS_KEY_PATH}};
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options        "SAMEORIGIN" always;
+    add_header Referrer-Policy        "strict-origin-when-cross-origin" always;
+
+    auth_basic           "Mission Control";
+    auth_basic_user_file /etc/nginx/.htpasswd-{{TENANT_ID}};
+
+    root /var/www/{{TENANT_DASHBOARD_HOSTNAME}};
+    index index.html;
+
+    # Chat backend (FastAPI on 127.0.0.1:8001).
+    # Order matters — these regex/exact-match locations must come before the
+    # generic /api/ block so they win the nginx location-matching contest.
+    location = /api/chat {
+        proxy_pass         http://127.0.0.1:8001/api/chat;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_read_timeout 180s;
+        proxy_send_timeout 180s;
+        proxy_buffering    off;
+    }
+    location ~ ^/api/chat/(.*)$ {
+        proxy_pass         http://127.0.0.1:8001/api/chat/$1$is_args$args;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+        proxy_buffering    off;
+    }
+
+    # Static JSON endpoints written by dashboard-sync + telemetry-calc
+    location /api/ {
+        add_header Cache-Control "no-store" always;
+        types {
+          application/json json;
+        }
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+        add_header Cache-Control "no-store, no-cache, must-revalidate" always;
+    }
+
+    access_log /var/log/nginx/{{TENANT_DASHBOARD_HOSTNAME}}.access.log;
+    error_log  /var/log/nginx/{{TENANT_DASHBOARD_HOSTNAME}}.error.log;
+}

@@ -1,0 +1,11 @@
+[Unit]
+Description=Pipeline weekly report (Mon 08:00 {{TENANT_TIMEZONE}})
+
+[Timer]
+OnCalendar=Mon *-*-* 08:00:00 {{TENANT_TIMEZONE}}
+Persistent=true
+RandomizedDelaySec=60
+Unit=agent-skill@pipeline-reporter.service
+
+[Install]
+WantedBy=timers.target

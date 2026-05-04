@@ -1,0 +1,12 @@
+[Unit]
+Description=Run telemetry-calc every 5 minutes for {{TENANT_ID}}
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+AccuracySec=30s
+Persistent=true
+Unit=telemetry-calc.service
+
+[Install]
+WantedBy=timers.target

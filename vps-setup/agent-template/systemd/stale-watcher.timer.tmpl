@@ -1,0 +1,10 @@
+[Unit]
+Description=Hourly stale-task check during business hours, {{TENANT_TIMEZONE}}
+
+[Timer]
+OnCalendar=*-*-* 09..21:00:00 {{TENANT_TIMEZONE}}
+Persistent=true
+Unit=stale-watcher.service
+
+[Install]
+WantedBy=timers.target

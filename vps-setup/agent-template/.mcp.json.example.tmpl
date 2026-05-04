@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "ghl": {
+      "command": "node",
+      "args": [
+        "{{TENANT_AGENT_HOME}}/ghl-mcp/dist/server.js"
+      ],
+      "env": {
+        "GHL_API_KEY": "${GHL_PRIVATE_INTEGRATIONS_TOKEN}",
+        "GHL_BASE_URL": "https://services.leadconnectorhq.com",
+        "GHL_LOCATION_ID": "${GHL_LOCATION_ID}",
+        "NODE_ENV": "production"
+      }
+    }
+  }
+}

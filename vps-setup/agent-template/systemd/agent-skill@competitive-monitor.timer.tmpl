@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily competitive monitor (07:00 {{TENANT_TIMEZONE}})
+
+[Timer]
+OnCalendar=*-*-* 07:00:00 {{TENANT_TIMEZONE}}
+Persistent=true
+RandomizedDelaySec=120
+Unit=agent-skill@competitive-monitor.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,17 @@
+[Unit]
+Description=Compute per-task telemetry (tokens, time, value) for {{TENANT_ID}}
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/usr/bin/python3 {{TENANT_AGENT_HOME}}/scripts/telemetry-calc.py
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=/var/www/{{TENANT_DASHBOARD_HOSTNAME}}/api
+StandardOutput=append:/var/log/{{TENANT_LINUX_USER}}-telemetry.log
+StandardError=append:/var/log/{{TENANT_LINUX_USER}}-telemetry.log
+
+[Install]
+WantedBy=multi-user.target

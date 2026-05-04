@@ -1,0 +1,10 @@
+[Unit]
+Description=Sync agent JSON state every minute
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=60s
+Unit=dashboard-sync.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,13 @@
+[Unit]
+Description=Run deploy-timeout-sweep every 30 minutes for {{TENANT_LINUX_USER}}
+
+[Timer]
+# Fire 10 min after boot (give claude-agent time to come up + the deploys/
+# directory to be initialized), then every 30 min.
+OnBootSec=10min
+OnUnitActiveSec=30min
+Persistent=true
+Unit=deploy-timeout-sweep.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,11 @@
+[Unit]
+Description=Social drafter scheduled run (daily 06:00 {{TENANT_TIMEZONE}})
+
+[Timer]
+OnCalendar=*-*-* 06:00:00 {{TENANT_TIMEZONE}}
+Persistent=true
+RandomizedDelaySec=60
+Unit=agent-skill@social-drafter.service
+
+[Install]
+WantedBy=timers.target
