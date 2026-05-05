@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+# skill-runner.sh — generic executor for scheduled agent skills.
+# Reads agent-skills/{name}/SKILL.md, invokes Claude Code in --print mode
+# with the skill briefing as context, delivers output via tg-send.sh,
+# writes task ledger events.
+#
+# Usage:
+#   skill-runner.sh <skill-name> [--manual]
+#
+# The --manual flag is for ad-hoc invocations (vs scheduled timer fires).
+# Both behave identically; --manual just adds a "manually invoked" tag to the log.
+
+set -euo pipefail
+
+cd /opt/{{TENANT_LINUX_USER}}/agents
+
+SKILL_NAME="${1:-}"
+[[ -z "$SKILL_NAME" ]] && { echo "usage: $0 <skill-name>" >&2; exit 1; }
+
+MANUAL=""; [[ "${2:-}" == "--manual" ]] && MANUAL="manual"
+
+DATE=$(date +%Y-%m-%d)
+DAY=$(date +%A)
+LOG_DIR="/opt/{{TENANT_LINUX_USER}}/agents/logs"
+mkdir -p "$LOG_DIR"
+LOG="$LOG_DIR/skill-${SKILL_NAME}-${DATE}.log"
+WORK="$LOG_DIR/skill-work-${SKILL_NAME}-${DATE}"
+mkdir -p "$WORK"
+
+TG="/opt/{{TENANT_LINUX_USER}}/agents/scripts/tg-send.sh"
+LEDGER="/opt/{{TENANT_LINUX_USER}}/agents/scripts/task-ledger.sh"
+BRAND_REPO="/opt/{{TENANT_LINUX_USER}}/agents/{{TENANT_BRAND_REPO_NAME}}"
+SKILL_DIR="$BRAND_REPO/agent-skills/$SKILL_NAME"
+SKILL_MD="$SKILL_DIR/SKILL.md"
+
+echo "=== skill-runner($SKILL_NAME) started at $(date -Iseconds) ${MANUAL:+($MANUAL)} ===" | tee -a "$LOG"
+
+# Pull latest brand canon
+(cd "$BRAND_REPO" && git pull --ff-only --quiet) >>"$LOG" 2>&1 || echo "WARN: git pull failed (non-fatal)" | tee -a "$LOG"
+
+if [[ ! -f "$SKILL_MD" ]]; then
+  "$TG" send --md --text $'\xe2\x9a\xa0\xef\xb8\x8f *Skill not found* \xe2\x80\x94 `'"$SKILL_NAME"$'`'
+  echo "ERROR: $SKILL_MD not found" | tee -a "$LOG"
+  exit 1
+fi
+
+# Create the parent task in the ledger (loud=true so all state transitions ping)
+TASK_ID=$("$LEDGER" create \
+  --summary "Scheduled skill run: $SKILL_NAME" \
+  --owner "$SKILL_NAME" \
+  --loud true \
+  --source "scheduled-${MANUAL:-cron}" \
+  --state "in_progress" \
+  --msg "Starting…")
+echo "task: $TASK_ID" | tee -a "$LOG"
+
+# Build the prompt
+PROMPT=$(cat <<PEOF
+You are running the scheduled skill "$SKILL_NAME" autonomously. Today is ${DAY}, ${DATE}.
+
+Read the skill briefing at $SKILL_MD and follow it precisely. The briefing tells you what to read, what to produce, and where to deliver output.
+
+CRITICAL — task-ledger contract:
+- This skill run is logged as task id: $TASK_ID
+- When you complete the work successfully and the result is ready for Daniel to review, call:
+  bash /opt/{{TENANT_LINUX_USER}}/agents/scripts/task-update.sh $TASK_ID awaiting_review "<1-line summary of where output landed>"
+- If the work is read-only / informational / fully complete (no review needed), call:
+  bash /opt/{{TENANT_LINUX_USER}}/agents/scripts/task-update.sh $TASK_ID done "<1-line summary>"
+- If you're blocked (missing data, API down, ambiguous brief), call:
+  bash /opt/{{TENANT_LINUX_USER}}/agents/scripts/task-update.sh $TASK_ID blocked "<what's missing>"
+
+Output rules:
+- For Telegram delivery, use the script /opt/{{TENANT_LINUX_USER}}/agents/scripts/tg-send.sh send --md --text "..." with MarkdownV2 escaping.
+- For long-form artifacts (newsletter copy, blog drafts), stage in GHL via mcp__ghl__create_email_template / create_blog_post / create_social_post and then send a short Telegram preview with a GHL link.
+- For audit reports (drift-scanner, pipeline-reporter), use multi-message MarkdownV2 chunks.
+
+Voice + entity rules apply (Voice DNA from 15_Brand_Behavior_Playbook.md section 7, no NMG / CreateMomento in client-facing output, drafts only never auto-publish).
+
+Begin executing the skill now.
+PEOF
+)
+
+claude --permission-mode dontAsk --print "$PROMPT" >>"$LOG" 2>&1 || {
+  "$LEDGER" state --id "$TASK_ID" --state blocked --msg "skill-runner: claude --print exited non-zero, see $LOG"
+  exit 1
+}
+
+echo "=== skill-runner($SKILL_NAME) finished at $(date -Iseconds) ===" | tee -a "$LOG"

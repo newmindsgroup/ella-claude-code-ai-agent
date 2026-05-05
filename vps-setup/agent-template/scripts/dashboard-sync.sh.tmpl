@@ -1,0 +1,811 @@
+#!/usr/bin/env bash
+# dashboard-sync.sh — copy the live JSON state files into the dashboard webroot.
+# Runs every minute via systemd timer. Keeps /var/www/{{TENANT_DASHBOARD_HOSTNAME}}/api/*.json fresh.
+set -euo pipefail
+
+DST=/var/www/{{TENANT_DASHBOARD_HOSTNAME}}/api
+SRC=/opt/{{TENANT_LINUX_USER}}/agents
+
+mkdir -p "$DST"
+
+# Copy and ensure nginx (www-data) can read
+copy() {
+  local from="$1" to="$2"
+  if [[ -f "$from" ]]; then
+    cp "$from" "$to.tmp"
+    mv "$to.tmp" "$to"
+    chmod 644 "$to"
+  fi
+}
+
+# NOTE: tasks.json is intentionally NOT copied here as of v2.22.0.
+# telemetry-calc.py now writes /api/tasks.json with lifecycle + telemetry
+# pre-merged (closes the v2.20.0 client-side-join + race-condition bug class).
+# It runs every 5 min, so tasks.json refresh cadence is 5min instead of 1min —
+# acceptable trade-off given the dashboard already polls every 30s.
+copy "$SRC/goals/active.json" "$DST/goals.json"
+copy "$SRC/memory/index/recent.json" "$DST/memory.json"
+
+# Build a meta.json with versions, timer schedule, last-update timestamp
+cat > "$DST/meta.json.tmp" <<META
+{
+  "synced_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "tenant": "{{TENANT_ID}}",
+  "stack_version": "$(cat $SRC/{{TENANT_BRAND_REPO_NAME}}/design-system/VERSION 2>/dev/null || echo 'unknown')"
+}
+META
+mv "$DST/meta.json.tmp" "$DST/meta.json"
+chmod 644 "$DST/meta.json"
+
+# v2.24.2: /api/health.json — system-level health snapshot for the dashboard's
+# topbar pill + the smoke test (which previously SKIP'd this 404). Distinct
+# from /api/chat/health (which is the FastAPI dashboard-chat backend's status
+# served on 127.0.0.1:8001).
+SERVICES=(claude-agent.service dashboard-chat.service telemetry-calc.timer nginx telegram-poller-watchdog.timer deploy-timeout-sweep.timer)
+SVCS_JSON=""
+all_active=true
+for svc in "${SERVICES[@]}"; do
+  state=$(systemctl is-active "$svc" 2>/dev/null || echo "unknown")
+  SVCS_JSON+=$(jq -nc --arg n "$svc" --arg s "$state" '{($n): $s}')$'\n'
+  [[ "$state" != "active" ]] && all_active=false
+done
+SVCS_OBJ=$(echo "$SVCS_JSON" | jq -sc 'add // {}')
+
+# Telegram poller alive? Check claude-agent.service cgroup for bun.
+if systemctl status --no-pager -l claude-agent.service 2>/dev/null | grep -qE "bun run.*claude-plugins-official/telegram"; then
+  poller_alive=true
+  poller_pid=$(systemctl status --no-pager -l claude-agent.service 2>/dev/null | grep -oE "├─[0-9]+ bun run.*claude-plugins-official/telegram" | grep -oE "[0-9]+" | head -1)
+else
+  poller_alive=false
+  poller_pid=""
+fi
+
+# Watchdog recent restarts (last 30 min from history file).
+recent_restarts=0
+HFILE="/var/lib/{{TENANT_LINUX_USER}}/watchdog-restart-history.txt"
+if [[ -f "$HFILE" ]]; then
+  now=$(date +%s); cutoff=$((now - 1800))
+  while IFS= read -r ts; do
+    [[ -z "$ts" ]] && continue
+    ts_e=$(date -d "$ts" +%s 2>/dev/null) || continue
+    [[ "$ts_e" -ge "$cutoff" ]] && recent_restarts=$((recent_restarts + 1))
+  done < "$HFILE"
+fi
+
+# TLS cert expiry.
+CERT_PATH="/etc/ssl/certs/{{TENANT_TLD}}-origin.crt"
+cert_days_remaining=0
+cert_expiry=""
+if [[ -f "$CERT_PATH" ]]; then
+  cert_expiry=$(openssl x509 -in "$CERT_PATH" -noout -enddate 2>/dev/null | cut -d= -f2)
+  if [[ -n "$cert_expiry" ]]; then
+    cert_days_remaining=$(python3 -c "
+import sys, datetime
+try:
+    d = datetime.datetime.strptime(sys.argv[1].strip(), '%b %d %H:%M:%S %Y %Z')
+    print(int((d - datetime.datetime.utcnow()).total_seconds() // 86400))
+except Exception:
+    print(0)
+" "$cert_expiry" 2>/dev/null || echo 0)
+  fi
+fi
+
+# Compose the health JSON. `ok` is true only if every service is active AND
+# poller alive AND cert >14 days from expiry.
+ok_overall="true"
+[[ "$all_active" != "true" || "$poller_alive" != "true" || "$cert_days_remaining" -lt 14 ]] && ok_overall="false"
+
+jq -nc \
+  --arg now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  --argjson services "$SVCS_OBJ" \
+  --argjson poller_alive "$poller_alive" \
+  --arg poller_pid "$poller_pid" \
+  --argjson recent_restarts "$recent_restarts" \
+  --arg cert_expiry "$cert_expiry" \
+  --argjson cert_days_remaining "$cert_days_remaining" \
+  --argjson ok "$ok_overall" \
+  --arg stack_version "$(cat $SRC/{{TENANT_BRAND_REPO_NAME}}/design-system/VERSION 2>/dev/null || echo 'unknown')" \
+  '{ok: $ok, generated_at: $now, services: $services, telegram_poller: {alive: $poller_alive, pid: $poller_pid}, watchdog: {recent_restarts_30min: $recent_restarts}, tls_cert: {expiry: $cert_expiry, days_remaining: $cert_days_remaining}, stack_version: $stack_version}' \
+  > "$DST/health.json.tmp"
+mv "$DST/health.json.tmp" "$DST/health.json"
+chmod 644 "$DST/health.json"
+
+# v2.24.2: /api/queue.json — filtered view of tasks awaiting Daniel's input.
+# Reads tasks/active.json (lifecycle source) and surfaces only states that
+# need attention: in_review (drafts ready), awaiting_external (held),
+# blocked (need decision). Counts by state for the dashboard's queue badge.
+TASKS_SRC="$SRC/tasks/active.json"
+if [[ -f "$TASKS_SRC" ]]; then
+  python3 << 'PY' > "$DST/queue.json.tmp"
+import json, sys
+from datetime import datetime, timezone
+try:
+    raw = json.load(open("/opt/{{TENANT_LINUX_USER}}/agents/tasks/active.json"))
+except Exception:
+    raw = {}
+# active.json is a dict-by-id; extract values.
+if isinstance(raw, dict):
+    tasks = list(raw.values())
+elif isinstance(raw, list):
+    tasks = raw
+else:
+    tasks = []
+
+ATTENTION_STATES = {"in_review", "awaiting_external", "blocked", "queued"}
+queue = []
+by_state = {}
+now = datetime.now(timezone.utc)
+for t in tasks:
+    state = t.get("state", "")
+    if state not in ATTENTION_STATES:
+        continue
+    age_min = None
+    try:
+        ts = t.get("updated_at") or t.get("created_at")
+        if ts:
+            d = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+            age_min = int((now - d).total_seconds() // 60)
+    except Exception:
+        pass
+    queue.append({
+        "id": t.get("id", ""),
+        "summary": t.get("summary", "")[:140],
+        "state": state,
+        "owner": t.get("owner", ""),
+        "source": t.get("source", ""),
+        "age_minutes": age_min,
+    })
+    by_state[state] = by_state.get(state, 0) + 1
+
+# Sort: oldest first within each state (most-overdue at top).
+queue.sort(key=lambda x: (x["state"], -(x["age_minutes"] or 0)), reverse=False)
+
+print(json.dumps({
+    "generated_at": now.isoformat().replace("+00:00", "Z"),
+    "queue": queue,
+    "by_state": by_state,
+    "total": len(queue),
+}, indent=2))
+PY
+  mv "$DST/queue.json.tmp" "$DST/queue.json"
+  chmod 644 "$DST/queue.json"
+fi
+
+# v2.27.0: /api/drafts.json — local draft files not in GHL (primarily X threads).
+python3 << 'PY' > "$DST/drafts.json.tmp"
+import json, re
+from datetime import datetime, timezone
+from pathlib import Path
+
+DRAFTS_DIR = Path("/opt/{{TENANT_LINUX_USER}}/agents/drafts/social")
+cutoff = datetime.now(timezone.utc).timestamp() - 14 * 86400
+
+PLATFORM_MAP = {
+    "linkedin": "LinkedIn",
+    "x-thread": "X",
+    "x": "X",
+    "instagram": "Instagram",
+    "ig": "Instagram",
+}
+
+drafts = []
+if DRAFTS_DIR.exists():
+    for f in sorted(DRAFTS_DIR.glob("*.md"), reverse=True):
+        stat = f.stat()
+        if stat.st_mtime < cutoff:
+            continue
+        stem = f.stem
+        parts = stem.split("-")
+        date_str, platform_raw = "", stem
+        if len(parts) >= 4:
+            try:
+                date_str = "-".join(parts[:3])
+                datetime.strptime(date_str, "%Y-%m-%d")
+                platform_raw = "-".join(parts[3:])
+            except ValueError:
+                date_str = ""
+                platform_raw = stem
+        platform = PLATFORM_MAP.get(platform_raw, platform_raw.title())
+        content = f.read_text(errors="replace")
+        theme_m = re.search(r'^##\s+Theme\s*\n(.+)', content, re.MULTILINE)
+        title = theme_m.group(1).strip() if theme_m else f.name
+        draft_m = re.search(r'^##\s+Draft\s*\n([\s\S]+?)(?=^##|\Z)', content, re.MULTILINE)
+        if draft_m:
+            paras = [p.strip() for p in draft_m.group(1).split("\n\n") if p.strip()]
+            preview = paras[0][:300] if paras else ""
+        else:
+            lines = [l for l in content.split("\n") if l.strip() and not l.startswith("#")]
+            preview = " ".join(lines[:3])[:300]
+        approved_m = re.search(r'##\s+Approval status\s*\n.*?✅', content)
+        rejected_m = re.search(r'##\s+Approval status\s*\n.*?❌\s+Rejected', content)
+        in_ghl = bool(approved_m)
+        if rejected_m:
+            continue
+        drafts.append({
+            "platform": platform,
+            "platform_raw": platform_raw,
+            "date": date_str,
+            "filename": f.name,
+            "title": title,
+            "preview": preview,
+            "in_ghl": in_ghl,
+            "modified_at": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat().replace("+00:00", "Z"),
+        })
+
+now = datetime.now(timezone.utc)
+print(json.dumps({
+    "generated_at": now.isoformat().replace("+00:00", "Z"),
+    "drafts": drafts,
+    "total": len(drafts),
+}, indent=2))
+PY
+mv "$DST/drafts.json.tmp" "$DST/drafts.json"
+chmod 644 "$DST/drafts.json"
+
+# v2.28.0: /api/triage.json — surfaces inbound-triage results (HIGH/MEDIUM
+# items, summary counts) so they're visible in Mission Control instead of
+# buried in Telegram. Parses drafts/replies/*-triage-log.md (last 14 days,
+# multiple runs per file at 9/13/17 ET). Each `# Inbound triage — DATE TIME`
+# heading is one run; we extract per-run summary + HIGH and MEDIUM items.
+python3 << 'PY' > "$DST/triage.json.tmp"
+import json, re
+from datetime import datetime, timezone
+from pathlib import Path
+
+REPLIES_DIR = Path("/opt/{{TENANT_LINUX_USER}}/agents/drafts/replies")
+cutoff = datetime.now(timezone.utc).timestamp() - 14 * 86400
+
+def parse_summary(section):
+    counts = {}
+    for label, key in [("Total inbound processed", "total"),
+                       ("HIGH-priority drafted", "high_drafted"),
+                       ("MEDIUM-priority drafted", "medium_drafted"),
+                       ("LOW-priority drafted", "low_drafted"),
+                       ("Ignored", "ignored"),
+                       ("Flagged UNCLEAR for Daniel", "flagged")]:
+        m = re.search(rf"-\s+{re.escape(label)}[^:]*:\s*(\d+)", section)
+        counts[key] = int(m.group(1)) if m else 0
+    return counts
+
+def parse_priority_items(section, level):
+    out = []
+    block_m = re.search(rf"^##\s+{level}-priority items\s*\n([\s\S]+?)(?=^##\s|\Z)",
+                        section, re.MULTILINE)
+    if not block_m:
+        return out
+    block = block_m.group(1)
+    for item_m in re.finditer(r"^###\s+(.+?)\s*\n([\s\S]+?)(?=^###\s|\Z)",
+                              block, re.MULTILINE):
+        title = item_m.group(1).strip()
+        body = item_m.group(2).strip()
+        from_m = re.search(r"\*\*From:\*\*\s+(.+)", body)
+        subject_m = re.search(r"\*\*Subject:\*\*\s+(.+)", body)
+        why_m = re.search(r"\*\*Why\s+\w+:\*\*\s+(.+?)(?=\n\n|\Z)", body, re.DOTALL)
+        out.append({
+            "title": title,
+            "from": from_m.group(1).strip() if from_m else "",
+            "subject": subject_m.group(1).strip() if subject_m else "",
+            "why": (why_m.group(1).strip()[:400] if why_m else body[:400]),
+        })
+    return out
+
+runs = []
+total_high = total_medium = total_low = total_ignored = total_processed = 0
+if REPLIES_DIR.exists():
+    for f in sorted(REPLIES_DIR.glob("*-triage-log.md"), reverse=True):
+        if f.stat().st_mtime < cutoff:
+            continue
+        content = f.read_text(errors="replace")
+        sections = re.split(r"\n---\n+", content)
+        for section in sections:
+            run_m = re.search(r"^#\s+Inbound triage\s*—\s*(\S+)\s+(\d{1,2}:\d{2}\s*\w*)",
+                              section, re.MULTILINE)
+            if not run_m:
+                continue
+            counts = parse_summary(section)
+            high_items = parse_priority_items(section, "HIGH")
+            medium_items = parse_priority_items(section, "MEDIUM")
+            runs.append({
+                "date": run_m.group(1),
+                "time": run_m.group(2).strip(),
+                "summary": counts,
+                "high_items": high_items,
+                "medium_items": medium_items,
+            })
+            total_processed += counts.get("total", 0)
+            total_high += counts.get("high_drafted", 0) + len(high_items)
+            total_medium += counts.get("medium_drafted", 0) + len(medium_items)
+            total_low += counts.get("low_drafted", 0)
+            total_ignored += counts.get("ignored", 0)
+
+now = datetime.now(timezone.utc)
+print(json.dumps({
+    "generated_at": now.isoformat().replace("+00:00", "Z"),
+    "runs": runs,
+    "totals_14d": {
+        "runs": len(runs),
+        "processed": total_processed,
+        "high": total_high,
+        "medium": total_medium,
+        "low": total_low,
+        "ignored": total_ignored,
+    },
+}, indent=2))
+PY
+mv "$DST/triage.json.tmp" "$DST/triage.json"
+chmod 644 "$DST/triage.json"
+
+# v2.29.0: /api/improvements.json — surfaces self-improvement proposals so
+# they're reviewable in Mission Control instead of buried in markdown files
+# under drafts/self-improvement/. The agent's self-improvement-review skill
+# runs Sundays and writes one file per review with multiple proposals.
+# Each proposal has ID, Pattern, Proposed rule, Where to add, Why.
+python3 << 'PY' > "$DST/improvements.json.tmp"
+import json, re
+from datetime import datetime, timezone
+from pathlib import Path
+
+IMPROVE_DIR = Path("/opt/{{TENANT_LINUX_USER}}/agents/drafts/self-improvement")
+cutoff = datetime.now(timezone.utc).timestamp() - 60 * 86400  # 60 days
+
+def extract_field(body, label):
+    m = re.search(rf"\*\*{re.escape(label)}:\*\*\s*(.+?)(?=\n\n\*\*|\n\n##|\Z)",
+                  body, re.DOTALL)
+    return m.group(1).strip() if m else ""
+
+reviews = []
+total_proposals = 0
+if IMPROVE_DIR.exists():
+    for f in sorted(IMPROVE_DIR.glob("*.md"), reverse=True):
+        if f.stat().st_mtime < cutoff:
+            continue
+        date_m = re.match(r"(\d{4}-\d{2}-\d{2})", f.name)
+        review_date = date_m.group(1) if date_m else ""
+        content = f.read_text(errors="replace")
+        # Header context: text between the H1 and the first --- separator
+        ctx_m = re.search(r"^#\s+.+?\n\n(.+?)(?=\n---\n)", content, re.DOTALL)
+        context = ctx_m.group(1).strip() if ctx_m else ""
+
+        proposals = []
+        for prop_m in re.finditer(
+            r"^##\s+Proposal\s+(\d+)\s*[—-]\s*(.+?)\s*\n([\s\S]+?)(?=^##\s|\Z)",
+            content, re.MULTILINE):
+            num = prop_m.group(1)
+            title = prop_m.group(2).strip()
+            body = prop_m.group(3).strip()
+            pid = extract_field(body, "ID") or f"improve-{num}"
+            pattern = extract_field(body, "Pattern observed")
+            rule = extract_field(body, "Proposed rule")
+            # Strip leading "> " from quote-block rules
+            rule = re.sub(r"^>\s*", "", rule, flags=re.MULTILINE).strip()
+            where = extract_field(body, "Where to add")
+            why = extract_field(body, "Why")
+            # Derive status from any "applied" / "skipped" / "deferred" markers
+            status = "pending"
+            if re.search(r"applied", body, re.IGNORECASE) and "applied" in body.lower()[:200]:
+                status = "applied"
+            elif re.search(r"^>\s*Skipped|^>\s*Deferred", body, re.MULTILINE):
+                status = "skipped"
+            proposals.append({
+                "id": pid,
+                "number": int(num),
+                "title": title,
+                "pattern": pattern[:600],
+                "rule": rule[:600],
+                "where": where[:200],
+                "why": why[:400],
+                "status": status,
+            })
+        if proposals:
+            reviews.append({
+                "review_date": review_date,
+                "filename": f.name,
+                "context": context[:300],
+                "proposals": proposals,
+            })
+            total_proposals += len(proposals)
+
+now = datetime.now(timezone.utc)
+print(json.dumps({
+    "generated_at": now.isoformat().replace("+00:00", "Z"),
+    "reviews": reviews,
+    "totals": {
+        "reviews": len(reviews),
+        "proposals": total_proposals,
+        "pending": sum(1 for r in reviews for p in r["proposals"] if p["status"] == "pending"),
+    },
+}, indent=2))
+PY
+mv "$DST/improvements.json.tmp" "$DST/improvements.json"
+chmod 644 "$DST/improvements.json"
+
+# v2.31.0: /api/drift.json — surfaces brand-drift-scanner findings (banned
+# phrases, off-canon claims, non-canonical CTAs) so persistent violations
+# are visible in Mission Control.
+python3 << 'PY' > "$DST/drift.json.tmp"
+import json, re
+from datetime import datetime, timezone
+from pathlib import Path
+
+DRIFT_DIR = Path("/opt/{{TENANT_LINUX_USER}}/agents/reports/drift")
+cutoff = datetime.now(timezone.utc).timestamp() - 14 * 86400
+
+def extract_field(body, label):
+    m = re.search(rf"-\s*\*\*{re.escape(label)}:?\*\*\s*(.+?)(?=\n-\s*\*\*|\n\n|\Z)",
+                  body, re.DOTALL)
+    return m.group(1).strip() if m else ""
+
+def parse_summary(content):
+    m = re.search(r"\*\*Summary:\*\*\s+([^\n]+)", content)
+    if not m:
+        return {"text": "", "red": 0, "high": 0, "medium": 0, "low": 0}
+    text = m.group(1).strip()
+    out = {"text": text}
+    for level, key in [("RED","red"),("HIGH","high"),("MEDIUM","medium"),("LOW","low")]:
+        cm = re.search(rf"(\d+)\s+{level}\b", text)
+        out[key] = int(cm.group(1)) if cm else 0
+    return out
+
+def parse_items(content, level):
+    block_m = re.search(rf"^##\s+{level}\b[^\n]*\n([\s\S]+?)(?=^##\s|\Z)",
+                        content, re.MULTILINE)
+    if not block_m:
+        return []
+    block = block_m.group(1)
+    items = []
+    for it in re.finditer(r"^###\s+(.+?)\s*\n([\s\S]+?)(?=^###\s|^##\s|\Z)",
+                          block, re.MULTILINE):
+        raw_title = it.group(1).strip()
+        body = it.group(2).strip()
+        # Detect persistence BEFORE stripping meta annotation
+        persistent_m = re.search(r"flagged\s+(\d+)\s+days?", raw_title + " " + body, re.IGNORECASE)
+        persistence_days = int(persistent_m.group(1)) if persistent_m else 0
+        # Fallback: count distinct dates in Status field
+        if persistence_days == 0:
+            sm = re.search(r"-\s*\*\*Status:?\*\*\s*(.+?)(?=\n-\s*\*\*|\n\n|\Z)", body, re.DOTALL)
+            status_field = sm.group(1) if sm else ""
+            persistence_days = len(re.findall(r"\d{4}-\d{2}-\d{2}", status_field))
+        title = re.sub(r"\s*_\(.+?\)_\s*$", "", raw_title).strip()
+        items.append({
+            "title": title,
+            "source": extract_field(body, "Source"),
+            "item": (extract_field(body, "Item") or extract_field(body, "Phrase") or extract_field(body, "Claim"))[:300],
+            "violation": (extract_field(body, "Violation") or extract_field(body, "Issue"))[:300],
+            "status": extract_field(body, "Status")[:200],
+            "fix": extract_field(body, "Recommended fix")[:400],
+            "persistence_days": persistence_days,
+        })
+    return items
+
+scans = []
+totals = {"red": 0, "high": 0, "medium": 0, "low": 0, "persistent": 0}
+if DRIFT_DIR.exists():
+    for f in sorted(DRIFT_DIR.glob("drift-*.md"), reverse=True):
+        if f.stat().st_mtime < cutoff:
+            continue
+        content = f.read_text(errors="replace")
+        date_m = re.match(r"drift-(\d{4}-\d{2}-\d{2})\.md", f.name)
+        scan_date = date_m.group(1) if date_m else ""
+        callout_m = re.search(r"^>\s+(.+?)(?=\n\n|\Z)", content, re.MULTILINE | re.DOTALL)
+        callout = callout_m.group(1).strip().replace("\n>", "").replace("\n", " ")[:300] if callout_m else ""
+        summary = parse_summary(content)
+        red = parse_items(content, "RED")
+        high = parse_items(content, "HIGH")
+        medium = parse_items(content, "MEDIUM")
+        low = parse_items(content, "LOW")
+        scans.append({
+            "scan_date": scan_date,
+            "summary_text": summary["text"],
+            "counts": {"red": summary["red"], "high": summary["high"],
+                       "medium": summary["medium"], "low": summary["low"]},
+            "callout": callout,
+            "items": {"red": red, "high": high, "medium": medium, "low": low},
+        })
+
+latest = scans[0]["counts"] if scans else {"red":0,"high":0,"medium":0,"low":0}
+if scans:
+    for items in scans[0]["items"].values():
+        for it in items:
+            if it.get("persistence_days", 0) >= 2:
+                totals["persistent"] += 1
+
+now = datetime.now(timezone.utc)
+print(json.dumps({
+    "generated_at": now.isoformat().replace("+00:00", "Z"),
+    "scans": scans,
+    "latest": latest,
+    "persistent_in_latest": totals["persistent"],
+    "total_scans_14d": len(scans),
+}, indent=2))
+PY
+mv "$DST/drift.json.tmp" "$DST/drift.json"
+chmod 644 "$DST/drift.json"
+
+# v2.32.0: /api/competitive.json — surfaces competitive-monitor findings
+# (changes detected on tracked competitors' sites + sound-of-silence
+# observations when nothing changed) so daily intel is visible in Mission
+# Control instead of buried in markdown reports. Parses
+# reports/competitive/*-changes.md (last 14 days), one report per day.
+python3 << 'PY' > "$DST/competitive.json.tmp"
+import json, re
+from datetime import datetime, timezone
+from pathlib import Path
+
+COMP_DIR = Path("/opt/{{TENANT_LINUX_USER}}/agents/reports/competitive")
+cutoff = datetime.now(timezone.utc).timestamp() - 14 * 86400
+
+# Status emoji → semantic key
+STATUS_MAP = {
+    "🔴": "threat",
+    "🟡": "change",
+    "🟠": "change",
+    "🟢": "ok",
+    "✅": "ok",
+    "⚪": "ok",
+    "❄️": "dormant",
+    "🧊": "dormant",
+}
+
+def extract_field(body, label):
+    m = re.search(rf"\*\*{re.escape(label)}:?\*\*\s*(.+?)(?=\n\*\*|\n\n|\Z)",
+                  body, re.DOTALL)
+    return m.group(1).strip() if m else ""
+
+def parse_targets(content):
+    """Each target is a `## EMOJI Name — descriptor` block until the next ## or ---."""
+    targets = []
+    pattern = r"^##\s+(\S+)\s+(.+?)\n([\s\S]+?)(?=^##\s|\Z)"
+    for m in re.finditer(pattern, content, re.MULTILINE):
+        emoji_or_text = m.group(1).strip()
+        rest_header = m.group(2).strip()
+        body = m.group(3).strip()
+        # Try to detect status from the leading token
+        status = STATUS_MAP.get(emoji_or_text)
+        if status:
+            full_title = rest_header  # e.g. "The Futur (Chris Do) — new free lead magnet"
+        else:
+            # No emoji prefix — treat the whole heading as title, status unknown
+            full_title = (emoji_or_text + " " + rest_header).strip()
+            status = "unknown"
+        # Split title at em/en dash to separate name from descriptor
+        name = full_title
+        descriptor = ""
+        for sep in [" — ", " – ", " — ", " - "]:
+            if sep in full_title:
+                pieces = full_title.split(sep, 1)
+                name = pieces[0].strip()
+                descriptor = pieces[1].strip()
+                break
+        url = extract_field(body, "URL")
+        change_text = extract_field(body, "Change")
+        before = extract_field(body, "Before")
+        new_thing = extract_field(body, "New")
+        implication = extract_field(body, "Implication")
+        # If no Change field but body has bullets, capture body as summary
+        summary = change_text or implication or descriptor
+        targets.append({
+            "name": name[:120],
+            "status": status,
+            "descriptor": descriptor[:200],
+            "url": url[:200],
+            "change_text": change_text[:400],
+            "new_thing": new_thing[:300],
+            "before": before[:300],
+            "implication": implication[:400],
+            "summary": summary[:400],
+            "raw_body_excerpt": body[:600] if not (change_text or implication) else "",
+        })
+    return targets
+
+reports = []
+totals = {"reports": 0, "targets_latest": 0, "changes_latest": 0,
+          "threats_latest": 0, "changes_14d": 0, "threats_14d": 0}
+if COMP_DIR.exists():
+    for f in sorted(COMP_DIR.glob("*-changes.md"), reverse=True):
+        if f.stat().st_mtime < cutoff:
+            continue
+        content = f.read_text(errors="replace")
+        date_m = re.match(r"(\d{4}-\d{2}-\d{2})-changes\.md", f.name)
+        report_date = date_m.group(1) if date_m else ""
+        compared_m = re.search(r"Compared against:\s*`?([^`\n]+)`?", content)
+        compared_against = compared_m.group(1).strip() if compared_m else ""
+        targets = parse_targets(content)
+        # Per-day counts
+        changes = sum(1 for t in targets if t["status"] in ("change", "threat"))
+        threats = sum(1 for t in targets if t["status"] == "threat")
+        reports.append({
+            "report_date": report_date,
+            "compared_against": compared_against,
+            "targets": targets,
+            "counts": {
+                "total": len(targets),
+                "changes": changes,
+                "threats": threats,
+                "ok": sum(1 for t in targets if t["status"] == "ok"),
+                "dormant": sum(1 for t in targets if t["status"] == "dormant"),
+            },
+        })
+        totals["changes_14d"] += changes
+        totals["threats_14d"] += threats
+
+if reports:
+    totals["reports"] = len(reports)
+    totals["targets_latest"] = reports[0]["counts"]["total"]
+    totals["changes_latest"] = reports[0]["counts"]["changes"]
+    totals["threats_latest"] = reports[0]["counts"]["threats"]
+
+now = datetime.now(timezone.utc)
+print(json.dumps({
+    "generated_at": now.isoformat().replace("+00:00", "Z"),
+    "reports": reports,
+    "totals": totals,
+}, indent=2))
+PY
+mv "$DST/competitive.json.tmp" "$DST/competitive.json"
+chmod 644 "$DST/competitive.json"
+
+# v2.38.0: /api/sessions.json — surface active Claude Code sessions on the
+# dashboard. Reads ~/.claude/projects/*.jsonl files (Claude Code stores one
+# JSONL per session). Per session: sessionId, project, last activity time,
+# message counts by type, estimated context window usage from the last
+# assistant message's usage field, status (active/idle/stale) by mtime.
+python3 << 'PY' > "$DST/sessions.json.tmp"
+import json, re
+from datetime import datetime, timezone
+from pathlib import Path
+
+PROJECTS_DIR = Path("/opt/{{TENANT_LINUX_USER}}/.claude/projects")
+# Sonnet 4.6 has a 200k context window. Treat > 75% as warning, > 90% as critical.
+CONTEXT_LIMIT = 200_000
+NOW = datetime.now(timezone.utc)
+
+def status_from_age(age_sec):
+    if age_sec < 300: return "active"
+    if age_sec < 1800: return "idle"
+    if age_sec < 86400: return "stale"
+    return "archived"
+
+sessions = []
+if PROJECTS_DIR.exists():
+    for f in PROJECTS_DIR.rglob("*.jsonl"):
+        # Skip tiny/empty files
+        size = f.stat().st_size
+        if size < 200:
+            continue
+        mtime = f.stat().st_mtime
+        age_sec = NOW.timestamp() - mtime
+        # Older than 7 days: skip entirely
+        if age_sec > 7 * 86400:
+            continue
+        # Project from parent dir name (Claude Code encodes path as -opt-dir-...)
+        project_raw = f.parent.name.lstrip("-").replace("-", "/")
+        # Strip prefix to keep readable
+        if project_raw.startswith("opt/{{TENANT_LINUX_USER}}/agents/"):
+            project = project_raw[len("opt/{{TENANT_LINUX_USER}}/agents/"):] or "agents"
+        elif project_raw.startswith("opt/{{TENANT_LINUX_USER}}/"):
+            project = project_raw[len("opt/{{TENANT_LINUX_USER}}/"):]
+        else:
+            project = project_raw[:60]
+        # Tail-read for last message + token usage
+        msg_counts = {"user": 0, "assistant": 0}
+        last_usage = {}
+        last_text = ""
+        try:
+            # Open and iterate; for very large files we'd seek-from-end, but
+            # most sessions are < a few MB.
+            with f.open() as fh:
+                for line in fh:
+                    try:
+                        d = json.loads(line)
+                    except Exception:
+                        continue
+                    t = d.get("type", "")
+                    if t in msg_counts:
+                        msg_counts[t] += 1
+                    if t == "assistant":
+                        msg = d.get("message", {})
+                        if isinstance(msg, dict):
+                            usage = msg.get("usage") or {}
+                            if usage:
+                                last_usage = usage
+                            content = msg.get("content")
+                            if isinstance(content, list) and content:
+                                first = content[0] if content else {}
+                                if isinstance(first, dict):
+                                    last_text = (first.get("text") or "")[:200]
+        except Exception:
+            pass
+
+        # Compute context window usage. Sum: input + cache_read + cache_write.
+        # Output doesn't count toward window — those are produced tokens not consumed.
+        ctx_used = (last_usage.get("input_tokens", 0) or 0) + \
+                   (last_usage.get("cache_read_input_tokens", 0) or 0) + \
+                   (last_usage.get("cache_creation_input_tokens", 0) or 0)
+        ctx_pct = round((ctx_used / CONTEXT_LIMIT) * 100, 1) if ctx_used > 0 else 0
+        sessions.append({
+            "session_id": f.stem,
+            "project": project,
+            "last_activity_iso": datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat().replace("+00:00", "Z"),
+            "age_seconds": int(age_sec),
+            "status": status_from_age(age_sec),
+            "size_kb": round(size / 1024, 1),
+            "message_count": msg_counts,
+            "context_tokens": ctx_used,
+            "context_pct": ctx_pct,
+            "last_text_preview": last_text,
+        })
+
+# Sort: active first, then by recency
+sessions.sort(key=lambda s: (s["status"] != "active", s["age_seconds"]))
+# Limit to most-relevant
+sessions = sessions[:20]
+
+# Aggregate stats
+active_count = sum(1 for s in sessions if s["status"] == "active")
+idle_count = sum(1 for s in sessions if s["status"] == "idle")
+print(json.dumps({
+    "generated_at": NOW.isoformat().replace("+00:00", "Z"),
+    "sessions": sessions,
+    "totals": {
+        "total": len(sessions),
+        "active": active_count,
+        "idle": idle_count,
+    },
+}, indent=2))
+PY
+mv "$DST/sessions.json.tmp" "$DST/sessions.json"
+chmod 644 "$DST/sessions.json"
+
+# v2.41.0: /api/llm-insights.json — surfaces the agent's most recent
+# narrative weekly insight. The agent generates these on `/insight` slash
+# command (CLAUDE.md spec) by reading its own telemetry + drift +
+# competitive + sessions + improvements data and writing a 3-5 bullet
+# Markdown narrative to /opt/{{TENANT_LINUX_USER}}/agents/insights/{date}.md.
+# This endpoint just exposes the latest file's content + metadata.
+python3 << 'PY' > "$DST/llm-insights.json.tmp"
+import json, re
+from datetime import datetime, timezone
+from pathlib import Path
+
+INSIGHTS_DIR = Path("/opt/{{TENANT_LINUX_USER}}/agents/insights")
+NOW = datetime.now(timezone.utc)
+
+latest_content = ""
+latest_date = ""
+latest_age_days = None
+total = 0
+if INSIGHTS_DIR.exists():
+    files = sorted(INSIGHTS_DIR.glob("*.md"), reverse=True)
+    total = len(files)
+    if files:
+        latest = files[0]
+        date_m = re.match(r"(\d{4}-\d{2}-\d{2})", latest.name)
+        latest_date = date_m.group(1) if date_m else ""
+        try:
+            latest_content = latest.read_text(errors="replace")[:8000]
+            mtime_age = NOW.timestamp() - latest.stat().st_mtime
+            latest_age_days = round(mtime_age / 86400, 1)
+        except Exception:
+            pass
+
+print(json.dumps({
+    "generated_at": NOW.isoformat().replace("+00:00", "Z"),
+    "latest_date": latest_date,
+    "latest_age_days": latest_age_days,
+    "latest_content": latest_content,
+    "total_insights": total,
+}, indent=2))
+PY
+mv "$DST/llm-insights.json.tmp" "$DST/llm-insights.json"
+chmod 644 "$DST/llm-insights.json"
+
+# v2.27.0: auto-sync dashboard HTML from agents-config source.
+HTML_SRC="$SRC/{{TENANT_BRAND_REPO_NAME}}/vps-setup/agents-config/{{TENANT_ID}}/dashboard/index.html"
+HTML_DST="/var/www/{{TENANT_DASHBOARD_HOSTNAME}}/index.html"
+if [[ -f "$HTML_SRC" ]]; then
+  if ! cmp -s "$HTML_SRC" "$HTML_DST" 2>/dev/null; then
+    cp "$HTML_SRC" "$HTML_DST.tmp"
+    mv "$HTML_DST.tmp" "$HTML_DST"
+    chmod 644 "$HTML_DST"
+  fi
+fi
