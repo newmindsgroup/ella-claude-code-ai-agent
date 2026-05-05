@@ -10,7 +10,7 @@
 
 ## What this is
 
-This repo is a **production-grade, idempotent installer + multi-tenant template** for standing up an autonomous Claude Code AI agent for any business. The reference implementation runs `Daniel_AgentBot` on Telegram for a personal-brand consultant in Santo Domingo — **the same stack works for a fractional CMO, an agency owner, a SaaS founder, or a solo law firm** by changing one config file.
+This repo is a **production-grade, idempotent installer + multi-tenant template** for standing up an autonomous Claude Code AI agent for any business. The reference implementation runs a personal-brand consulting agent on Telegram. **The same stack works for a fractional CMO, an agency owner, a SaaS founder, or a solo law firm** by changing one config file.
 
 **What you get when you deploy this:**
 
@@ -238,7 +238,7 @@ The cherry-picked sub-agents from `msitarzewski/agency-agents` are also MIT. Eac
 
 ## Credits
 
-Architecture patterns, install scripts, and the agent-stack baseline were extracted from a production single-tenant deployment for an independent brand consultant in Santo Domingo. The chief-of-staff template, task ledger, proposed-moves system, voice round-trip, and Mission Control dashboard were battle-tested across the v2.0–v2.27 release cycle.
+Architecture patterns, install scripts, and the agent-stack baseline were extracted from a production single-tenant deployment for an independent brand consultant. The chief-of-staff template, task ledger, proposed-moves system, voice round-trip, and Mission Control dashboard were battle-tested across the v2.0–v2.27 release cycle.
 
 Built on top of work by:
 - Anthropic (Claude Code, MCP spec, official MCP servers)

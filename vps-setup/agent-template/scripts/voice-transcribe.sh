@@ -7,9 +7,9 @@
 #   voice-transcribe.sh /path/to/voice.ogg --lang es          (force Spanish)
 #   voice-transcribe.sh /path/to/voice.ogg --lang auto        (explicit auto-detect)
 #
-# Default changed 2026-05-04: was --lang en (Halifax legacy assumption).
-# Daniel is in Santo Domingo and speaks both English and Spanish, so
-# auto-detect via the multilingual model is the correct default.
+# Default is --lang auto (multilingual) so the script handles bilingual
+# users without per-message configuration. Set --lang en or --lang es to
+# force a single language for faster transcription on monolingual audio.
 #
 # Output format:
 #   [LANG=xx] transcript text...

@@ -4,7 +4,7 @@
 
 ## The core lesson
 
-**Every bug in the v2.22.x chain was discoverable by running the new code in the production runtime context BEFORE pushing.** The chain happened because each fix was committed and shipped without a check that it actually worked under the conditions the production code path runs in: as user `danielgonell`, with cwd starting at `/root` (when SSH'd in), with no key for SSH-self, with no traversal access to `/etc/ssl/private/`.
+**Every bug in a multi-hotfix chain like v2.22.x is discoverable by running the new code in the production runtime context BEFORE pushing.** Hotfix chains happen because each fix is committed and shipped without a check that it actually worked under the conditions the production code path runs in: as the agent's Linux user (`${TENANT_LINUX_USER}`), with cwd starting at `/root` (when SSH'd in), with no key for SSH-self, with no traversal access to `/etc/ssl/private/`.
 
 The fix is structural (`deploy.sh dry-run` mode + `health.sh` + CI in v2.23.0), not heroic ("be more careful"). But the discipline still matters between commits.
 
@@ -20,9 +20,9 @@ For any change to a script that runs as the agent user on the VPS:
 
 ```bash
 # After editing the script + rendering, but BEFORE git add:
-ssh root@$VPS "sudo -u danielgonell -H bash <THE_SCRIPT> <args>"
+ssh root@$VPS "sudo -u $TENANT_LINUX_USER -H bash <THE_SCRIPT> <args>"
 # OR (for deploy.sh specifically):
-ssh root@$VPS "sudo -u danielgonell -H bash /opt/$TENANT/agents/scripts/deploy.sh dry-run <version>"
+ssh root@$VPS "sudo -u $TENANT_LINUX_USER -H bash /opt/$TENANT/agents/scripts/deploy.sh dry-run <version>"
 ```
 
 The `-H` flag matters — it sets `$HOME` to the user's home, which mirrors how systemd invokes scripts.

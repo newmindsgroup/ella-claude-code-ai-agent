@@ -259,7 +259,7 @@ TRANSCRIPT_RAW=$(bash {{TENANT_AGENT_HOME}}/scripts/voice-transcribe.sh /path/to
 DETECTED_LANG=$(echo "$TRANSCRIPT_RAW" | head -1 | grep -oE 'LANG=[a-z]{2}' | cut -d= -f2)
 TRANSCRIPT=$(echo "$TRANSCRIPT_RAW" | sed 's/^\[LANG=[a-z]*\] *//')
 ```
-The transcribe script defaults to `--lang auto` (multilingual) — {{TENANT_PERSON_FIRST_NAME}} speaks both English and Spanish (based in Santo Domingo, DR). The `[LANG=xx]` prefix on the first line tells you which language was detected so you can pick the right TTS voice for the reply. Expect 5-15s transcription latency for a 30s clip — use a Bash timeout of at least 120000ms (2min) to avoid premature kills, OR run transcribe in the background and continue processing while it completes.
+The transcribe script defaults to `--lang auto` (multilingual). The `[LANG=xx]` prefix on the first line tells you which language was detected so you can pick the right TTS voice for the reply. Expect 5-15s transcription latency for a 30s clip — use a Bash timeout of at least 120000ms (2min) to avoid premature kills, OR run transcribe in the background and continue processing while it completes.
 
 **Echo immediately** so {{TENANT_PERSON_FIRST_NAME}} knows you heard correctly:
 ```bash

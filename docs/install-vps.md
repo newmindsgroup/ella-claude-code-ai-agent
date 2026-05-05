@@ -134,7 +134,7 @@ person_first_name: "Jane"
 person_role_description: "independent fractional CMO"
 contact_email: "jane@example.com"
 website_url: "https://example.com"
-timezone: "America/Halifax"
+timezone: "America/New_York"
 
 linux_user: <tenant-id>
 agent_home: /opt/<tenant-id>/agents

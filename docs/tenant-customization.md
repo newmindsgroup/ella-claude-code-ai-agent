@@ -29,7 +29,7 @@ person_first_name: "Jane"
 person_role_description: "independent fractional CMO"   # ONE sentence
 contact_email: "jane@example.com"
 website_url: "https://example.com"
-timezone: "America/Halifax"               # IANA tz; drives morning brief schedule
+timezone: "America/New_York"               # IANA tz; drives morning brief schedule
 locale: "en-US"
 ```
 

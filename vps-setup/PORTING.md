@@ -78,7 +78,7 @@ person_first_name: "Founder"
 person_role_description: "founder of Acme, a B2B SaaS for X"
 contact_email: "founder@acme.com"
 website_url: "https://acme.com"
-timezone: "America/Halifax"
+timezone: "America/New_York"
 
 linux_user: acme                           # OPTIONAL — defaults to tenant_id
 

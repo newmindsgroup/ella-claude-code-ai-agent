@@ -19,7 +19,7 @@ person_first_name: "Jane"                     # REQUIRED. Used in greetings.
 person_role_description: "independent fractional CMO"  # REQUIRED. One-sentence role.
 contact_email: "jane@example.com"             # REQUIRED. Reply-to for drafts.
 website_url: "https://example.com"            # REQUIRED. Live site reference.
-timezone: "America/Halifax"                   # REQUIRED. IANA tz. Drives all schedules.
+timezone: "America/New_York"                   # REQUIRED. IANA tz. Drives all schedules.
 locale: "en-US"                               # OPTIONAL. Default "en-US".
 
 # -----------------------------------------------------------------------------

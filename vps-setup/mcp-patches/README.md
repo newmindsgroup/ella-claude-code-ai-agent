@@ -38,5 +38,5 @@ git commit -m "[local patch] short description"
 git format-patch -1 HEAD --stdout > /path/to/{{TENANT_BRAND_REPO_NAME}}/vps-setup/mcp-patches/000X-short-name.patch
 
 # Mirror the commit on the VPS agent's copy
-ssh root@projectizer "sudo -u danielgonell -H bash -c 'cd /opt/{{TENANT_LINUX_USER}}/agents/ghl-mcp && git apply --3way' " < /path/to/the.patch
+ssh root@<your-vps-host> "sudo -u {{TENANT_LINUX_USER}} -H bash -c 'cd /opt/{{TENANT_LINUX_USER}}/agents/ghl-mcp && git apply --3way' " < /path/to/the.patch
 ```

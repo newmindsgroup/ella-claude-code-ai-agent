@@ -151,7 +151,7 @@ The patches are in [`vps-setup/agent-template/scripts/patch-channels-plugin.sh`]
 - **Cost:** Free tier sufficient.
 
 ### Vultr / DigitalOcean / Hetzner / etc.
-- **Why:** The VPS itself. Anything that runs Ubuntu 22.04+ cleanly works. Reference deployment is on Vultr (`projectizer`, ~$20/month).
+- **Why:** The VPS itself. Anything that runs Ubuntu 22.04+ cleanly works. Reference deployment is on Vultr (~$20/month).
 
 ---
 
