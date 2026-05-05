@@ -28,6 +28,9 @@ locale: "en-US"                               # OPTIONAL. Default "en-US".
 linux_user: example_tenant                    # OPTIONAL. Default: tenant_id with - to _.
 agent_home: /opt/example_tenant/agents        # COMPUTED. Default /opt/{linux_user}/agents.
 website_systemd_service: ""                   # OPTIONAL. e.g. "example-web.service" — claude-agent After= directive.
+vps_host: "root@1.2.3.4"                       # OPTIONAL. SSH target used by render-and-deploy.sh
+                                              # (vps-setup/scripts/render-and-deploy.sh tenants/<id>.yml).
+                                              # Format: user@host. If unset, pass --vps-host on the command line.
 
 # -----------------------------------------------------------------------------
 # BRAND CANON — source of truth for voice, services, narrative
