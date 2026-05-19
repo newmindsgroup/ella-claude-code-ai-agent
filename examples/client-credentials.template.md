@@ -211,6 +211,36 @@ anthropic_account:    "agent@example.com"              # REQUIRED. Anthropic Max
 
 ---
 
+## v0.7 MISSION CONTROL — Cost preferences (drives ROI dashboard + circuit breakers)
+
+> Defaults work for most solo consultants. Override per-client if their billable rates differ materially. These values land in `vps-setup/tenants/<tenant_id>.yml` under `roi_hourly_rates` + `cost_ceiling_*`.
+
+```yaml
+# Daily API spend cap. When today's actual cost crosses this, the global
+# circuit breaker engages and autonomous skills refuse to run for the next
+# `cost_ceiling_block_hours`. Manual override: DELETE /api/chat/budget.
+cost_ceiling_daily_usd:    5.0   # OPTIONAL. Default $5.
+cost_ceiling_block_hours:  12    # OPTIONAL. Default 12h.
+
+# Hourly rates for ROI math (used on the ROI dashboard tab + /api/roi.json).
+# Realization rate accounts for "AI output still needs human review" —
+# 0.5 = heavy review, 0.7 = light review (default), 0.9 = ships as-is.
+roi_rate_strategy_usd:     200.0  # OPTIONAL. Strategy/positioning work.
+roi_rate_research_usd:     150.0  # OPTIONAL. Research, competitive scans.
+roi_rate_content_usd:       75.0  # OPTIONAL. Content drafting.
+roi_rate_admin_usd:         50.0  # OPTIONAL. Triage, scheduling, memory notes.
+roi_default_realization:   0.7    # OPTIONAL. Default realization rate.
+
+# Mission Control feature toggles. Default all ON; flip to false to skip
+# wiring during bootstrap-mission-control.sh.
+enable_rules_engine:       true   # OPTIONAL. Behavioral rules engine (v2.48).
+enable_anomaly_detection:  true   # OPTIONAL. Z-score + EWMA on telemetry (v2.49).
+enable_session_parser:     true   # OPTIONAL. Ingest Claude Code sessions into spans.db (v2.54).
+enable_circuit_breakers:   true   # OPTIONAL. Hard cost-ceiling guardrails (v2.57).
+```
+
+---
+
 ## CHECKLIST BEFORE STARTING THE DEPLOY
 
 - [ ] VPS provisioned, root SSH key authorized, can `ssh root@<vps_ip> 'whoami'` from this Mac
@@ -225,6 +255,7 @@ anthropic_account:    "agent@example.com"              # REQUIRED. Anthropic Max
 - [ ] Brand canon repo (if any) accessible to a deploy key
 - [ ] (v0.5 optional) Discord server + bot created if `discord_enabled: true` — see `vps-setup/runbooks/discord-setup.md`
 - [ ] (v0.6 optional) Decided whether `multi_agent_swarms: true` — adds OpenSwarm install during deploy
+- [ ] (v0.7 — Mission Control) Reviewed cost preference defaults above or set custom values
 - [ ] This file (`client-credentials.md`) is OUTSIDE any git repo OR added to .gitignore
 
 When all boxes ticked, open Claude Code in the workspace folder and say:

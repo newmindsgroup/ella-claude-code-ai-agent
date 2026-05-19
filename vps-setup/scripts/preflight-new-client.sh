@@ -293,8 +293,64 @@ else
   ok "discord_enabled: false — skipping Discord checks"
 fi
 
-# ── 10. Multi-agent swarms (v0.6+, optional) ───────────────────────────────
-section "10. OpenSwarm — Node 20+ + Python 3.10+ (if multi_agent_swarms)"
+# ── 10. Mission Control deps (v0.7.0) — Python 3.11+ + FastAPI + sqlite3 ──
+# These are needed by the Phase 1-4 components (dashboard-chat backend,
+# rules-engine, anomaly-detect, session-parser, _spans, _roi, _budget). If
+# any of these are missing on the VPS, the installer will install them; we
+# just warn here so the operator knows what to expect.
+section "10. Mission Control deps — Python 3.11+ + FastAPI + sqlite3"
+if [[ -n "${VPS_IP:-}" ]]; then
+  REMOTE_PY=$(ssh $SSH_OPTS "$VPS_ROOT_USER@$VPS_IP" "python3 --version 2>&1 | awk '{print \$2}'" 2>/dev/null)
+  if [[ -n "$REMOTE_PY" ]]; then
+    PY_MAJOR=$(echo "$REMOTE_PY" | cut -d. -f1)
+    PY_MINOR=$(echo "$REMOTE_PY" | cut -d. -f2)
+    if [[ "$PY_MAJOR" -ge 3 && "$PY_MINOR" -ge 11 ]]; then
+      ok "VPS Python: $REMOTE_PY (3.11+ required for Mission Control)"
+    elif [[ "$PY_MAJOR" -ge 3 && "$PY_MINOR" -ge 10 ]]; then
+      warn "VPS Python: $REMOTE_PY — 3.11+ recommended (3.10 may work but isn't tested)"
+    else
+      fail "VPS Python: $REMOTE_PY — too old for Mission Control (needs 3.11+)"
+    fi
+  else
+    warn "VPS Python3 not detected — installer will apt-get install python3"
+  fi
+  # sqlite3 (stdlib) — used by _spans.py
+  if ssh $SSH_OPTS "$VPS_ROOT_USER@$VPS_IP" "python3 -c 'import sqlite3' 2>/dev/null"; then
+    ok "VPS python3 sqlite3 module available (for spans store)"
+  else
+    fail "VPS python3 sqlite3 NOT available — spans store will not work"
+  fi
+  # pyyaml — used by rules-engine
+  if ssh $SSH_OPTS "$VPS_ROOT_USER@$VPS_IP" "python3 -c 'import yaml' 2>/dev/null"; then
+    ok "VPS python3 yaml module available (for rules engine)"
+  else
+    warn "VPS python3-yaml missing — bootstrap-mission-control.sh will apt install it"
+  fi
+  # FastAPI — used by dashboard-chat
+  if ssh $SSH_OPTS "$VPS_ROOT_USER@$VPS_IP" "python3 -c 'import fastapi' 2>/dev/null"; then
+    ok "VPS python3 fastapi module available (dashboard-chat backend)"
+  else
+    warn "VPS fastapi missing — bootstrap-mission-control.sh will pip install it"
+  fi
+  # uvicorn — used by dashboard-chat
+  if ssh $SSH_OPTS "$VPS_ROOT_USER@$VPS_IP" "command -v uvicorn >/dev/null 2>&1 || python3 -c 'import uvicorn' 2>/dev/null"; then
+    ok "VPS uvicorn available (dashboard-chat runtime)"
+  else
+    warn "VPS uvicorn missing — bootstrap-mission-control.sh will pip install it"
+  fi
+  # nginx — required for the dashboard + SSE
+  if ssh $SSH_OPTS "$VPS_ROOT_USER@$VPS_IP" "command -v nginx >/dev/null 2>&1"; then
+    NGINX_V=$(ssh $SSH_OPTS "$VPS_ROOT_USER@$VPS_IP" "nginx -v 2>&1 | awk -F/ '{print \$2}'" 2>/dev/null)
+    ok "VPS nginx installed: $NGINX_V"
+  else
+    warn "VPS nginx not installed — installer will apt install nginx"
+  fi
+else
+  warn "VPS_IP unset — skipping Mission Control dep checks"
+fi
+
+# ── 11. Multi-agent swarms (v0.6+, optional) ───────────────────────────────
+section "11. OpenSwarm — Node 20+ + Python 3.10+ (if multi_agent_swarms)"
 SWARMS_ENABLED=$(yget multi_agent_swarms)
 if [[ "$SWARMS_ENABLED" == "true" && -n "$VPS_IP" ]]; then
   REMOTE_NODE=$(ssh $SSH_OPTS "$VPS_ROOT_USER@$VPS_IP" "node --version 2>/dev/null | sed 's/^v//' | cut -d. -f1" 2>/dev/null)

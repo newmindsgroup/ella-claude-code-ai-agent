@@ -22,9 +22,13 @@ Before touching anything:
 2. **Read `./client-context.md`** — the brand, the business, the human's situation. This shapes the tenant.yml you'll generate.
 3. **Read `./memory/*.md`** if present — any prior memory for this client. Pass these along to the VPS after first install (the memory layer v2 will import them into the SQLite vault on first run).
 4. **Read `./<client>-agent/vps-setup/DEPLOY-NEW-CLIENT.md`** — the master runbook. Follow it phase by phase.
-5. **Read `./<client>-agent/CHANGELOG.md`** — confirm which version of Ella you're cloning. Features behind `v0.5+` / `v0.6+` markers are opt-in via tenant.yml feature flags.
+5. **Read `./<client>-agent/CHANGELOG.md`** — confirm which version of Ella you're cloning. Features behind `v0.5+` / `v0.6+` / `v0.7+` markers are opt-in via tenant.yml feature flags.
 
-If any of the four files are missing OR `client-credentials.md` has unfilled REQUIRED slots, **STOP** and tell the human which file/slot to fix. Do not proceed.
+If any of the four files are missing OR `client-credentials.md` has unfilled REQUIRED slots:
+
+- **First check if the human even wants a structured interview.** If `client-credentials.md` is missing entirely (or is just the unfilled template), don't error out — instead, **invoke the INTERVIEW script** (`./<client>-agent/INTERVIEW.md`). It walks the human through a conversational dialogue and writes both `client-credentials.md` and `tenant.yml` for you, section by section. After the interview finishes, you return here.
+- If `client-credentials.md` exists but is partially filled, identify which REQUIRED slots are empty, ask the human just those specific questions, and patch the file.
+- If anything else is missing (context, memory, runbook), tell the human which file to fix and stop. Don't fabricate.
 
 ### Optional feature decisions (default values are safe for most clients)
 
@@ -42,6 +46,19 @@ These decisions go into the rendered `tenant.yml` under `features:`. Confirm in 
 | `syncthing_enabled` | `false` | Sync obsidian-vault VPS↔Mac | Enable when client wants the Obsidian app on their laptop. |
 | `multi_agent_swarms` | `false` | OpenSwarm — slides/video/image-gen | Enable when client needs heavy-lift media generation. |
 | `graphiti_temporal_graph` | `false` | FalkorDB + Graphiti MCP | Advanced — needs Docker + ANTHROPIC_API_KEY. Defer. |
+| `mission_control_v0_7` | `true` | Full observability stack: spans, ROI, cost ceilings, rules engine, anomaly detection | Default ON. See `INTERVIEW.md` Sections 7-8 for tuning. |
+
+---
+
+## Phase 0.5 — Interview (only if credentials are missing)
+
+If you skipped this because `client-credentials.md` was already filled, jump to Phase 1.
+
+Otherwise, **read `./<client>-agent/INTERVIEW.md`** and walk the human through Sections 1-9 conversationally. The script tells you what to ask, in what order, with branching logic. **One question at a time.** Don't dump a 50-line form on them — they'll bail.
+
+After each section, write the captured values immediately into `client-credentials.md` (for secrets) or `<client>-agent/vps-setup/tenants/<tenant_id>.yml` (for tenant config). Mark each captured value with a comment `# captured-by-interview: <ISO timestamp>` so a human reading the file later knows where it came from.
+
+When Section 9 is done, you return here and continue with Phase 1 (pre-flight).
 
 ---
 
@@ -294,6 +311,28 @@ This:
 
 The agent will then dispatch slide-deck / video / image-gen / data-analysis jobs to OpenSwarm via `swarm-router.sh openswarm --task '...' --agent <slides|video|image|docs|data>`. Skip for minimal deploys — the four built-in swarms (bizdev/content/delivery/onboarding) work without OpenSwarm.
 
+## Phase 7c — Mission Control bring-up (v0.7, default ON)
+
+Single-command bootstrap for the full observability stack (Phase 1-4). Idempotent.
+
+```bash
+# On VPS as root:
+bash /opt/<linux_user>/agents/scripts/bootstrap-mission-control.sh
+```
+
+This wires:
+- `dashboard-chat.service` — FastAPI backend (audit, snooze, skills-run, rules, SSE, budget endpoints)
+- `rules-engine.timer` — every 5 min, evaluates `rules/*.yaml`
+- `anomaly-detect.timer` — every 30 min, z-score + EWMA on telemetry
+- `session-parser.timer` — every 2 min, ingests Claude Code session JSONLs into spans.db
+- Initializes `state/spans.db` schema
+- Reloads nginx (picks up the `/api/chat/events` SSE block)
+
+The script honors feature flags in `{{TENANT_AGENT_HOME}}/.env-deploy`:
+`ENABLE_RULES_ENGINE`, `ENABLE_ANOMALY_DETECTION`, `ENABLE_SESSION_PARSER`, `ENABLE_CIRCUIT_BREAKERS`. Default for all four is `true`. To disable a feature, set the corresponding flag to `false` in `.env-deploy` and re-run — the script will skip that unit.
+
+Expected output ends with: `✅ Mission Control bootstrapped. Run post-deploy-verify.sh next.` Any FAIL output here blocks moving to Phase 8.
+
 ## Phase 8 — Smoke test (THE GATE)
 
 ```bash
@@ -301,6 +340,28 @@ sudo -u <linux_user> bash /opt/<linux_user>/agents/scripts/smoke-test.sh
 ```
 
 **Must report 0 failures.** Warns are OK (e.g. "today's proposals not yet generated at 06:00"). If FAIL > 0, stop here, paste the smoke-test output to the human, ask what to fix.
+
+---
+
+## Phase 8b — Post-deploy verification (v0.7)
+
+Final gate before declaring victory. Runs from your local Mac AGAINST the deployed VPS. Checks every `/api/*.json` endpoint, SSE handshake, dashboard-chat backend, and the 53-test pytest contract suite.
+
+```bash
+# On local Mac, in the workspace directory:
+cd ~/code/<client>-workspace/<client>-agent
+bash vps-setup/scripts/post-deploy-verify.sh ../client-credentials.md
+```
+
+Expected: exits 0 with `✅ Deploy is GREEN.`
+
+If anything FAILs:
+- **Unit not active** → `ssh <vps> 'journalctl -u <unit> -n 30'` and report to human
+- **/api endpoint 404** → `dashboard-sync.timer` hasn't run; trigger it: `ssh <vps> 'systemctl start dashboard-sync.service'`
+- **SSE handshake empty** → nginx config is missing the `/api/chat/events` location block; check `nginx/dashboard.conf` rendered output
+- **pytest failures** → template drift; report to human, suggest re-cloning
+
+DO NOT proceed to Phase 9 until this exits 0.
 
 ---
 

@@ -212,6 +212,57 @@ features:
   graphiti_temporal_graph:  false  # FalkorDB + Graphiti MCP for temporal knowledge graphs (needs Docker)
   multi_agent_swarms:       false  # bizdev/content/delivery/onboarding swarms via swarm-router.sh
 
+  # v0.7.0 Mission Control — full observability stack. All default ON; they
+  # don't cost anything to leave running and unlock the dashboard tabs +
+  # Telegram /budget /roi /activity commands. Disable individually if a
+  # client doesn't want a particular surface (rare).
+  mission_control_v0_7:           true   # Master flag — disables ALL of the below
+  enable_rules_engine:            true   # v2.48 behavioral rules (YAML DSL)
+  enable_anomaly_detection:       true   # v2.49 z-score + EWMA on telemetry
+  enable_session_parser:          true   # v2.54 ingests Claude Code session JSONLs into spans.db
+  enable_circuit_breakers:        true   # v2.57 hard cost-ceiling guardrails
+  enable_watchers:                true   # proactive watchers (disk/deadline/stalled-deal/etc.)
+  enable_observability_dashboard: true   # 17-tab dashboard (audit/rules/deploys/activity/roi)
+
+# -----------------------------------------------------------------------------
+# v0.7.0 Mission Control configuration
+# -----------------------------------------------------------------------------
+# ROI math (used by _roi.py + /api/roi.json + ROI dashboard tab).
+# Defaults reflect industry-typical solo-consultant rates. Override per
+# tenant if their billable rates differ materially.
+roi_hourly_rates:
+  strategy:         200.0  # most expensive — strategy/positioning work
+  research:         150.0
+  newsletter:       150.0
+  competitive_scan: 150.0
+  self_improvement: 150.0
+  draft:             75.0  # content drafting baseline
+  morning_brief:     75.0
+  evening_rollup:    75.0
+  summary:           75.0
+  pipeline_report:  100.0
+  drift_scan:       100.0
+  review:           100.0
+  outreach:          90.0
+  social_draft:      90.0
+  data_pull:         90.0
+  dashboard_chat:    90.0
+  telegram_chat:     90.0
+  scheduling:        50.0  # admin/triage baseline
+  memory:            50.0
+  default:           75.0  # fallback for unknown task types
+
+# Default realization rate when a task type isn't explicitly configured.
+# 0.5 = output needs heavy review; 0.7 = light review (default); 0.9 = ships as-is.
+# Per-type overrides live in _roi.py:ROI_CONFIG.
+roi_default_realization_rate: 0.7
+
+# Cost-ceiling thresholds (used by rules/budget-ceilings.yaml).
+# Trips a global circuit breaker → autonomous skills refuse to run until
+# the operator manually clears it via DELETE /api/chat/budget.
+cost_ceiling_daily_usd:   5.0   # daily API spend trigger
+cost_ceiling_block_hours: 12    # how long the breaker stays engaged
+
 # -----------------------------------------------------------------------------
 # METADATA
 # -----------------------------------------------------------------------------

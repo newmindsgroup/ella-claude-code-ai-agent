@@ -2,6 +2,38 @@
 
 All notable changes to this repo. Format roughly follows [Keep a Changelog](https://keepachangelog.com/). This is a multi-tenant template, so versions reflect what's available to clone for a new tenant — not what's running at any one customer's deployment.
 
+## [v0.7.1] — 2026-05-19
+
+### Added — Deployment polish (autonomous local-agent driven deploys)
+
+Closes the deploy-flow gap left by v0.7.0. After v0.7.0 added Mission Control's runtime components, the docs + scripts that orchestrate a fresh client deploy didn't know about them yet. v0.7.1 closes that loop so a local agent (Claude Code / Cursor / Codex) can read one script, ask the human the right questions, provision + render + bootstrap + verify autonomously, and confirm a green deploy without a human chasing systemd units.
+
+**New documents:**
+- **`INTERVIEW.md`** — Conversational dialogue script for the local agent. 9 sections (About you / About the brand / Voice / VPS / Domain + TLS / Integrations / Cost preferences / Feature toggles / Confirm). Each question tagged REQUIRED or OPTIONAL with validation rules and a mapping to where the answer lands (`client-credentials.md` vs `tenant.yml`). Branching logic for "have you done this before / want me to provision?" forks. Tone notes for the local agent (ask one question at a time, reflect what you heard, don't be a wizard).
+
+**New scripts:**
+- **`vps-setup/scripts/bootstrap-mission-control.sh`** — Single-command wire-up of every v0.7.0 Mission Control component. Installs Python deps (FastAPI, uvicorn, pyyaml), creates `state/spans.db`, enables + starts `dashboard-chat.service`, `rules-engine.timer`, `anomaly-detect.timer`, `session-parser.timer`. Honors feature flags from `.env-deploy`. Smoke-tests the FastAPI backend. Reloads nginx. Idempotent.
+- **`vps-setup/scripts/post-deploy-verify.sh`** — Single-command "is the deploy green?" check. Runs from the local Mac against the deployed VPS. Verifies: VPS reachability, 14 systemd units active, 15 `/api/*.json` endpoints serve valid JSON behind basic-auth, SSE handshake works, dashboard-chat backend reachable, 53-test pytest suite passes. Exit 0 = green deploy.
+
+**Updated documents:**
+- **`NEW-CLIENT-CLAUDE.md`** — New Phase 0.5 ("if credentials missing, run INTERVIEW.md"), new Phase 7c ("Mission Control bring-up via bootstrap-mission-control.sh"), new Phase 8b ("Post-deploy verification via post-deploy-verify.sh"). Added `mission_control_v0_7` to feature-decisions table.
+- **`vps-setup/DEPLOY-NEW-CLIENT.md`** — New Phase 9.5 (Mission Control bring-up) + Phase 10.5 (Post-deploy verify). Both runbook updates reference the new scripts.
+- **`vps-setup/scripts/preflight-new-client.sh`** — New section 10 ("Mission Control deps — Python 3.11+ + FastAPI + sqlite3"). Checks VPS Python version, sqlite3 module, pyyaml, fastapi, uvicorn, nginx. Warns (not fails) on missing deps — bootstrap-mission-control.sh installs them. Existing OpenSwarm check moved to section 11.
+
+**Updated config templates:**
+- **`vps-setup/tenants/EXAMPLE_TENANT.yml`** — Added v0.7.0 feature flags (`mission_control_v0_7`, `enable_rules_engine`, `enable_anomaly_detection`, `enable_session_parser`, `enable_circuit_breakers`, `enable_watchers`, `enable_observability_dashboard`). Added `roi_hourly_rates` block with 20 task types + sensible defaults. Added `cost_ceiling_daily_usd` + `cost_ceiling_block_hours` for the global circuit breaker.
+- **`examples/client-credentials.template.md`** — Added "v0.7 MISSION CONTROL — Cost preferences" section. Updated checklist with v0.7 review step.
+
+### Verified
+- `bash vps-setup/scripts/render-tenant.sh vps-setup/tenants/EXAMPLE_TENANT.yml` produces 165 clean files (no new render warnings).
+- `pytest tests/` runs 53/53 green.
+- `bash -n` syntax check passes on bootstrap + verify + preflight scripts.
+
+### Why this matters
+Before v0.7.1, deploying a new client meant the operator had to know about: the credentials template, the deploy runbook, the preflight script, and now (post-v0.7.0) the existence of Mission Control's new components. A local agent following NEW-CLIENT-CLAUDE.md would skip the new Mission Control bring-up because the runbook didn't mention it. v0.7.1 makes the deploy flow auto-discoverable: the local agent reads NEW-CLIENT-CLAUDE.md, gets pointed at INTERVIEW.md for missing credentials, runs preflight (which now checks Mission Control deps), follows the runbook (which now has Mission Control phases), and ends at post-deploy-verify.sh (which doesn't return 0 until everything's green).
+
+---
+
 ## [v0.7.0] — 2026-05-19
 
 ### Added — Mission Control Phase 1-4 (full observability stack)

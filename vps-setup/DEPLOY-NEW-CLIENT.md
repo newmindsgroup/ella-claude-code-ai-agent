@@ -318,6 +318,29 @@ Note: `discord-webhook-server.service` only matters if `discord_enabled: true` �
 
 ---
 
+## Phase 9.5 — Mission Control bring-up (v0.7.0)
+
+Single command that wires every Phase 1-4 component (dashboard-chat FastAPI backend, rules engine, anomaly detection, session-parser + spans store, cost-ceiling circuit breakers). Idempotent — safe to re-run.
+
+```bash
+# On VPS as root:
+bash /opt/<linux_user>/agents/scripts/bootstrap-mission-control.sh
+```
+
+Expected output ends with: `✅ Mission Control bootstrapped. Run post-deploy-verify.sh next.`
+
+If any of the new Python dependencies aren't installed yet, the script installs them via apt (`python3-yaml`) + pip (`fastapi`, `uvicorn`, `pydantic`) as the tenant user. If you set any feature flags to `false` in `.env-deploy` (e.g. `ENABLE_ANOMALY_DETECTION=false`), the corresponding timer is skipped — flip the flag and re-run to enable later.
+
+What gets enabled (with default flags):
+
+- `dashboard-chat.service` — FastAPI backend on 127.0.0.1:8001 (audit, snooze, skills-run, rules, events SSE, budget endpoints)
+- `rules-engine.timer` — every 5 min, evaluates `rules/*.yaml`
+- `anomaly-detect.timer` — every 30 min, z-score + EWMA on telemetry
+- `session-parser.timer` — every 2 min, ingests `~/.claude/projects/*.jsonl` into spans.db
+- nginx reloaded so the SSE block at `/api/chat/events` is live
+
+---
+
 ## Phase 10 — Smoke test (the gate)
 
 ```bash
@@ -337,6 +360,29 @@ sudo -u <linux_user> bash /opt/<linux_user>/agents/scripts/tg-send.sh send --tex
    Bot: @<telegram_bot_username>
    Smoke test: PASS"
 ```
+
+---
+
+## Phase 10.5 — Post-deploy verification (v0.7.0)
+
+Final gate. Runs from the LOCAL Mac against the deployed VPS. Checks: VPS reachability, all 14 systemd units active, all 15 `/api/*.json` endpoints serving valid JSON behind basic-auth, SSE handshake works, dashboard-chat backend reachable through nginx, and the 53-test pytest contract suite passes.
+
+```bash
+# On local Mac:
+cd ~/code/<client>-workspace/<client>-agent
+bash vps-setup/scripts/post-deploy-verify.sh ../client-credentials.md
+```
+
+Expected output ends with: `✅ Deploy is GREEN. Safe to hand the dashboard URL to the client.`
+
+If anything FAILs:
+
+- **Systemd unit not active** → `ssh <vps> 'journalctl -u <unit> -n 30'` to diagnose
+- **/api endpoint 404** → dashboard-sync.timer hasn't fired yet; wait 60s and re-run, or `systemctl start dashboard-sync.service` manually
+- **SSE handshake empty** → check nginx config has the `/api/chat/events` block with `proxy_buffering off`
+- **pytest failures** → these are pure-logic; if they fail locally, the template itself has drifted — check `git status` for uncommitted local edits
+
+Only after this script returns 0 should you tag the client repo as "deployment complete" and announce to the human.
 
 ---
 
