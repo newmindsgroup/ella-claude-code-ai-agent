@@ -2,6 +2,61 @@
 
 All notable changes to this repo. Format roughly follows [Keep a Changelog](https://keepachangelog.com/). This is a multi-tenant template, so versions reflect what's available to clone for a new tenant — not what's running at any one customer's deployment.
 
+## [v0.7.0] — 2026-05-19
+
+### Added — Mission Control Phase 1-4 (full observability stack)
+
+The biggest substantive upgrade since v0.5. Brings the template fully current with the upstream Daniel Gonell tenant at v2.60.0. Every new client deploy now ships with full observability of every agent action — what they're doing, how long it's taking, what it's costing, and what it would have cost a human.
+
+**Phase 1 — Audit + lifecycle (v2.46→v2.47):**
+- **`vps-setup/agent-template/dashboard-chat/server.py`** — full FastAPI write-action layer (200+ lines, was missing entirely from Ella). Endpoints: `/api/chat`, `/api/chat/audit` GET/POST, `/api/chat/snooze` GET/POST/DELETE, `/api/chat/skills/run` POST, `/api/chat/rules` GET, `/api/chat/rules/run` POST, `/api/chat/events` SSE, `/api/chat/budget` GET/POST/DELETE. Bound to 127.0.0.1:8001, fronted by nginx with HTTP basic-auth.
+- **`vps-setup/agent-template/systemd/dashboard-chat.service.tmpl`** — systemd unit for the FastAPI backend.
+- **`vps-setup/agent-template/scripts/ops/ops-service-restart.sh`** — added `--no-block` flag for Run-now buttons; added `rules-engine`, `anomaly-detect`, `session-parser` to allowlist.
+
+**Phase 2 — Behavioral rules engine (v2.48):**
+- **`vps-setup/agent-template/scripts/rules-engine.py`** (388 lines) — YAML-DSL rules evaluated every 5 min. Operators: `>=, >, ==, <=, <, !=, in, contains`. Actions: `telegram`, `audit`, `log`, `circuit_breaker` (v2.57). Per-rule throttle window.
+- **`vps-setup/agent-template/rules/*.yaml`** — 5 starter rules: drift-persistent-escalate, inbound-high-pileup, cost-spike-escalate, anomaly-cost-z-spike, budget-ceilings.
+- **`vps-setup/agent-template/systemd/rules-engine.{service,timer}.tmpl`** — every 5 min.
+
+**Phase 2.5 — Anomaly detection (v2.49):**
+- **`vps-setup/agent-template/scripts/anomaly-detect.py`** — rolling z-score + EWMA over telemetry.json daily_token_history. Thresholds: 2.0σ noteworthy, 3.0σ extreme.
+- **`vps-setup/agent-template/systemd/anomaly-detect.{service,timer}.tmpl`** — every 30 min.
+
+**Phase 2.7 — pytest harness (v2.50):**
+- **`pytest.ini`** + **`tests/conftest.py`** — pytest-xdist + JUnit XML support.
+- **`tests/test_spans.py`** (14 tests), **`tests/test_roi.py`** (13), **`tests/test_budget.py`** (9), **`tests/test_deploy_states.py`** (12), **`tests/test_watchers.py`** (5) — 53 pure-logic tests pinning every Mission Control contract.
+
+**Phase 2.8 — SSE push channel (v2.51):**
+- **`vps-setup/agent-template/nginx/dashboard.conf.tmpl`** — new `location = /api/chat/events` block with `proxy_buffering off`, `proxy_read_timeout 3600s`, `chunked_transfer_encoding off`. Must come before the generic `/api/chat/(.*)` regex.
+
+**Phase 3 — BaseWatcher + deploy state machine (v2.52→v2.53):**
+- **`vps-setup/agent-template/scripts/_watcher_base.py`** — Signal dataclass + BaseWatcher class. Each watcher is now 30 lines instead of 100. Dedup, throttle, Telegram post, audit emission all centralized.
+- **`vps-setup/agent-template/scripts/disk-space-watcher.py`** — first migrated watcher (mirrors the .sh, replaces it).
+- **`vps-setup/agent-template/scripts/_deploy_states.py`** — canonical state machine for the /deploy lifecycle (started → preflight_passed → smoke_passed → ready_to_ship → shipped, plus failed/cancelled). Validates phase transitions against a frozen graph.
+
+**Phase 4 — Full observability stack (v2.54→v2.60):**
+- **`vps-setup/agent-template/scripts/_spans.py`** — OTel GenAI-conformant SQLite span store (`gen_ai.usage.input_tokens`, `anthropic.cache_read_input_tokens`, etc.). Indexes by tool/agent/skill/parent. Cost computed downstream from tokens (no $ in raw spans).
+- **`vps-setup/agent-template/scripts/session-parser.py`** — ingests `~/.claude/projects/*.jsonl` into spans.db every 2 min. Idempotent via tool_use_id PKs. 30-day hot window with auto-prune. POSTs `spans-added` audit events for SSE broadcast.
+- **`vps-setup/agent-template/scripts/_roi.py`** — per-task-type ROI math with `realization_rate` (Superkind methodology). None of the 5 OSS observability projects surveyed ship per-skill ROI — this is industry-first.
+- **`vps-setup/agent-template/scripts/_budget.py`** — hard cost-ceiling circuit breakers. `block`/`unblock`/`auto_expire`. Extend-only semantics. Fail-open on corrupt JSON.
+- **`vps-setup/agent-template/dashboard/index.html`** — fully overhauled with 5 new tabs (audit, rules, deploys, activity, roi) + Tool Budget widget on Overview + Cache attribution KPI + Latency widget + session-tree modal + circuit-breaker banner + live agent indicator in topbar. Retemplatized to use `{{TENANT_*}}` placeholders everywhere.
+- **`vps-setup/agent-template/scripts/dashboard-sync.sh.tmpl`** — 6 new `/api/*.json` endpoints (anomalies, deploys, spans, roi, budget, rules implied).
+- **`vps-setup/agent-template/systemd/session-parser.{service,timer}.tmpl`** — every 2 min.
+
+### Rendering verified
+- `bash vps-setup/scripts/render-tenant.sh vps-setup/tenants/EXAMPLE_TENANT.yml` produces 165 clean files (was 142 in v0.6.1, +23 new template files).
+- `pytest tests/` runs 53/53 green with no VPS dependencies — safe for CI.
+
+### Methodology / industry sources
+- OpenTelemetry GenAI Semantic Conventions (gen_ai.* attributes, anthropic.cache_* extensions)
+- agent-telemetry-spec/atsc (21-span-kind taxonomy)
+- tranhoangtu-it/agentlens (SQLite default storage)
+- MLaminekane/hawkeye (cost-ceilings-as-guardrails pattern)
+- AgentOps-AI/tokencost (token-to-USD library shape)
+- Superkind, OptimNow/ai-roi-calculator, METR HCAST (realization_rate methodology)
+
+---
+
 ## [v0.6.1] — 2026-05-19
 
 ### Changed — Public-readiness scrub (the leaks-fixed release)

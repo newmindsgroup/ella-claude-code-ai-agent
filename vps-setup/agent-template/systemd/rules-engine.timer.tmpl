@@ -1,0 +1,15 @@
+[Unit]
+Description=Behavioral rules engine — fires every 5 minutes
+
+[Timer]
+# Every 5 min. Rules are throttled internally (default 24h between fires
+# of the same rule), so timer frequency is just "how quickly we react to
+# new state" — 5 min is the same cadence as dashboard-sync.
+OnBootSec=2min
+OnUnitActiveSec=5min
+RandomizedDelaySec=30
+Persistent=true
+Unit=rules-engine.service
+
+[Install]
+WantedBy=timers.target

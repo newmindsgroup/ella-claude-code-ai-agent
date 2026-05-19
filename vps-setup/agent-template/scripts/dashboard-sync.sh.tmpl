@@ -799,6 +799,160 @@ PY
 mv "$DST/llm-insights.json.tmp" "$DST/llm-insights.json"
 chmod 644 "$DST/llm-insights.json"
 
+# v2.49.0: /api/anomalies.json — rolling z-score + EWMA over telemetry history.
+python3 << 'PY' > "$DST/anomalies.json.tmp"
+import json
+from datetime import datetime, timezone
+try:
+    with open("{{TENANT_AGENT_HOME}}/state/anomalies.json") as f:
+        out = json.load(f)
+except Exception:
+    out = {"flagged": [], "metrics": {}, "history_days_used": 0}
+out["generated_at"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+print(json.dumps(out, indent=2, default=str))
+PY
+mv "$DST/anomalies.json.tmp" "$DST/anomalies.json"
+chmod 644 "$DST/anomalies.json"
+
+# v2.53.0: /api/deploys.json — /deploy state machine observer.
+python3 << 'PY' > "$DST/deploys.json.tmp"
+import json
+import sys
+from dataclasses import asdict
+from datetime import datetime, timezone
+from pathlib import Path
+
+sys.path.insert(0, "{{TENANT_AGENT_HOME}}/scripts")
+from _deploy_states import load_deploys, summarize  # type: ignore
+
+DEPLOYS_DIR = Path("{{TENANT_AGENT_HOME}}/deploys")
+NOW = datetime.now(timezone.utc)
+deploys = load_deploys(DEPLOYS_DIR)
+summary = summarize(deploys)
+records = [asdict(d) for d in deploys[:30]]
+print(json.dumps({
+    "generated_at": NOW.isoformat().replace("+00:00", "Z"),
+    "deploys": records, "summary": summary,
+}, indent=2))
+PY
+mv "$DST/deploys.json.tmp" "$DST/deploys.json"
+chmod 644 "$DST/deploys.json"
+
+# v2.54.0+: /api/spans.json — OTel span store with live span, cache attribution, latency.
+python3 << 'PY' > "$DST/spans.json.tmp"
+import json
+import sys
+from datetime import datetime, timezone, timedelta
+sys.path.insert(0, "{{TENANT_AGENT_HOME}}/scripts")
+import _spans
+
+NOW = datetime.now(timezone.utc)
+try:
+    with _spans.connect() as conn:
+        recent = _spans.recent_spans(conn, limit=200)
+        since_24h = _spans.iso_minus_hours(24)
+        tools = _spans.tool_breakdown(conn, since_24h)
+        kinds = _spans.kind_breakdown(conn, since_24h)
+        since_live = (NOW - timedelta(minutes=3)).isoformat().replace("+00:00", "Z")
+        live = _spans.live_span(conn, since_live)
+        latencies = _spans.session_latencies(conn, since_24h)
+        total_24h  = sum(k.get("calls", 0) for k in kinds)
+        tokens_24h = sum(k.get("tokens_total", 0) or 0 for k in kinds)
+        recent_24h = [r for r in recent if r.get("start_ts", "") >= since_24h]
+        cost_24h   = round(sum((r.get("cost_usd") or 0) for r in recent_24h), 4)
+        cache_read_24h  = sum(r.get("cache_read", 0)  for r in recent_24h)
+        cache_write_24h = sum(r.get("cache_write", 0) for r in recent_24h)
+        input_24h       = sum(r.get("tokens_in", 0)   for r in recent_24h)
+        cache_input_total = cache_read_24h + input_24h
+        cache_ratio_24h = round(cache_read_24h / cache_input_total, 4) if cache_input_total > 0 else 0.0
+        cache_savings_24h = round((cache_read_24h / 1_000_000) * (3.00 - 0.30), 4)
+except Exception:
+    recent, tools, kinds, live = [], [], [], None
+    total_24h, tokens_24h, cost_24h = 0, 0, 0.0
+    cache_ratio_24h = cache_savings_24h = 0.0
+    cache_read_24h = cache_write_24h = 0
+    latencies = {"sessions": [], "summary": {
+        "sessions": 0, "median_first_action_ms": None, "p95_first_action_ms": None,
+        "median_total_ms": None, "p95_total_ms": None,
+    }}
+
+print(json.dumps({
+    "generated_at": NOW.isoformat().replace("+00:00", "Z"),
+    "recent": recent, "tools": tools, "kinds":  kinds, "live":   live,
+    "summary": {
+        "calls_24h":         total_24h,
+        "tokens_24h":        tokens_24h,
+        "cost_usd_24h":      cost_24h,
+        "cache_read_24h":    cache_read_24h,
+        "cache_write_24h":   cache_write_24h,
+        "cache_ratio_24h":   cache_ratio_24h,
+        "cache_savings_24h": cache_savings_24h,
+    },
+    "latency": latencies["summary"],
+    "latency_sessions": latencies["sessions"][:25],
+}, indent=2, default=str))
+PY
+mv "$DST/spans.json.tmp" "$DST/spans.json"
+chmod 644 "$DST/spans.json"
+
+# v2.56.0: /api/roi.json — per-task-type ROI surface.
+python3 << 'PY' > "$DST/roi.json.tmp"
+import json
+import sys
+from datetime import datetime, timezone
+sys.path.insert(0, "{{TENANT_AGENT_HOME}}/scripts")
+import _roi
+
+NOW = datetime.now(timezone.utc)
+try:
+    records = _roi.load_telemetry_tasks()
+    groups_7d  = _roi.aggregate_by_type(records, window_days=7)
+    groups_30d = _roi.aggregate_by_type(records, window_days=30)
+    summary_7d  = _roi.summarize(groups_7d)
+    summary_30d = _roi.summarize(groups_30d)
+except Exception:
+    groups_7d, groups_30d = [], []
+    summary_7d, summary_30d = _roi.summarize([]), _roi.summarize([])
+
+print(json.dumps({
+    "generated_at": NOW.isoformat().replace("+00:00", "Z"),
+    "methodology": "human_cost = (rate/60) * baseline_min * realization_rate; ROI = human_cost / agent_cost",
+    "by_type_7d":  groups_7d,
+    "by_type_30d": groups_30d,
+    "summary_7d":  summary_7d,
+    "summary_30d": summary_30d,
+}, indent=2, default=str))
+PY
+mv "$DST/roi.json.tmp" "$DST/roi.json"
+chmod 644 "$DST/roi.json"
+
+# v2.57.0: /api/budget.json — active cost-ceiling circuit breakers.
+python3 << 'PY' > "$DST/budget.json.tmp"
+import json
+import sys
+from datetime import datetime, timezone
+sys.path.insert(0, "{{TENANT_AGENT_HOME}}/scripts")
+import _budget
+
+NOW = datetime.now(timezone.utc)
+try:
+    blocks = _budget.load_blocked()
+    out = [{
+        "skill": b.skill, "is_global": b.is_global, "reason": b.reason,
+        "until_ts": b.until_ts, "set_at": b.set_at, "blocked_by": b.blocked_by,
+    } for b in blocks]
+except Exception:
+    out = []
+
+print(json.dumps({
+    "generated_at": NOW.isoformat().replace("+00:00", "Z"),
+    "blocks": out, "count": len(out),
+    "global_blocked": any(b.get("is_global") for b in out),
+}, indent=2, default=str))
+PY
+mv "$DST/budget.json.tmp" "$DST/budget.json"
+chmod 644 "$DST/budget.json"
+
 # v2.27.0: auto-sync dashboard HTML from agents-config source.
 HTML_SRC="$SRC/{{TENANT_BRAND_REPO_NAME}}/vps-setup/agents-config/{{TENANT_ID}}/dashboard/index.html"
 HTML_DST="/var/www/{{TENANT_DASHBOARD_HOSTNAME}}/index.html"

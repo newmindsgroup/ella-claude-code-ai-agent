@@ -1,0 +1,14 @@
+[Unit]
+Description=Session parser — every 2 minutes
+
+[Timer]
+# 2-min cadence keeps the Activity tab fresh without thrashing the cursor file.
+# Session JSONL files don't move much faster than that.
+OnBootSec=2min
+OnUnitActiveSec=2min
+RandomizedDelaySec=30
+Persistent=true
+Unit=session-parser.service
+
+[Install]
+WantedBy=timers.target

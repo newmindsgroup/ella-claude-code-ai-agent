@@ -11,7 +11,7 @@ WorkingDirectory={{TENANT_AGENT_HOME}}
 Environment="HOME={{TENANT_USER_HOME}}"
 Environment="PATH=/usr/local/bin:/usr/bin:/bin:{{TENANT_USER_HOME}}/.bun/bin:{{TENANT_USER_HOME}}/.local/bin"
 Environment="TENANT_AGENT_HOME={{TENANT_AGENT_HOME}}"
-ExecStart={{TENANT_AGENT_HOME}}/scripts/disk-space-watcher.sh
+ExecStart=/usr/bin/python3 {{TENANT_AGENT_HOME}}/scripts/disk-space-watcher.py
 StandardOutput=append:{{TENANT_AGENT_HOME}}/logs/disk-space-watcher.log
 StandardError=append:{{TENANT_AGENT_HOME}}/logs/disk-space-watcher.log
 TimeoutStartSec=60

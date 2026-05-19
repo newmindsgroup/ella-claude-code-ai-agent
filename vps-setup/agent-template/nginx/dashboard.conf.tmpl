@@ -40,6 +40,21 @@ server {
         proxy_send_timeout 180s;
         proxy_buffering    off;
     }
+    # v2.51.0: Server-Sent Events stream — needs unbuffered + long timeout
+    # so the agent can push live audit + span events to the dashboard.
+    # MUST come before the generic /api/chat/ regex so this exact-match wins.
+    location = /api/chat/events {
+        proxy_pass               http://127.0.0.1:8001/api/chat/events;
+        proxy_http_version       1.1;
+        proxy_set_header         Host              $host;
+        proxy_set_header         X-Real-IP         $remote_addr;
+        proxy_set_header         X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header         X-Forwarded-Proto $scheme;
+        proxy_buffering          off;
+        proxy_cache              off;
+        proxy_read_timeout       3600s;
+        chunked_transfer_encoding off;
+    }
     location ~ ^/api/chat/(.*)$ {
         proxy_pass         http://127.0.0.1:8001/api/chat/$1$is_args$args;
         proxy_http_version 1.1;

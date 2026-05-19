@@ -13,7 +13,16 @@ AUDIT_LOG=/var/log/{{TENANT_LINUX_USER}}-agent-ops.log
 TG_SEND={{TENANT_AGENT_HOME}}/scripts/tg-send.sh
 
 SVC="${1:-}"
-[[ -z "$SVC" ]] && { echo "usage: $0 <service-name>" >&2; exit 1; }
+[[ -z "$SVC" ]] && { echo "usage: $0 <service-name> [--no-block]" >&2; exit 1; }
+
+# v2.47.1: optional --no-block returns immediately after systemd accepts the
+# start request (vs the default blocking until ExecStart completes). Used by
+# the FastAPI Run-now endpoint so dashboard buttons don't hit a 30s timeout
+# on LLM-driven skills.
+NO_BLOCK_FLAG=""
+if [[ "${2:-}" == "--no-block" ]]; then
+  NO_BLOCK_FLAG="--no-block"
+fi
 
 # Strict allowlist — exact match OR template-instance match for agent-skill@*
 ALLOWED=(
@@ -33,6 +42,9 @@ ALLOWED=(
   telegram-poller-watchdog
   deploy-timeout-sweep
   telemetry-calc
+  rules-engine
+  anomaly-detect
+  session-parser
 )
 
 # Strip optional .service / .timer suffix for comparison
@@ -62,7 +74,7 @@ if [[ "$NORM" == "claude-agent" ]]; then
   audit "pre-pruned watchdog history (claude-agent restart)"
 fi
 
-if ! systemctl restart "$SVC"; then
+if ! systemctl restart $NO_BLOCK_FLAG "$SVC"; then
   audit "FATAL: restart of $SVC failed"
   sudo -u {{TENANT_LINUX_USER}} "$TG_SEND" send --text "🚨 Service restart FAILED: $SVC" 2>/dev/null || true
   exit 3

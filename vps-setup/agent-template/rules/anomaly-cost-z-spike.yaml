@@ -1,0 +1,28 @@
+# Fire when today's API cost is a statistical outlier vs the rolling 7-day window.
+# Reads /api/anomalies.json (populated by anomaly-detect.timer every 30 min).
+# z >= 2.5 means today's cost is 2.5 stddevs above the historical mean — well
+# beyond normal day-to-day variation.
+#
+# Disabled by default. Enable once you've confirmed your daily cost baseline
+# and want statistical (not just threshold) anomaly alerts.
+name: anomaly-cost-z-spike
+description: Telegram when today's API cost is a statistical anomaly (z >= 2.5)
+enabled: false
+when:
+  - path: anomalies.metrics.api_cost_usd.z_score
+    op: ">="
+    value: 2.5
+    as: z
+  - path: anomalies.metrics.api_cost_usd.today
+    op: ">"
+    value: 2
+    as: cost
+then:
+  - action: telegram
+    text: |
+      📊 Cost anomaly — today's API spend is statistically high
+      Today: ${{cost}} · z-score: {{z}} (above 7-day rolling mean by 2.5+ stddevs)
+      Compare to "normal" baseline on the Telemetry tab → Anomalies card.
+  - action: audit
+    action_name: rule-fired-anomaly-cost
+throttle_minutes: 1440

@@ -1,0 +1,15 @@
+[Unit]
+Description=Telemetry anomaly detection — every 30 min
+
+[Timer]
+# Telemetry refreshes every 5 min via telemetry-calc.timer; anomaly recompute
+# over a 7-day window doesn't need that cadence. 30 min keeps anomalies fresh
+# enough to react to without burning CPU.
+OnBootSec=3min
+OnUnitActiveSec=30min
+RandomizedDelaySec=60
+Persistent=true
+Unit=anomaly-detect.service
+
+[Install]
+WantedBy=timers.target

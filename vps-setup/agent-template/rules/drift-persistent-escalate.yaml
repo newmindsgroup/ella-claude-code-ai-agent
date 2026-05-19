@@ -1,0 +1,22 @@
+# Escalate when 5+ brand-drift items have stayed unfixed across multiple scans.
+# Drift-scanner runs daily 23:00; "persistent" means it was flagged in 2+
+# consecutive scans. Five+ persistent items means the homepage / public site
+# has been off-brand for days without remediation — worth surfacing.
+name: drift-persistent-escalate
+description: Escalate to Telegram when 5+ persistent drift items pile up
+enabled: true
+when:
+  - path: drift.persistent_in_latest
+    op: ">="
+    value: 5
+    as: count
+then:
+  - action: telegram
+    text: |
+      🚨 Drift escalation
+      {{count}} brand-drift items have stayed unfixed across 2+ consecutive scans.
+      Persistent drift means the homepage / public site has been off-brand for days.
+      → Open Drift tab on dashboard for the list + recommended fixes.
+  - action: audit
+    action_name: rule-fired-drift-escalation
+throttle_minutes: 1440  # don't escalate more than once per 24h

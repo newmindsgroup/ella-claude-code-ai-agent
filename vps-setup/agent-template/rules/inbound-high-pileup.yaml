@@ -1,0 +1,22 @@
+# Escalate when HIGH-priority inbound items (14d) accumulate without reply.
+# HIGH inbound means active client follow-up — Susan Agee-style. If 3+ pile
+# up, it's a signal that the triage queue is stalling and personal-reply work
+# is being deferred. The morning brief already mentions these, but a mid-day
+# nudge for 3+ HIGH is worth surfacing.
+name: inbound-high-pileup
+description: Nudge when 3+ HIGH inbound items pile up unanswered
+enabled: true
+when:
+  - path: triage.totals_14d.high
+    op: ">="
+    value: 3
+    as: high_count
+then:
+  - action: telegram
+    text: |
+      📨 Inbound pileup
+      {{high_count}} HIGH-priority inbound items waiting (14d window).
+      → Inbound tab on dashboard. Each one needs a personal reply.
+  - action: audit
+    action_name: rule-fired-inbound-pileup
+throttle_minutes: 720  # twice/day max

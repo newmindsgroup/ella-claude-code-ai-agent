@@ -1,0 +1,18 @@
+[Unit]
+Description=Claude Code session parser — JSONL transcripts → spans.db
+After=network.target
+
+[Service]
+Type=oneshot
+User={{TENANT_LINUX_USER}}
+Group={{TENANT_LINUX_GROUP}}
+WorkingDirectory={{TENANT_AGENT_HOME}}
+Environment="HOME={{TENANT_USER_HOME}}"
+Environment="PATH=/usr/local/bin:/usr/bin:/bin:{{TENANT_USER_HOME}}/.local/bin"
+ExecStart=/usr/bin/python3 {{TENANT_AGENT_HOME}}/scripts/session-parser.py
+StandardOutput=append:{{TENANT_AGENT_HOME}}/logs/session-parser.log
+StandardError=append:{{TENANT_AGENT_HOME}}/logs/session-parser.log
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target

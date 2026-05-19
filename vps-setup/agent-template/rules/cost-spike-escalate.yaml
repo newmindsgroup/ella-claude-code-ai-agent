@@ -1,0 +1,24 @@
+# Escalate when today's API cost exceeds $20.
+# Sonnet 4.6 at $3 input / $15 output: hitting $20/day means roughly
+# 6-7M input tokens or 1.3M output, which is well above the agent's normal
+# daily envelope (~$2-5/day in steady state). A spike means either a
+# runaway loop or an unusually heavy session — either way, worth knowing.
+#
+# Disabled by default — opt in once you've confirmed normal daily spend.
+name: cost-spike-escalate
+description: Telegram alert when today's API cost crosses $20
+enabled: false
+when:
+  - path: telemetry.rollup.today.api_cost_usd
+    op: ">="
+    value: 20
+    as: cost_today
+then:
+  - action: telegram
+    text: |
+      💸 Cost spike — today's API spend is ${{cost_today}}
+      Normal daily is $2-5. Investigate Telemetry tab: which top-task drove it?
+      Consider running fewer LLM-driven skills until you confirm it's intentional.
+  - action: audit
+    action_name: rule-fired-cost-spike
+throttle_minutes: 1440

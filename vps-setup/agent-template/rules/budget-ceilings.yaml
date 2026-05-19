@@ -1,0 +1,31 @@
+# v2.57.0: Hard cost guardrails.
+#
+# When today's API cost crosses a threshold, trip the circuit breaker so
+# autonomous skills refuse to run for the rest of the day. This is the
+# difference between an alert ("cost is high") and a *guardrail* ("nothing
+# new fires until you investigate").
+#
+# Manual override: /api/chat/budget DELETE clears blocks; on Telegram the
+# /budget command shows current state.
+name: cost-spike-circuit-breaker
+description: Trip the global circuit breaker if today's API cost exceeds $5.
+enabled: true
+when:
+  - path: telemetry.rollup.today.api_cost_usd
+    op: ">="
+    value: 5.0
+    as: today_cost_usd
+then:
+  - action: telegram
+    text: |
+      🛑 Cost ceiling breached
+      Today's API spend: ${{today_cost_usd}} — exceeds $5 daily cap.
+      Global circuit breaker engaged for 12h. No autonomous skills will run.
+      → /api/chat/budget DELETE __global__  to clear early.
+  - action: audit
+    action_name: rule-fired-cost-ceiling
+  - action: circuit_breaker
+    skill: __global__
+    reason: "daily cap $5 breached at {{today_cost_usd}}"
+    duration_hours: 12
+throttle_minutes: 720
