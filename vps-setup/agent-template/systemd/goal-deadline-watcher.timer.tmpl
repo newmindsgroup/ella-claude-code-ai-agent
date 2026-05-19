@@ -1,0 +1,14 @@
+[Unit]
+Description=Run goal-deadline-watcher daily at 09:30 {{TENANT_TIMEZONE}}
+
+[Timer]
+# Once a day at 09:30 — 30 min after the morning brief — so the day-of
+# behind-pace + 1d-out + overdue nudges land alongside the brief, not
+# scattered across the day.
+OnCalendar=*-*-* 09:30:00 {{TENANT_TIMEZONE}}
+Persistent=true
+RandomizedDelaySec=120
+Unit=goal-deadline-watcher.service
+
+[Install]
+WantedBy=timers.target

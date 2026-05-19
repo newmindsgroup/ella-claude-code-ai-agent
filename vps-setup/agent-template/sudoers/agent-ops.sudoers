@@ -1,0 +1,30 @@
+# /etc/sudoers.d/{{TENANT_LINUX_USER}}-agent-ops
+#
+# Grants the {{TENANT_LINUX_USER}} user passwordless sudo access to a tightly-scoped
+# set of agent-managed operations wrappers ONLY. The agent (running as
+# {{TENANT_LINUX_USER}} via claude-agent.service) uses these to update itself,
+# deploy the website, restart services, reload nginx, install systemd
+# units, etc. — without needing your password.
+#
+# Why a wrapper-only allowlist (not raw command grants):
+#  - Every wrapper is auditable (lives at a known path, logs to
+#    /var/log/{{TENANT_LINUX_USER}}-agent-ops.log)
+#  - Inputs are validated inside each wrapper (e.g. service-restart has
+#    a strict service-name allowlist)
+#  - You can read any wrapper to understand exactly what runs as root
+#  - Adding/removing capabilities = adding/removing a wrapper, not
+#    editing this sudoers file
+#
+# DO NOT extend this to a generic NOPASSWD: ALL grant. The wrapper
+# pattern is the security boundary.
+
+{{TENANT_LINUX_USER}} ALL=(root) NOPASSWD: {{TENANT_AGENT_HOME}}/scripts/ops/
+
+# Why no trailing wildcard: sudoers treats `/path/dir/` as "exact prefix
+# match" for the directory of the command — any executable IN that dir
+# is allowed, but NOT subdirectories, NOT arbitrary commands elsewhere.
+# This is the safest sudoers idiom for "allow scripts in this folder".
+
+# Cmnd_Alias style alternative (commented — same effect, more verbose):
+# Cmnd_Alias AGENT_OPS = {{TENANT_AGENT_HOME}}/scripts/ops/ops-*.sh
+# {{TENANT_LINUX_USER}} ALL=(root) NOPASSWD: AGENT_OPS

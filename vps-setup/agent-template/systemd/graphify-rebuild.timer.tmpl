@@ -1,0 +1,13 @@
+[Unit]
+Description=Weekly Graphify AST-only rebuild for the project repo
+
+[Timer]
+# Sunday 03:00 {{TENANT_TIMEZONE}}. Quietest window, before any of
+# the daily/hourly watchers fire. AST-only so no LLM cost.
+OnCalendar=Sun *-*-* 03:00:00 {{TENANT_TIMEZONE}}
+Persistent=true
+RandomizedDelaySec=600
+Unit=graphify-rebuild.service
+
+[Install]
+WantedBy=timers.target

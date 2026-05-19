@@ -1,0 +1,14 @@
+[Unit]
+Description=Run stalled-deal-watcher daily at 10:00 {{TENANT_TIMEZONE}}
+
+[Timer]
+# Once a day at 10:00 — after morning brief + goal watcher — so all
+# pipeline-related signal lands in the same morning bucket. Stalled
+# deals don't move fast; daily is more than enough.
+OnCalendar=*-*-* 10:00:00 {{TENANT_TIMEZONE}}
+Persistent=true
+RandomizedDelaySec=300
+Unit=stalled-deal-watcher.service
+
+[Install]
+WantedBy=timers.target

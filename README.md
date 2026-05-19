@@ -16,11 +16,15 @@ This repo is a **production-grade, idempotent installer + multi-tenant template*
 
 - An always-on **chief-of-staff agent** that triages every message you send via Telegram, delegates specialist work to **21 sub-agents** (5 hand-built patterns + 16 cherry-picked from the [agency-agents](https://github.com/msitarzewski/agency-agents) MIT collection), and never forgets a commitment via a **persistent task ledger**.
 - A **brand-voice + brand-visual single source of truth** ([voice playbook](examples/voice-playbook.example.md) + [DESIGN.md](examples/DESIGN.md)) that voice-aware sub-agents read before drafting any human-facing copy or visual artifact. **Banned phrases never ship.**
-- A **knowledge graph** ([Graphify](https://github.com/safishamsi/graphify)) the agent queries instead of grepping, plus **Firecrawl MCP** for web scraping, search, and structured extraction.
+- A **knowledge graph** ([Graphify](https://github.com/safishamsi/graphify)) the agent queries instead of grepping, plus **Firecrawl MCP** for web scraping, search, and structured extraction. **Weekly auto-rebuild** keeps the graph current with zero LLM cost.
 - A **morning-brief / proposed-moves system**: every morning the agent posts 2–3 strategic proposals to Telegram with Run/Skip buttons. You tap. It executes via the right sub-agent.
+- A **proactive notification pipeline — 7 watchers** that ping you when something needs attention without you having to ask. Task deadlines, goal pace, stalled deals, disk space, hot leads in inbox, calendar conflicts, brand drift. All event-driven, all dedup-logged, all dirt cheap (no LLM-per-check on 4 of them).
+- **Agent self-service ops** — 5 sudoers-gated wrapper scripts let the agent update its own Claude Code binary, deploy the website, restart services, reload nginx, install systemd units WITHOUT your password. The wrappers are the audit boundary — raw sudo is still locked down.
 - An **autonomous deploy command**: edit a YAML spec, send `/deploy v1.2.3` from your phone, get one approval prompt after smoke tests pass, tap Ship. Code commits, pushes, and rolls out.
-- A **public-facing dashboard** behind basic-auth ([Mission Control](docs/architecture.md#mission-control-dashboard)) showing real-time agent activity, task ledger, telemetry, goals, and per-task cost.
-- **Voice round-trip** — Telegram voice notes get transcribed by local Whisper, processed, and replied to via [edge-tts](https://github.com/rany2/edge-tts) audio if you set voice mode to `always`.
+- A **public-facing dashboard** behind basic-auth ([Mission Control](docs/architecture.md#mission-control-dashboard)) showing real-time agent activity, task ledger, telemetry, goals, and per-task cost. **Opens inline as a Telegram Mini App** via `/dashboard` — no browser switch.
+- **Voice round-trip** — Telegram voice notes get transcribed by local Whisper (auto-detects English vs Spanish), processed, and replied to via [edge-tts](https://github.com/rany2/edge-tts) audio. Three modes (`off`/`reply`/`always`) persisted via `/voice`.
+- **Channels-plugin patches (5 passes)** — local TS patches to the upstream Telegram bot plugin add Ship/Hold/Revise on drafts, Run/Skip on proposals, Reply/Archive/Snooze on emails, forward-detection metadata, and the deploy callback flow. All idempotent + sentinel-checked.
+- **End-to-end smoke test** — `bash {agent_home}/scripts/smoke-test.sh` runs 60+ checks across 12 sections (services, timers, scripts, plugin patches, bot identity, watchdog state, voice stack, knowledge graph). Re-runnable any time. Useful as a cron health check or after any system change.
 
 **What this is NOT:**
 - ❌ A wrapper around the Claude API. This runs on **Claude Code with an Anthropic Max/Pro/Team subscription**. ToS-clean. No API keys.
@@ -202,6 +206,60 @@ The agent has a curated set of specialists it auto-routes to via "Use PROACTIVEL
 - Visual / production gate: `image-prompt-engineer`, `reality-checker`
 
 The cherry-pick list is in [`agent-stack/agency-agents-installer/manifest.json`](agent-stack/agency-agents-installer/manifest.json) — edit and re-run to add/remove.
+
+---
+
+## Proactive notification pipeline (v0.3+)
+
+The agent doesn't just respond — it pings you when something needs attention. Seven watchers run on systemd timers, each with its own cadence and dedup strategy:
+
+| Watcher | Schedule (tenant TZ) | What it watches | Cost-per-run |
+|---|---|---|---|
+| `task-deadline-watcher` | hourly 08–22 | `tasks/active.json` deadlines crossing 24h / 4h / due / overdue | local file (free) |
+| `goal-deadline-watcher` | daily 09:30 | `goals/active.json` — 7d / 1d / overdue windows + behind-pace check (>25% gap between time-elapsed and progress) | local file (free) |
+| `stalled-deal-watcher` | daily 10:00 | GHL opportunities ≥$2K (default) idle ≥7d (default) | 1 GHL REST call (free) |
+| `disk-space-watcher` | every 4h, around the clock | All filesystems — 75% yellow / 85% orange / 95% red, escalating dedup windows | local `df` (free) |
+| `hot-lead-inbox-watcher` | 4×/day (12/16/20/00) | Gmail threads in lookback window, cross-referenced against GHL contacts | claude --print + GHL REST (~$0.01) |
+| `calendar-conflict-watcher` | 3×/day (07/12/17) | Overlapping events on primary calendar, today + lookahead | claude --print (~$0.01) |
+| `graphify-rebuild` | weekly Sunday 03:00 | AST-only refresh of the project-repo knowledge graph | local (free) |
+
+Each watcher logs to `notifications/<name>-nudges.jsonl` for dedup + audit. Disable any of them via `features.<watcher_name>: false` in tenant.yml.
+
+The architectural lesson — when an LLM is required (Gmail, Calendar), do the **split LLM/bash design**: LLM does ONE tool call → returns JSON, bash does all downstream filtering / cross-referencing / formatting / sending. Single-purpose prompts succeed reliably; multi-step prompts under sparse data sometimes short-circuit.
+
+---
+
+## Agent self-service ops (v0.3+)
+
+The agent on the VPS can update itself, deploy the website, restart services, and install systemd units **without your password**. Capabilities are gated through 5 auditable wrapper scripts in `{{TENANT_AGENT_HOME}}/scripts/ops/`, not raw sudo to arbitrary commands. Every wrapper validates inputs, logs to `/var/log/{{TENANT_LINUX_USER}}-agent-ops.log`, and pings Telegram on completion.
+
+| Wrapper | What it does |
+|---|---|
+| `ops-claude-update.sh` | Updates `@anthropic-ai/claude-code` global npm package, verifies 5 channels-plugin patches survive, pre-prunes watchdog history, restarts agent, runs smoke test, pings Telegram |
+| `ops-website-deploy.sh [--no-build] [--skip-deps]` | pnpm install (optional) + pnpm build (optional) + restart website systemd service + HTTP probe + Telegram confirm |
+| `ops-service-restart.sh <name>` | Restarts any allowlisted systemd service (strict allowlist: agent + watchers + nginx + dashboard-chat + agent-skill@*). Refuses sshd, cron, anything outside the agent stack |
+| `ops-nginx-reload.sh` | `nginx -t` first (refuses reload on bad config), then zero-downtime `systemctl reload nginx` |
+| `ops-systemd-install-unit.sh <src> <name>` | Copies a unit from `{{TENANT_AGENT_HOME}}/...` to `/etc/systemd/system/`, daemon-reload, auto-enable timers |
+
+The sudoers entry (`/etc/sudoers.d/{{TENANT_LINUX_USER}}-agent-ops`) is a single line: `{{TENANT_LINUX_USER}} ALL=(root) NOPASSWD: {{TENANT_AGENT_HOME}}/scripts/ops/`. Adding a capability = adding a wrapper (auditable). Emergency lockdown = `rm /etc/sudoers.d/{{TENANT_LINUX_USER}}-agent-ops`.
+
+**Still locked down** (deny list in `settings.json`): `/etc/**`, `/var/www/**`, `~/.ssh/**`, `~/.claude.json` writes; `reboot`, `shutdown`, `passwd`, `useradd`, `chown`, `chmod 777`; all `rm -rf /` flavors.
+
+---
+
+## Telegram polish — the 5 channels-plugin patches
+
+The upstream Telegram bot plugin's callback handler only recognizes `perm:` patterns. Five idempotent local patches add additional callback routing for every approval flow in the stack:
+
+| Pass | Pattern | What taps do |
+|---|---|---|
+| v2.22.2 | `deploy:(ship\|cancel):v<MAJ>.<MIN>.<PATCH>` | Ship/Cancel buttons on `/deploy` approval messages |
+| v2.24.0 | `draft:(ship\|hold\|revise):t-YYYYMMDD-xxxx` | Ship/Hold/Revise on every draft surfaced to Telegram |
+| v2.27.2 | `prop:(run\|skip):p-YYYYMMDD-aaaa` | Run/Skip on morning-brief Proposed Moves cards |
+| v2.27.3 | `forward_origin metadata` | Surfaces forwarded-message provenance so agent auto-offers to save to memory |
+| v2.27.4 | `email:(reply\|archive\|snooze):<gmail-thread-id>` | Reply/Archive/Snooze action buttons on `/inbox` triage cards |
+
+All 5 patches re-apply on every `claude-agent.service` start via `ExecStartPre={{TENANT_AGENT_HOME}}/scripts/patch-channels-plugin.sh`. Sentinel-checked; multi-pass-aware; verified TS-compiles after each pass. Adding a sixth callback flow = adding a sixth pass following the documented pattern.
 
 ---
 

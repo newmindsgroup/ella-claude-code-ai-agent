@@ -22,12 +22,24 @@ website_url: "https://example.com"            # REQUIRED. Live site reference.
 timezone: "America/New_York"                   # REQUIRED. IANA tz. Drives all schedules.
 locale: "en-US"                               # OPTIONAL. Default "en-US".
 
+# Weather block on the morning brief — Open-Meteo (free, no API key).
+# Look up coordinates at https://www.openstreetmap.org/ (right-click → Show address).
+weather_lat:   40.7128                         # REQUIRED if morning_brief enabled. Example = NYC.
+weather_lon:  -74.0060                         # REQUIRED if morning_brief enabled.
+weather_label: "New York"                      # REQUIRED. City name shown in the brief.
+
 # -----------------------------------------------------------------------------
 # LINUX + FILESYSTEM
 # -----------------------------------------------------------------------------
 linux_user: example_tenant                    # OPTIONAL. Default: tenant_id with - to _.
+user_home:  /opt/example_tenant               # COMPUTED. Default /opt/{linux_user}.
 agent_home: /opt/example_tenant/agents        # COMPUTED. Default /opt/{linux_user}/agents.
+website_source_path: "/opt/example_tenant/source"  # OPTIONAL. Live website source dir.
+                                              # Used by ops-website-deploy.sh wrapper. Set when you have a
+                                              # website at https://{dashboard_brand}.com that the agent
+                                              # should be able to build + restart on its own.
 website_systemd_service: ""                   # OPTIONAL. e.g. "example-web.service" — claude-agent After= directive.
+                                              # ALSO used by ops-website-deploy.sh as the restart target.
 vps_host: "root@1.2.3.4"                       # OPTIONAL. SSH target used by render-and-deploy.sh
                                               # (vps-setup/scripts/render-and-deploy.sh tenants/<id>.yml).
                                               # Format: user@host. If unset, pass --vps-host on the command line.
@@ -143,6 +155,18 @@ features:
   task_ledger: true
   markdownv2_default: true
   gh_repo_commits: true
+  # v0.3+ proactive notification pipeline (see vps-setup/agent-template/systemd/)
+  task_deadline_watcher:    true   # hourly nudges on tasks crossing 24h / 4h / due / overdue
+  goal_deadline_watcher:    true   # daily 09:30 — 7d/1d/overdue + behind-pace check
+  stalled_deal_watcher:     true   # daily 10:00 — GHL opps ≥$2K idle ≥7d
+  disk_space_watcher:       true   # every 4h around clock — 75/85/95% thresholds
+  hot_lead_inbox_watcher:   true   # 4×/day — Gmail MCP + GHL cross-ref via claude --print
+  calendar_conflict_watcher: true  # 3×/day 07/12/17 — overlapping events on primary calendar
+  graphify_rebuild:         true   # weekly Sunday 03:00 — AST-only project graph refresh
+  # v0.3+ agent self-service ops (5 wrappers under {{TENANT_AGENT_HOME}}/scripts/ops/)
+  agent_self_service_ops:   true   # adds sudoers entry for {{TENANT_LINUX_USER}}
+  # v0.3+ voice round-trip (whisper.cpp transcribe + edge-tts reply)
+  voice_round_trip:         true   # auto-detect EN/ES, configurable voice mode via /voice
 
 # -----------------------------------------------------------------------------
 # METADATA

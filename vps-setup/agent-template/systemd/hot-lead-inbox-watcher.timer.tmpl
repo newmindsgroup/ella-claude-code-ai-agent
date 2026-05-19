@@ -1,0 +1,15 @@
+[Unit]
+Description=Run hot-lead-inbox-watcher 4x daily during waking hours
+
+[Timer]
+# 12:00, 16:00, 20:00, 00:00 SD = mid-morning, lunch, late-afternoon,
+# evening. The 09:00 morning brief covers the overnight window itself,
+# so the first watcher run at 12:00 picks up anything since brief.
+# 00:00 catches late-evening prospects writing back from US/EU TZs.
+OnCalendar=*-*-* 12,16,20,00:00:00 {{TENANT_TIMEZONE}}
+Persistent=true
+RandomizedDelaySec=300
+Unit=hot-lead-inbox-watcher.service
+
+[Install]
+WantedBy=timers.target

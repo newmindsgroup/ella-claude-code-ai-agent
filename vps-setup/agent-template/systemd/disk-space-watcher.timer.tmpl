@@ -1,0 +1,15 @@
+[Unit]
+Description=Run disk-space-watcher every 4 hours
+
+[Timer]
+# Every 4 hours, around the clock — disk pressure can hit at 3am during
+# log rotations, backups, or runaway processes. Don't restrict to waking
+# hours: when /opt fills, every other watcher and the agent itself stop
+# working, so we want the earliest possible alert.
+OnCalendar=*-*-* 00,04,08,12,16,20:00:00 {{TENANT_TIMEZONE}}
+Persistent=true
+RandomizedDelaySec=300
+Unit=disk-space-watcher.service
+
+[Install]
+WantedBy=timers.target

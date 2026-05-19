@@ -1,0 +1,14 @@
+[Unit]
+Description=Run calendar-conflict-watcher 3x daily (07:00, 12:00, 17:00 {{TENANT_TIMEZONE}})
+
+[Timer]
+# 07:00 — early-morning sweep so {{TENANT_PERSON_FIRST_NAME}} sees conflicts BEFORE the day starts
+# 12:00 — midday in case a meeting got accepted/created mid-morning
+# 17:00 — late-afternoon prep for tomorrow
+OnCalendar=*-*-* 07,12,17:00:00 {{TENANT_TIMEZONE}}
+Persistent=true
+RandomizedDelaySec=180
+Unit=calendar-conflict-watcher.service
+
+[Install]
+WantedBy=timers.target

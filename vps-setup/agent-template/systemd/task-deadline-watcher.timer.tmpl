@@ -1,0 +1,13 @@
+[Unit]
+Description=Run task-deadline-watcher hourly during waking hours
+
+[Timer]
+# Every hour from 08:00 to 22:00 {{TENANT_TIMEZONE}}.
+# Daniel's awake — pings outside that window are spam.
+OnCalendar=*-*-* 08..22:00:00 {{TENANT_TIMEZONE}}
+Persistent=true
+RandomizedDelaySec=120
+Unit=task-deadline-watcher.service
+
+[Install]
+WantedBy=timers.target
