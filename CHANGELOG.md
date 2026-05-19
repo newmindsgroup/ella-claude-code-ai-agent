@@ -2,6 +2,58 @@
 
 All notable changes to this repo. Format roughly follows [Keep a Changelog](https://keepachangelog.com/). This is a multi-tenant template, so versions reflect what's available to clone for a new tenant — not what's running at any one customer's deployment.
 
+## [v0.6.0] — 2026-05-19
+
+### Added — Multi-tier sub-agent delegation framework
+
+A coherent three-tier strategy for delegating work to sub-agents, replacing the v0.5 "sub-agent registry" section that only documented Tier 1.
+
+- **Tier 1 — Agent tool sub-agents** (in-process, parallelizable). 5 tenant-scoped (comms / pipeline / content / research / drift-scanner) plus 16 user-scoped from `agency-agents` cherry-pick. Sub-agents run in their own context window, can fan out in parallel, cannot recursively spawn (infinite-nesting protection).
+- **Tier 2 — Domain swarms** (Python pipelines via `swarm-router.sh`). 4 built-in: `bizdev` (prospect → research + outreach + proposal), `content` (idea → drafts), `delivery` (client deliverables), `onboarding` (kickoff + intake). All use `claude --print` under the hood. No external dependency.
+- **Tier 3 — OpenSwarm** (8-specialist heavy-lift framework, optional). For slides / video / image-gen / data-analysis / docs. Enabled via `features.multi_agent_swarms: true` + `installers/openswarm/install-openswarm.sh`.
+
+### Added — OpenSwarm integration
+
+- **`installers/openswarm/install-openswarm.sh`** (new) — clones [VRSEN/OpenSwarm](https://github.com/VRSEN/OpenSwarm) to `{{TENANT_AGENT_HOME}}/openswarm-repo`, runs `npm install -g @vrsen/openswarm`, verifies CLI callability, writes `OPENSWARM_DIR=` to `.env`. Idempotent — safe to re-run.
+- **`vps-setup/agent-template/swarms/`** — 6 Python files: `swarm_base.py` (shared `run_agent()` helper using `claude --print`), `bizdev_swarm.py`, `content_swarm.py`, `client_delivery_swarm.py`, `onboarding_swarm.py`, `openswarm_runner.py` (headless dispatcher into the VRSEN repo).
+- **`vps-setup/agent-template/scripts/swarm-router.sh`** — dispatcher. `swarm-router.sh content|bizdev|delivery|onboarding|openswarm ...` routes to the right tier.
+- Models hard-pinned: `claude-sonnet-4-6` for swarm-main, `claude-haiku-4-5-20251001` for cheap sub-steps.
+
+### Added — Background sub-agents (Claude Code 2026+ flags)
+
+CLAUDE.md.tmpl documents the new `claude agents` invocation:
+
+```bash
+claude agents --add-dir {{TENANT_AGENT_HOME}} --settings inherit --model sonnet \
+              --effort high --permission-mode bypassPermissions \
+              --task "Deep research on X. Save findings to drafts/research-X.md."
+```
+
+Flags: `--add-dir`, `--settings`, `--mcp-config`, `--plugin-dir`, `--permission-mode`, `--model`, `--effort`. Use for long-running independent work (10+ min research, multi-file audits) so the parent session stays responsive.
+
+### Changed — Orchestrator v0.4 → v0.6 (the gap close)
+
+The orchestrator files (NEW-CLIENT-CLAUDE.md, DEPLOY-NEW-CLIENT.md, preflight-new-client.sh, client-credentials.template.md) shipped at v0.4 and weren't updated when v0.5 added memory v2 + Discord + Obsidian + context system. v0.6 closes that gap.
+
+- **`NEW-CLIENT-CLAUDE.md`** — new Phase 0 feature-decision table (10 toggles with defaults), new Phase 4b (memory v2 init), Phase 4c (Obsidian first export), Phase 4d (Discord), Phase 7b (OpenSwarm install). Updated Phase 7 to enable memory-extract + memory-consolidate timers + describe the crontab install.
+- **`vps-setup/DEPLOY-NEW-CLIENT.md`** — new Phase 5.6 (memory v2 init), 5.7 (Obsidian export), 5.8 (crontab install), 5.9 (OpenSwarm). Updated dependency list to `python3-venv` + `sqlite3`. Rollback strategy table extended with per-phase recovery steps.
+- **`vps-setup/scripts/preflight-new-client.sh`** — added Section 9 (Discord bot token + guild reachability + owner user_id numeric check) gated on `discord_enabled: true`. Added Section 10 (Node 20+ + Python 3.10+ presence on VPS) gated on `multi_agent_swarms: true`.
+- **`examples/client-credentials.template.md`** — new YAML blocks for `discord_bot_token` / `discord_guild_id` / `discord_owner_user_id`, and `multi_agent_swarms` toggle. Pre-deploy checklist extended.
+
+### Why this matters
+
+Before v0.6: the deployment orchestrator was stuck at v0.4. v0.5's memory + Discord + Obsidian + context-system features SHIPPED in the template but the runbook didn't know they existed, so a fresh deploy left them inert.
+
+After v0.6: every new client deploy stands up the same memory + Discord + Obsidian + context + (optionally) swarm capabilities that Daniel-stack uses today. The pre-flight script validates Discord + OpenSwarm credentials BEFORE the deploy starts, not 20 min in.
+
+Plus: a coherent three-tier delegation framework. The agent now knows when to use the Agent tool (parallel investigation), when to dispatch to a domain swarm (known shape), and when to call OpenSwarm (heavy media generation). The Tier decision matrix is in the CLAUDE.md.tmpl.
+
+### Render count
+
+142 files (was 135 in v0.5 = +7 from `swarms/` + `swarm-router.sh` + `install-openswarm.sh`).
+
+---
+
 ## [v0.5.0] — 2026-05-19
 
 ### Added — Memory layer v2 (SQLite + FTS + vector embeddings + Obsidian mirror)
@@ -209,6 +261,9 @@ Initial public release. Sanitized fork from a production single-tenant agent sta
 - Sub-agent skills directory pattern.
 - Tool-leverage heuristics + combo-pattern table in CLAUDE.md template.
 
+[v0.6.0]: https://github.com/newmindsgroup/ella-claude-code-ai-agent/releases/tag/v0.6.0
+[v0.5.0]: https://github.com/newmindsgroup/ella-claude-code-ai-agent/releases/tag/v0.5.0
+[v0.4.0]: https://github.com/newmindsgroup/ella-claude-code-ai-agent/releases/tag/v0.4.0
 [v0.3.0]: https://github.com/newmindsgroup/ella-claude-code-ai-agent/releases/tag/v0.3.0
 [v0.2.1]: https://github.com/newmindsgroup/ella-claude-code-ai-agent/releases/tag/v0.2.1
 [v0.2.0]: https://github.com/newmindsgroup/ella-claude-code-ai-agent/releases/tag/v0.2.0

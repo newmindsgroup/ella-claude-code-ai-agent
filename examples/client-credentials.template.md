@@ -176,6 +176,32 @@ firecrawl_api_key:    ""                               # OPTIONAL. Without it, F
                                                        # Get one at firecrawl.dev (free tier exists).
 ```
 
+### Discord command center (v0.5+, optional second surface)
+
+Set `discord_enabled: true` in the rendered tenant.yml to activate. Setup runbook:
+`vps-setup/runbooks/discord-setup.md`. ~10 minutes to create server + bot + 16 channels.
+
+```yaml
+discord_enabled:         false                         # OPTIONAL. Default: false. Set true to enable Discord surface.
+discord_bot_token:       ""                            # REQUIRED if discord_enabled. discord.com/developers/applications → New Application → Bot → Reset Token
+discord_guild_id:        ""                            # REQUIRED if discord_enabled. Right-click server → Copy Server ID (Developer Mode must be on)
+discord_owner_user_id:   ""                            # REQUIRED if discord_enabled. Your Discord user → right-click → Copy User ID (numeric snowflake)
+```
+
+If enabled, you'll also fill in 15 channel ID slots inside `tenant.yml` after creating the channels per the runbook.
+
+### Multi-agent swarms (v0.6+, optional heavy-lift framework)
+
+Set `multi_agent_swarms: true` in the rendered tenant.yml to install [VRSEN/OpenSwarm](https://github.com/VRSEN/OpenSwarm). Adds slide-deck / video / image-gen / data-analysis capabilities on top of the built-in Python swarms (bizdev/content/delivery/onboarding).
+
+```yaml
+multi_agent_swarms:      false                         # OPTIONAL. Default: false. Set true to install OpenSwarm.
+                                                       # Installer: installers/openswarm/install-openswarm.sh
+                                                       # Requires Node 20+ and Python 3.10+ (installer will install if missing).
+```
+
+The four built-in swarms work with `claude --print` without OpenSwarm — you only need OpenSwarm if you want slides/video/image generation. Skip for minimal client deploys.
+
 ### Anthropic subscription (the agent uses Claude Code via this account)
 
 ```yaml
@@ -197,6 +223,8 @@ anthropic_account:    "agent@example.com"              # REQUIRED. Anthropic Max
 - [ ] CRM credentials gathered (if using one)
 - [ ] Anthropic account subscription confirmed active
 - [ ] Brand canon repo (if any) accessible to a deploy key
+- [ ] (v0.5 optional) Discord server + bot created if `discord_enabled: true` — see `vps-setup/runbooks/discord-setup.md`
+- [ ] (v0.6 optional) Decided whether `multi_agent_swarms: true` — adds OpenSwarm install during deploy
 - [ ] This file (`client-credentials.md`) is OUTSIDE any git repo OR added to .gitignore
 
 When all boxes ticked, open Claude Code in the workspace folder and say:

@@ -132,13 +132,15 @@ The local Claude SSH'es into the VPS as root and runs the agent stack installers
 
 ```bash
 # On VPS as root:
-apt-get update && apt-get install -y curl git jq nginx python3-pip python3-yaml ffmpeg
-curl -fsSL https://get.docker.com | sh   # only if docker is needed
-# Install Node.js 20+ (for npm + bun)
+apt-get update && apt-get install -y curl git jq nginx python3-pip python3-yaml python3-venv ffmpeg sqlite3
+curl -fsSL https://get.docker.com | sh   # only if features.graphiti_temporal_graph
+# Install Node.js 20+ (for npm + bun, and OpenSwarm if enabled)
 curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
 apt-get install -y nodejs
 npm install -g @anthropic-ai/claude-code
 ```
+
+**New in v0.5+:** `python3-venv` + `sqlite3` are required for the memory vault v2 + embedding daemon (sentence-transformers needs a venv to avoid system-package conflicts).
 
 ### 5.2 Create tenant user
 
@@ -184,6 +186,58 @@ sudo -u <linux_user> -H claude login
 ```
 
 This is the ONE interactive step the human can't skip — Anthropic OAuth requires a browser. ~30 seconds.
+
+### 5.6 Memory layer v2 init (new in v0.5)
+
+If `features.memory_vault_v2: true` in tenant.yml:
+
+```bash
+# On VPS as tenant user:
+sudo -u <linux_user> bash /opt/<linux_user>/agents/scripts/memory-vault.sh rebuild
+sudo -u <linux_user> pip3 install --user sentence-transformers numpy  # ~250MB model download
+sudo -u <linux_user> bash /opt/<linux_user>/agents/scripts/install-memory-timers.sh
+sudo -u <linux_user> bash /opt/<linux_user>/agents/scripts/start-embedding-daemon.sh
+```
+
+Verify the embedding daemon Unix-socket is listening at `{{TENANT_AGENT_HOME}}/embedding.sock`.
+
+### 5.7 Obsidian vault first export (new in v0.5)
+
+If `features.obsidian_vault_mirror: true`:
+
+```bash
+sudo -u <linux_user> python3 /opt/<linux_user>/agents/scripts/memory-export.py
+```
+
+The skeleton directory tree (`obsidian-vault/memories/<8 types>/`) was created by the render. This first run populates it.
+
+### 5.8 Crontab install (new in v0.5)
+
+High-frequency jobs (>1×/hour) live in cron, not systemd timers. Install the rendered crontab:
+
+```bash
+crontab -u <linux_user> /opt/<linux_user>/agents/crontab/tenant.crontab
+crontab -u <linux_user> -l | head -20   # verify
+```
+
+Expected jobs:
+- `memory-export.py` every 5 min
+- `entity-linker.sh` nightly 02:00
+- `commitment-deadline-watcher.sh` hourly
+- `start-embedding-daemon.sh` @reboot
+- `startup-ping.sh` @reboot
+- (if `discord_enabled: true`) `discord-commands.sh` every 60s + `discord-corpus-sync.sh` every 10 min + `discord-memory-digest.sh` Fri 17:00
+
+### 5.9 OpenSwarm install (new in v0.6, OPTIONAL)
+
+Only if `features.multi_agent_swarms: true` (default `false`):
+
+```bash
+# On VPS as root:
+sudo bash /tmp/<client-id>-rendered/installers/openswarm/install-openswarm.sh <linux_user>
+```
+
+This clones [VRSEN/OpenSwarm](https://github.com/VRSEN/OpenSwarm) to `/opt/<linux_user>/agents/openswarm-repo`, installs `@vrsen/openswarm` globally, and wires `OPENSWARM_DIR` into `{{TENANT_AGENT_HOME}}/.env`. The agent's `swarm-router.sh` then dispatches `slides | docs | video | image | data` jobs to OpenSwarm. Skip for minimal deploys.
 
 ---
 
@@ -251,10 +305,16 @@ systemctl is-active claude-agent.service                          # must return 
 for t in morning-brief evening-rollup stale-watcher task-deadline-watcher \
          goal-deadline-watcher stalled-deal-watcher disk-space-watcher \
          hot-lead-inbox-watcher calendar-conflict-watcher graphify-rebuild \
+         memory-extract memory-consolidate \
+         discord-webhook-server \
          telegram-poller-watchdog; do
-  systemctl enable --now "$t.timer" 2>/dev/null || echo "  skip $t (no .timer)"
+  systemctl enable --now "$t.timer" 2>/dev/null || \
+    systemctl enable --now "$t.service" 2>/dev/null || \
+    echo "  skip $t (no .timer/.service)"
 done
 ```
+
+Note: `discord-webhook-server.service` only matters if `discord_enabled: true` — it listens on :8090 for GHL/Gmail webhooks and routes to Discord channels.
 
 ---
 
@@ -311,8 +371,13 @@ Recommended:
 |---|---|---|
 | 1–4 (local) | Pre-flight catches it | Fix the credential, re-run preflight |
 | 5 (VPS bootstrap) | claude-agent.service won't start | `journalctl -u claude-agent.service -n 50` — almost always a missing dependency or bad CLAUDE.md syntax |
+| 5.6 (memory v2) | Embedding daemon won't start | Verify `sentence-transformers` installed for the tenant user; check `{{TENANT_AGENT_HOME}}/embedding.sock` permissions |
+| 5.7 (obsidian) | Export fails | Verify SQLite vault has any rows (`memory-vault.sh list`); skeleton dirs must exist first |
+| 5.8 (crontab) | `crontab -u` denied | Confirm tenant user exists + has a login shell; root can `crontab -u <user> -l` to verify |
+| 5.9 (openswarm) | npm install -g fails | Node 20+ required; check `node --version`; rerun installer (idempotent) |
 | 6 (DNS) | Cloudflare API rejects | Verify zone_id matches the domain in question; verify token scope includes Zone:DNS:Edit |
 | 7 (Telegram) | Bot doesn't reply | Check access.json — `allowFrom` must include YOUR user_id; restart agent |
+| 7b (Discord) | discord-commands.sh silent | Check `.env.discord` has correct DISCORD_BOT_TOKEN; webhook server must be listening on :8090 |
 | 8 (patches) | TS compile fails after patch | Restore from `/opt/<linux_user>/.claude/plugins/cache/.../server.ts.bak-*`, investigate which pass broke |
 | 9 (timers) | Timer enable fails | Check unit syntax via `systemd-analyze verify /etc/systemd/system/<name>.timer` |
 | 10 (smoke test) | One check fails | Read the failure message; the smoke test names the issue |

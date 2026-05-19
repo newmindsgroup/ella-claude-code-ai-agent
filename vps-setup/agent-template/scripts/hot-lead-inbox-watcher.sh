@@ -60,7 +60,7 @@ log "=== hot-lead-inbox-watcher started (window=${WINDOW_HOURS}h) ==="
 # mode silently blocks Claude.ai-hosted MCPs (Gmail, Calendar, Drive, etc.)
 # and the LLM reports "tool denied" instead of attempting the call.
 # bypassPermissions allows them through. Safe here because: (a) prompt is
-# hardcoded, no user injection, (b) script runs as danielgonell (not root),
+# hardcoded, no user injection, (b) script runs as {{TENANT_LINUX_USER}} (not root),
 # (c) settings.json deny list still blocks sudo/rm/systemctl/etc.
 
 PROMPT=$(cat <<EOF

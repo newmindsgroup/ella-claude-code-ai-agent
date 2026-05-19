@@ -20,10 +20,28 @@ Before touching anything:
 
 1. **Read `./client-credentials.md`** — every YAML block. Extract every value.
 2. **Read `./client-context.md`** — the brand, the business, the human's situation. This shapes the tenant.yml you'll generate.
-3. **Read `./memory/*.md`** if present — any prior memory for this client. Pass these along to the VPS after first install.
+3. **Read `./memory/*.md`** if present — any prior memory for this client. Pass these along to the VPS after first install (the memory layer v2 will import them into the SQLite vault on first run).
 4. **Read `./<client>-agent/vps-setup/DEPLOY-NEW-CLIENT.md`** — the master runbook. Follow it phase by phase.
+5. **Read `./<client>-agent/CHANGELOG.md`** — confirm which version of Ella you're cloning. Features behind `v0.5+` / `v0.6+` markers are opt-in via tenant.yml feature flags.
 
 If any of the four files are missing OR `client-credentials.md` has unfilled REQUIRED slots, **STOP** and tell the human which file/slot to fix. Do not proceed.
+
+### Optional feature decisions (default values are safe for most clients)
+
+These decisions go into the rendered `tenant.yml` under `features:`. Confirm in chat before generating tenant.yml so the human can override:
+
+| Feature | Default | What it adds | When to enable |
+|---|---|---|---|
+| `memory_vault_v2` | `true` | SQLite + FTS + embeddings + 8 memory types | Always-on. Baseline of v0.5+. |
+| `obsidian_vault_mirror` | `true` | Renders memories as markdown for Obsidian | Always-on if memory_vault_v2 is on. |
+| `commitment_tracking` | `true` | Promises tracked separately from tasks | Almost always useful. |
+| `context_system` | `true` | Wake-up state via active.md + telegram history | Always-on. |
+| `entity_linker` | `true` | Auto-promote frequent names to relationships | Always-on. |
+| `signal_edit_tracking` | `true` | Voice DNA feedback loop | Disable if client doesn't draft via the agent. |
+| `discord_enabled` | `false` | Second daily-interface surface | Enable when client wants Discord alongside Telegram. Adds 10 min setup. |
+| `syncthing_enabled` | `false` | Sync obsidian-vault VPS↔Mac | Enable when client wants the Obsidian app on their laptop. |
+| `multi_agent_swarms` | `false` | OpenSwarm — slides/video/image-gen | Enable when client needs heavy-lift media generation. |
+| `graphiti_temporal_graph` | `false` | FalkorDB + Graphiti MCP | Advanced — needs Docker + ANTHROPIC_API_KEY. Defer. |
 
 ---
 
@@ -87,7 +105,7 @@ rsync -av --delete vps-setup/agents-config/<client-id>/ \
 
 SSH to the VPS as root and run the bootstrap sequence from `DEPLOY-NEW-CLIENT.md` Phase 5. Highlights:
 
-1. `apt-get install -y curl git jq nginx python3-pip python3-yaml ffmpeg nodejs npm`
+1. `apt-get install -y curl git jq nginx python3-pip python3-yaml python3-venv ffmpeg sqlite3 nodejs npm`
 2. `npm install -g @anthropic-ai/claude-code`
 3. Create tenant user: `useradd -m -s /bin/bash <linux_user>`, set up `/opt/<linux_user>/`
 4. Copy rendered files into `/opt/<linux_user>/agents/` per the bootstrap-tenant.sh script
@@ -95,9 +113,62 @@ SSH to the VPS as root and run the bootstrap sequence from `DEPLOY-NEW-CLIENT.md
 6. Install nginx vhost from `/tmp/<client-id>-rendered/nginx/` → `/etc/nginx/sites-available/`
 7. `nginx -t && systemctl reload nginx`
 8. Install sudoers from `/tmp/<client-id>-rendered/sudoers/` → `/etc/sudoers.d/<linux_user>-agent-ops` (mode 0440 root:root)
-9. Generate SSH key for tenant user: `sudo -u <linux_user> ssh-keygen -t ed25519 -f /opt/<linux_user>/.ssh/id_ed25519 -N ''`
-10. Self-authorize: `cp /opt/<linux_user>/.ssh/id_ed25519.pub /opt/<linux_user>/.ssh/authorized_keys`
-11. **Interactive step (you can't skip this)**: `sudo -u <linux_user> -H claude login` — this opens a browser URL on the human's Mac. Ask the human to visit it, sign in with the `anthropic_account`, paste the code back into the terminal you're running. ~30 seconds. Tell the human exactly what to do.
+9. Install crontab (`{{TENANT_AGENT_HOME}}/crontab/tenant.crontab` → `crontab -u <linux_user>`) — high-frequency jobs
+10. Generate SSH key for tenant user: `sudo -u <linux_user> ssh-keygen -t ed25519 -f /opt/<linux_user>/.ssh/id_ed25519 -N ''`
+11. Self-authorize: `cp /opt/<linux_user>/.ssh/id_ed25519.pub /opt/<linux_user>/.ssh/authorized_keys`
+12. **Interactive step (you can't skip this)**: `sudo -u <linux_user> -H claude login` — this opens a browser URL on the human's Mac. Ask the human to visit it, sign in with the `anthropic_account`, paste the code back into the terminal you're running. ~30 seconds. Tell the human exactly what to do.
+
+### Phase 4b — Memory layer v2 (new in v0.5)
+
+If `features.memory_vault_v2: true` (default), initialize the SQLite vault + embedding daemon:
+
+```bash
+# Initialize the SQLite memory vault + FTS index
+sudo -u <linux_user> bash /opt/<linux_user>/agents/scripts/memory-vault.sh rebuild
+
+# Install pip deps for the embedding daemon (one-time, ~250MB model download)
+sudo -u <linux_user> pip3 install --user sentence-transformers numpy
+
+# Install the memory + obsidian + entity-linker timers
+sudo -u <linux_user> bash /opt/<linux_user>/agents/scripts/install-memory-timers.sh
+
+# The embedding daemon starts on @reboot via the rendered crontab.
+# Kick it off now for the first time:
+sudo -u <linux_user> bash /opt/<linux_user>/agents/scripts/start-embedding-daemon.sh
+```
+
+Verify the daemon is listening:
+
+```bash
+sudo -u <linux_user> bash -c 'echo "ping" | nc -U /opt/<linux_user>/agents/embedding.sock | head -1'
+# Should return a JSON ack
+```
+
+### Phase 4c — Obsidian vault mirror (new in v0.5)
+
+If `features.obsidian_vault_mirror: true` (default):
+
+```bash
+# Vault skeleton exists at {{TENANT_AGENT_HOME}}/obsidian-vault/ from the render.
+# First export pass populates m-XXXX.md files:
+sudo -u <linux_user> python3 /opt/<linux_user>/agents/scripts/memory-export.py
+
+ls /opt/<linux_user>/agents/obsidian-vault/memories/   # Should show 8 subdirectories
+```
+
+If `features.syncthing_enabled: true` (optional), follow `vps-setup/runbooks/syncthing-setup.md` to pair vault with user's Mac.
+
+### Phase 4d — Discord command center (new in v0.5, OPTIONAL)
+
+If `features.discord_enabled: true`, follow `vps-setup/runbooks/discord-setup.md`:
+
+1. Create Discord server + bot via developer portal
+2. Create 16 channels organized into Ops / Memory / Intel categories
+3. Copy bot token + channel IDs into `client-credentials.md`
+4. Write `/opt/<linux_user>/agents/.env.discord` with the bot token (mode 0600)
+5. Verify `discord-webhook-server.service` is active on :8090
+
+Skip if `discord_enabled: false` (default for new tenants).
 
 ---
 
@@ -189,12 +260,39 @@ sudo -u <linux_user> bash /opt/<linux_user>/agents/scripts/tg-send.sh send --tex
 for t in morning-brief evening-rollup stale-watcher task-deadline-watcher \
          goal-deadline-watcher stalled-deal-watcher disk-space-watcher \
          hot-lead-inbox-watcher calendar-conflict-watcher graphify-rebuild \
+         memory-extract memory-consolidate \
          telegram-poller-watchdog; do
   systemctl enable --now "$t.timer" 2>/dev/null || true
 done
 ```
 
+Crontab jobs (high-frequency stuff that doesn't justify a systemd timer) get installed in Phase 4 step 9. Confirm:
+
+```bash
+crontab -u <linux_user> -l | head -20
+```
+
+You should see lines for: `memory-export.py` (every 5 min), `entity-linker.sh` (nightly 02:00), `commitment-deadline-watcher.sh` (hourly), `startup-ping.sh` @reboot, `start-embedding-daemon.sh` @reboot. If `discord_enabled: true`, also `discord-commands.sh` (every 60s) + `discord-corpus-sync.sh` (every 10 min) + `discord-memory-digest.sh` (Fridays 17:00).
+
 ---
+
+## Phase 7b — OpenSwarm (new in v0.6, OPTIONAL)
+
+Only if `features.multi_agent_swarms: true` (default `false`):
+
+```bash
+# Installer is idempotent — safe to re-run
+sudo bash /tmp/<client-id>-rendered/installers/openswarm/install-openswarm.sh <linux_user>
+```
+
+This:
+1. Installs Node 20+ + Python 3.10+ (skipped if already present)
+2. Clones VRSEN/OpenSwarm to `/opt/<linux_user>/agents/openswarm-repo`
+3. Runs `npm install -g @vrsen/openswarm` for the global CLI
+4. Verifies `openswarm` is callable as the tenant user
+5. Appends `OPENSWARM_DIR=...` to `{{TENANT_AGENT_HOME}}/.env`
+
+The agent will then dispatch slide-deck / video / image-gen / data-analysis jobs to OpenSwarm via `swarm-router.sh openswarm --task '...' --agent <slides|video|image|docs|data>`. Skip for minimal deploys — the four built-in swarms (bizdev/content/delivery/onboarding) work without OpenSwarm.
 
 ## Phase 8 — Smoke test (THE GATE)
 

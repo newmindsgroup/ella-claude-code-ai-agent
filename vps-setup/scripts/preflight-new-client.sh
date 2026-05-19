@@ -246,6 +246,73 @@ if [[ -n "$AGENT_SUB" ]]; then
   fi
 fi
 
+# ── 9. Discord credentials (v0.5+, optional) ───────────────────────────────
+section "9. Discord — bot + channels (if discord_enabled)"
+DISCORD_ENABLED=$(yget discord_enabled)
+if [[ "$DISCORD_ENABLED" == "true" ]]; then
+  DISCORD_TOKEN=$(yget discord_bot_token)
+  DISCORD_GUILD=$(yget discord_guild_id)
+  DISCORD_OWNER=$(yget discord_owner_user_id)
+
+  if [[ -z "$DISCORD_TOKEN" ]]; then
+    fail "discord_enabled: true but discord_bot_token missing"
+  else
+    DRESP=$(curl -sS --max-time 10 \
+      -H "Authorization: Bot $DISCORD_TOKEN" \
+      https://discord.com/api/v10/users/@me)
+    if echo "$DRESP" | jq -e '.id != null' >/dev/null 2>&1; then
+      BOT_USER=$(echo "$DRESP" | jq -r '.username')
+      ok "discord_bot_token valid (bot: $BOT_USER)"
+    else
+      fail "discord_bot_token rejected by Discord API"
+    fi
+  fi
+
+  if [[ -z "$DISCORD_GUILD" ]]; then
+    fail "discord_enabled: true but discord_guild_id missing — right-click server → Copy Server ID"
+  else
+    GRESP=$(curl -sS --max-time 10 \
+      -H "Authorization: Bot $DISCORD_TOKEN" \
+      "https://discord.com/api/v10/guilds/$DISCORD_GUILD")
+    if echo "$GRESP" | jq -e '.id != null' >/dev/null 2>&1; then
+      GUILD_NAME=$(echo "$GRESP" | jq -r '.name')
+      ok "discord_guild_id valid (server: $GUILD_NAME)"
+    else
+      fail "Bot can't see guild $DISCORD_GUILD — invite the bot to the server first"
+    fi
+  fi
+
+  if [[ -z "$DISCORD_OWNER" ]]; then
+    fail "discord_enabled: true but discord_owner_user_id missing — Discord user → ... → Copy User ID"
+  elif [[ "$DISCORD_OWNER" =~ ^[0-9]+$ ]]; then
+    ok "discord_owner_user_id is numeric ($DISCORD_OWNER)"
+  else
+    fail "discord_owner_user_id must be numeric snowflake (got: $DISCORD_OWNER)"
+  fi
+else
+  ok "discord_enabled: false — skipping Discord checks"
+fi
+
+# ── 10. Multi-agent swarms (v0.6+, optional) ───────────────────────────────
+section "10. OpenSwarm — Node 20+ + Python 3.10+ (if multi_agent_swarms)"
+SWARMS_ENABLED=$(yget multi_agent_swarms)
+if [[ "$SWARMS_ENABLED" == "true" && -n "$VPS_IP" ]]; then
+  REMOTE_NODE=$(ssh $SSH_OPTS "$VPS_ROOT_USER@$VPS_IP" "node --version 2>/dev/null | sed 's/^v//' | cut -d. -f1" 2>/dev/null)
+  REMOTE_PY=$(ssh $SSH_OPTS "$VPS_ROOT_USER@$VPS_IP" "python3 --version 2>&1 | awk '{print \$2}'" 2>/dev/null)
+  if [[ -n "$REMOTE_NODE" && "$REMOTE_NODE" -ge 20 ]]; then
+    ok "VPS Node major version: $REMOTE_NODE (≥20 required for OpenSwarm)"
+  else
+    warn "VPS Node version is '$REMOTE_NODE' — installer will install Node 20+ if missing"
+  fi
+  if [[ -n "$REMOTE_PY" ]]; then
+    ok "VPS Python: $REMOTE_PY (3.10+ required)"
+  else
+    warn "VPS Python3 not detected — installer will install"
+  fi
+else
+  ok "multi_agent_swarms: false — skipping OpenSwarm checks"
+fi
+
 # ── FINAL ──────────────────────────────────────────────────────────────────
 echo
 echo "═══════════════════════════════════════════════════════════════════"

@@ -232,6 +232,24 @@ The cherry-pick list is in [`agent-stack/agency-agents-installer/manifest.json`]
 
 ---
 
+## Three-tier sub-agent delegation (v0.6+)
+
+The 21-agent roster above is **Tier 1**. v0.6 adds two more tiers for genuinely multi-step work.
+
+| Tier | What | When to use | Cost |
+|---|---|---|---|
+| **Tier 1** | Agent tool sub-agents (21 specialists) | Multi-context investigation, parallelizable work, anything where 2-4 agents can fan out in their own context windows | Within Anthropic subscription |
+| **Tier 2** | Domain swarms via `swarm-router.sh` | Task matches a known shape: `bizdev` (prospect → research + outreach + proposal), `content` (idea → drafts), `delivery` (client deliverables), `onboarding` (kickoff + intake) | `claude --print` per step (~$0.01-0.05) |
+| **Tier 3** | [VRSEN/OpenSwarm](https://github.com/VRSEN/OpenSwarm) (optional) | Heavy-lift media generation: slides, video, image-gen, data analysis, 10K+ integrations via Composio | Variable, can be expensive |
+
+Tier 3 is opt-in. Enable with `features.multi_agent_swarms: true` in tenant.yml + run `installers/openswarm/install-openswarm.sh` during deploy.
+
+The agent's CLAUDE.md.tmpl includes a **Tier decision matrix** that the LLM consults before delegating — so it picks the cheapest tier that can do the job.
+
+For long-running independent work (10+ min audits, deep research), the agent uses the v2026+ `claude agents` background flags (`--add-dir`, `--settings`, `--mcp-config`, `--effort high`, `--permission-mode bypassPermissions`) so the parent session stays responsive.
+
+---
+
 ## Proactive notification pipeline (v0.3+)
 
 The agent doesn't just respond — it pings you when something needs attention. Seven watchers run on systemd timers, each with its own cadence and dedup strategy:
@@ -326,6 +344,7 @@ Built on top of work by:
 - [Jesse Vincent](https://github.com/obra) (Superpowers plugin, agentic skills patterns)
 - [Safi Shamsi](https://github.com/safishamsi) (Graphify)
 - [Maciej Sitarzewski](https://github.com/msitarzewski) (agency-agents)
+- [VRSEN](https://github.com/VRSEN) (OpenSwarm — 8-specialist multi-agent framework)
 - [VoltAgent](https://github.com/VoltAgent) (awesome-design-md / DESIGN.md format)
 - [Mendable](https://github.com/mendableai) (Firecrawl)
 - [Microsoft](https://github.com/microsoft/playwright-mcp) (Playwright MCP)
@@ -336,6 +355,6 @@ If your work is in here and you'd like better attribution or want it removed, op
 
 ## Status
 
-This is a **v0.1 reference release** — the patterns are battle-tested, the installer is idempotent, but it's still single-tenant in practice. Multi-tenant template support is in place but only one tenant has been deployed end-to-end as of this release.
+**v0.6.0** — feature-complete for autonomous multi-tier delegation. Memory layer v2 + Discord command center + Obsidian mirror + 3-tier sub-agent system + OpenSwarm integration all available, all opt-in via tenant.yml feature flags. Battle-tested in a production single-tenant deployment; multi-tenant orchestrator (NEW-CLIENT-CLAUDE.md + DEPLOY-NEW-CLIENT.md) closes the gap that lingered between v0.4 and v0.5.
 
 Issues, PRs, and "I deployed this for company X and here's what broke" reports are all welcome.
