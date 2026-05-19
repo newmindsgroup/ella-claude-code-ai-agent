@@ -221,7 +221,7 @@ PYEOF
     ;;
 
   draft-ready)
-    # Mirror draft-ready notification to #commands so Daniel can approve from Discord too.
+    # Mirror draft-ready notification to #commands so {{TENANT_PERSON_FIRST_NAME}} can approve from Discord too.
     # Usage: draft-ready --task-id t-XXXX --platform "LinkedIn" --topic "AI topic"
     TASK_ID="" PLATFORM="" TOPIC=""
     while [[ $# -gt 0 ]]; do

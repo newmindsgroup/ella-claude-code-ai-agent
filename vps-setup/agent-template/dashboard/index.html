@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Daniel Gonell — Mission Control</title>
+<title>{{TENANT_PERSON_FULL_NAME}} — Mission Control</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -643,10 +643,10 @@
   'use strict';
 
   const TENANT = {
-    id: 'example-tenant',
-    name: 'Daniel',
-    email: 'info@newmindsgroup.com',
-    title: 'Daniel Gonell — Mission Control'
+    id: '{{TENANT_ID}}',
+    name: '{{TENANT_PERSON_FIRST_NAME}}',
+    email: '{{TENANT_CONTACT_EMAIL}}',
+    title: '{{TENANT_PERSON_FULL_NAME}} — Mission Control'
   };
 
   const state = {
@@ -954,7 +954,7 @@
   };
 
   const renderHeader = () => {
-    const initial = (TENANT.name && TENANT.name !== 'Daniel') ? TENANT.name[0].toUpperCase() : 'A';
+    const initial = TENANT.name ? TENANT.name[0].toUpperCase() : 'A';
     $$('[data-bind="avatarInitial"]').forEach(el => el.textContent = initial);
     $$('[data-bind="tenantId"]').forEach(el => el.textContent = TENANT.id);
     $$('[data-bind="tenantId2"]').forEach(el => el.textContent = TENANT.id);
@@ -1120,7 +1120,7 @@
 
   const renderOverview = () => {
     const now = new Date();
-    const name = TENANT.name === 'Daniel' ? 'there' : TENANT.name;
+    const name = TENANT.name || 'there';
     $('[data-bind="greeting"]').textContent = 'Good ' + greetingFor(now) + ', ' + name + '.';
     $('[data-bind="dateline"]').textContent = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
     renderTodaysSignal();
@@ -1990,7 +1990,7 @@
       root.innerHTML = '<div class="text-center text-sm text-slate-500 py-12">Start a conversation. The agent has full access to your memory, task ledger, and tools — same as in Telegram.</div>';
       return;
     }
-    const initial = (TENANT.name && TENANT.name !== 'Daniel') ? TENANT.name[0].toUpperCase() : 'D';
+    const initial = TENANT.name ? TENANT.name[0].toUpperCase() : 'U';
     let html = state.chat.map(m => {
       const isUser = m.role === 'user';
       const avatar = isUser
@@ -2006,7 +2006,7 @@
       const meta = (tokenTotal != null || m.cost_usd || m.duration_ms)
         ? ('<div class="mt-1.5 text-[10px] mono text-slate-400">' + (tokenTotal != null ? (fmtInt.format(tokenTotal) + ' tok') : '') + (m.cost_usd ? (' · ' + fmtMoneySmall.format(m.cost_usd)) : '') + (m.duration_ms ? (' · ' + fmtDuration(m.duration_ms)) : '') + '</div>')
         : '';
-      const senderName = isUser ? (TENANT.name === 'Daniel' ? 'You' : escapeHtml(TENANT.name)) : 'Agent';
+      const senderName = isUser ? (TENANT.name ? escapeHtml(TENANT.name) : 'You') : 'Agent';
       return '<div class="flex gap-3 fade-in">' + avatar +
         '<div class="flex-1 min-w-0">' +
         '<div class="flex items-center gap-2 mb-1"><span class="text-sm font-semibold">' + senderName + '</span><span class="text-[10px] mono text-slate-400">' + fmtTimeMono(m.ts) + '</span></div>' +

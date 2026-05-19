@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # deploy-timeout-sweep.sh — auto-cancel deploys stuck in ready_to_ship for >2hr.
 #
-# v2.24.1: closes the "Daniel started a /deploy and walked away" failure mode.
-# Without this, a state file at ready_to_ship can sit indefinitely — Daniel
+# v2.24.1: closes the "{{TENANT_PERSON_FIRST_NAME}} started a /deploy and walked away" failure mode.
+# Without this, a state file at ready_to_ship can sit indefinitely — {{TENANT_PERSON_FIRST_NAME}}
 # comes back the next day, taps Ship on a smoke result that's now stale.
 #
 # Runs every 30 min via deploy-timeout-sweep.timer. Iterates state files in
@@ -72,7 +72,7 @@ for f in "$STATE_DIR"/*.state.json; do
     fi
 
     # Distinct timeout-specific Telegram ping (in addition to deploy.sh cancel's
-    # own ping) so Daniel knows it was the auto-sweep, not a manual cancel.
+    # own ping) so {{TENANT_PERSON_FIRST_NAME}} knows it was the auto-sweep, not a manual cancel.
     bash "$TG_SEND" send --md --text "⏰ *Auto\-cancelled deploy* \`$(mdv2_esc "$version")\` — sat in \`ready_to_ship\` for ${hours}h${minutes}m\, exceeded 2hr timeout\. State cleared\. Re\-run \`/deploy $(mdv2_esc "$version")\` if you still want to ship\." >/dev/null 2>&1 || \
       log "  $version Telegram timeout-ping failed (tg-send.sh)"
 

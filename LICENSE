@@ -19,10 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-Note: This repository depends on several third-party projects (Claude Code,
-Superpowers, agency-agents, Graphify, Firecrawl, Playwright, Chroma,
-official MCP servers, etc.). Each has its own license. See
-docs/upstream-dependencies.md for the inventory.

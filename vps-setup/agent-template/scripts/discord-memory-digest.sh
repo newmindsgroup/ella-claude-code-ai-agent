@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # discord-memory-digest.sh — weekly memory summary posted to Discord #daily-brief.
-# Run every Friday at 17:00 (Santo Domingo time) via cron.
+# Run every Friday at 17:00 (tenant timezone) via cron.
 # Groups the week's new memories by type and posts a compact digest.
 
 set -euo pipefail

@@ -62,7 +62,7 @@ Read the skill briefing at $SKILL_MD and follow it precisely. The briefing tells
 
 CRITICAL — task-ledger contract:
 - This skill run is logged as task id: $TASK_ID
-- When you complete the work successfully and the result is ready for Daniel to review, call:
+- When you complete the work successfully and the result is ready for {{TENANT_PERSON_FIRST_NAME}} to review, call:
   bash /opt/{{TENANT_LINUX_USER}}/agents/scripts/task-update.sh $TASK_ID awaiting_review "<1-line summary of where output landed>"
 - If the work is read-only / informational / fully complete (no review needed), call:
   bash /opt/{{TENANT_LINUX_USER}}/agents/scripts/task-update.sh $TASK_ID done "<1-line summary>"
@@ -74,7 +74,7 @@ Output rules:
 - For long-form artifacts (newsletter copy, blog drafts), stage in GHL via mcp__ghl__create_email_template / create_blog_post / create_social_post and then send a short Telegram preview with a GHL link.
 - For audit reports (drift-scanner, pipeline-reporter), use multi-message MarkdownV2 chunks.
 
-Voice + entity rules apply (Voice DNA from 15_Brand_Behavior_Playbook.md section 7, no NMG / CreateMomento in client-facing output, drafts only never auto-publish).
+Voice + entity rules apply (Voice DNA from {{TENANT_VOICE_PLAYBOOK_PATH}} {{TENANT_VOICE_DNA_SECTION}}, never name any of the configured `entity_separation_terms` in client-facing output, drafts only never auto-publish).
 
 Begin executing the skill now.
 PEOF

@@ -41,7 +41,7 @@ with open('$HISTORY') as f:
         if not line: continue
         try:
             e = json.loads(line)
-            label = 'Daniel' if e.get('dir') == 'inbound' else 'Agent'
+            label = '{{TENANT_PERSON_FIRST_NAME}}' if e.get('dir') == 'inbound' else 'Agent'
             entries.append((label, e.get('text','')))
         except: pass
 # last 6 entries (full exchange)
@@ -54,13 +54,13 @@ if [[ -z "$recent_exchange" ]]; then
 fi
 
 # Ask claude haiku to extract memorable content from the full exchange
-# Extract from Daniel's messages: facts, decisions, preferences, relationships, goals
+# Extract from {{TENANT_PERSON_FIRST_NAME}}'s messages: facts, decisions, preferences, relationships, goals
 # Extract from Agent's messages: key recommendations and plans (as context memories)
 extraction=$(claude --model claude-haiku-4-5-20251001 --print --max-tokens 500 \
   "You are a memory extraction assistant for a chief-of-staff AI. Read this recent exchange and extract ONLY clearly memorable content.
 
 FROM DANIEL'S MESSAGES: facts about pricing/clients/services, explicit decisions, preferences ('I prefer...', 'I never...', 'I always...'), named people + their roles, stated goals.
-FROM AGENT'S MESSAGES: extract significant recommendations, plans, or conclusions the agent stated — save as type='context' with tags including 'agent-recommendation'. Only extract if the agent gave a clear recommendation or plan Daniel might want to reference later.
+FROM AGENT'S MESSAGES: extract significant recommendations, plans, or conclusions the agent stated — save as type='context' with tags including 'agent-recommendation'. Only extract if the agent gave a clear recommendation or plan {{TENANT_PERSON_FIRST_NAME}} might want to reference later.
 
 Exchange:
 $recent_exchange

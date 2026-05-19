@@ -27,7 +27,7 @@ Thanks for considering a contribution. This repo extracts a production-tested si
 - [ ] Documented in the relevant `docs/` file (or new doc added)
 - [ ] If adding upstream deps, added to `docs/upstream-dependencies.md`
 - [ ] If touching `vps-setup/agent-template/CLAUDE.md.tmpl`, re-rendered for at least one example tenant to verify substitutions
-- [ ] No tenant-specific paths or values committed (no `/opt/danielgonell/...`, no real API keys)
+- [ ] No tenant-specific paths or values committed (no `/opt/<your_user>/...`, no real API keys). Use `{{TENANT_*}}` placeholders.
 - [ ] No secrets in test fixtures or example configs
 
 ## Setting up a dev environment

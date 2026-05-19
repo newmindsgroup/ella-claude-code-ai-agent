@@ -130,7 +130,7 @@ ${RESULT_TRUNCATED}"
     TASK_ID=$(bash "$SCRIPTS/task-ledger.sh" create \
       --summary "REMINDER: $REMIND_TEXT" \
       --deadline "$DEADLINE" \
-      --owner "Daniel" \
+      --owner "{{TENANT_PERSON_FIRST_NAME}}" \
       --source "discord-remind" \
       --loud true 2>/dev/null | tail -1)
     _post_text "$CHANNEL" "⏰ Reminder set — **$REMIND_TEXT** · due \`$DEADLINE\` · task \`$TASK_ID\`"

@@ -91,7 +91,7 @@ PYEOF
 )
 
 {
-  echo "# Active context — Daniel Gonell chief-of-staff"
+  echo "# Active context — {{TENANT_PERSON_FULL_NAME}} chief-of-staff"
   echo ""
   echo "Last updated: $ts"
   echo ""
@@ -107,14 +107,14 @@ PYEOF
     echo "$NOTE"
     echo ""
   fi
-  echo "## Pending reviews (needs Daniel's attention)"
+  echo "## Pending reviews (needs {{TENANT_PERSON_FIRST_NAME}}'s attention)"
   if [[ -n "$awaiting_review" ]]; then
     echo "$awaiting_review"
   else
     echo "_No items awaiting review_"
   fi
   echo ""
-  echo "## Waiting on Daniel"
+  echo "## Waiting on {{TENANT_PERSON_FIRST_NAME}}"
   if [[ -n "$awaiting_external" ]]; then
     echo "$awaiting_external"
   else
@@ -136,7 +136,7 @@ PYEOF
   fi
   echo ""
   echo "## Notes"
-  echo "Update this file when: major decisions are made, new clients onboarded, focus shifts, or Daniel explicitly asks to note something here."
+  echo "Update this file when: major decisions are made, new clients onboarded, focus shifts, or {{TENANT_PERSON_FIRST_NAME}} explicitly asks to note something here."
   echo ""
   echo "---"
 } > "$ACTIVE"

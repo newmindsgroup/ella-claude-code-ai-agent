@@ -22,13 +22,13 @@ The agent can store any text — brand books, podcast transcripts, prior client 
 
 ## Why this is high-value
 
-Daniel's AI Knowledge Library is too large to fit in any single Claude context. Chroma lets the agent:
+the tenant's reference library is too large to fit in any single Claude context. Chroma lets the agent:
 
 - Store every brand book, source doc, and transcript once
 - At query time, retrieve only the relevant chunks for the current task
 - Keep brand voice consistent across drafts because the relevant style guides are always reachable
 
-This is a one-time ingestion, then a recurring query benefit. The investment-to-payoff ratio is high if the library is meaningful in size (which Daniel's is — five mounted folders of business and brand content).
+This is a one-time ingestion, then a recurring query benefit. The investment-to-payoff ratio is high if the library is meaningful in size (typically several mounted folders of business + brand content).
 
 ## Installation
 
@@ -59,7 +59,7 @@ Two options, configured via `client.env`:
 - Cons: requires an OpenAI key, costs ~$0.0001 per 1k tokens of ingestion
 - Set `OPENAI_API_KEY_FOR_EMBEDDINGS="sk-..."` in `client.env`
 
-Note: Daniel already pays for OpenAI separately, so Option B is available without adding new vendor relationships. Local default model is still the cleanest start.
+Note: if the tenant already pays for OpenAI separately, so Option B is available without adding new vendor relationships. Local default model is still the cleanest start.
 
 ## Verification
 
@@ -92,7 +92,7 @@ After install, the next step is one-time bulk ingestion. From a Claude Code sess
 
 This is a one-time investment. After it completes, the agent can query the library natively.
 
-For Daniel's stack, the candidate ingestion source is the AI Knowledge Library directories already mounted in the workspace.
+For a typical tenant's stack, the candidate ingestion source is the AI Knowledge Library directories already mounted in the workspace.
 
 ## Backup
 

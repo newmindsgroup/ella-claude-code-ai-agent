@@ -100,7 +100,7 @@ existing_memories=$(bash "$SCRIPTS/memory-vault.sh" recall --limit 50 2>/dev/nul
 log "Extracting from ${#full_context} chars of context"
 
 # Run extraction via Claude
-PROMPT="You are a memory extraction system for Daniel Gonell's AI chief-of-staff agent.
+PROMPT="You are a memory extraction system for {{TENANT_PERSON_FULL_NAME}}'s AI chief-of-staff agent.
 
 Analyze this recent conversation/activity log and extract ONLY items that:
 1. Are NEW facts not already known (check existing memories list)
@@ -127,7 +127,7 @@ Rules:
 - Return [] if nothing extractable
 - Return ONLY valid JSON array, no prose
 
-Example: [{\"type\":\"preference\",\"text\":\"Daniel prefers PDF deliverables over Word docs for client proposals.\",\"tags\":[\"client\",\"deliverables\",\"preference\"],\"confidence\":0.92,\"source\":\"session-extraction\"}]"
+Example: [{\"type\":\"preference\",\"text\":\"{{TENANT_PERSON_FIRST_NAME}} prefers PDF deliverables over Word docs for client proposals.\",\"tags\":[\"client\",\"deliverables\",\"preference\"],\"confidence\":0.92,\"source\":\"session-extraction\"}]"
 
 extracted=$(echo "$PROMPT" | claude --print --model claude-haiku-4-5-20251001 2>/dev/null | \
   python3 -c "

@@ -16,7 +16,7 @@ Syncthing (optional)                          ← real-time fs-watcher sync to {
 Obsidian on {{TENANT_PERSON_FIRST_NAME}}'s Mac        ← browse + graph view + backlinks
 ```
 
-The agent NEVER writes to this vault directly. Edits made here in Obsidian are picked up by `memory-corpus-sync` (the next-best-thing if Discord is also disabled — when Daniel edits a memory in Obsidian, the agent imports the change) or the canonical store stays one-way.
+The agent NEVER writes to this vault directly. Edits made here in Obsidian are picked up by `memory-corpus-sync` (the next-best-thing if Discord is also disabled — when {{TENANT_PERSON_FIRST_NAME}} edits a memory in Obsidian, the agent imports the change) or the canonical store stays one-way.
 
 ## Structure
 
@@ -43,9 +43,9 @@ Each `m-<date>-<hash>-<slug>.md` follows:
 
 ```markdown
 ---
-id: m-20260513-e9db-to-hank-liebenberg-...
+id: m-20260513-e9db-to-jane-doe-acme-corp-contract
 type: commitment
-tags: [commitment, hank-liebenberg, rockcrete, new-minds-group]
+tags: [commitment, jane-doe, acme-corp]
 source: telegram
 created_at: 2026-05-13T18:33:12Z
 expires_at: 2026-05-20T00:00:00Z
@@ -56,11 +56,11 @@ supersedes: null
 superseded_by: null
 ---
 
-# To Hank Liebenberg (New Minds Group client Rockcrete)
+# To <Contact Name> (<Company Name>)
 
-Daniel committed to sending the contract revision by Wed May 20.
+{{TENANT_PERSON_FIRST_NAME}} committed to sending the contract revision by Wed May 20.
 
-Linked: [[hank-liebenberg]] [[new-minds-group]] [[rockcrete-contract-v3]]
+Linked: [[contact-name]] [[company-name]] [[contract-v3]]
 
 ## History
 
@@ -74,10 +74,10 @@ The `[[wikilinks]]` are real — Obsidian renders them as backlinks and the Grap
 
 OPTIONAL. If you want to browse memories in the Obsidian app on your Mac:
 
-1. Install Syncthing on the VPS (Daniel-stack ships an installer at `scripts/install-syncthing.sh` — see `vps-setup/RUNBOOKS/syncthing-setup.md`)
+1. Install Syncthing on the VPS (`scripts/install-syncthing.sh` if shipped — see `vps-setup/runbooks/syncthing-setup.md`)
 2. Install Syncthing on your Mac
 3. Pair the two devices (each Syncthing UI shows a device ID; add the other one)
-4. Share the `daniel-memory-vault` folder (sendonly from VPS → your Mac)
+4. Share the `{{TENANT_ID}}-memory-vault` folder (sendonly from VPS → your Mac)
 5. Open the synced folder in Obsidian as a vault
 
 The VPS is `sendonly` so edits on your Mac don't push back. The canonical store stays SQLite.

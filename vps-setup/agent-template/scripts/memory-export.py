@@ -130,7 +130,7 @@ def sync_brand_canon():
 def write_vault_readme(mem_count: int):
     readme = VAULT_DIR / "README.md"
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    readme.write_text(f"""# Daniel Gonell — Personal Brand Memory Vault
+    readme.write_text(f"""# {{TENANT_PERSON_FULL_NAME}} — Memory Vault
 
 Agent-generated. Last export: **{now}**
 

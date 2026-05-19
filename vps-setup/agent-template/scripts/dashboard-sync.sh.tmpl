@@ -110,7 +110,7 @@ jq -nc \
 mv "$DST/health.json.tmp" "$DST/health.json"
 chmod 644 "$DST/health.json"
 
-# v2.24.2: /api/queue.json — filtered view of tasks awaiting Daniel's input.
+# v2.24.2: /api/queue.json — filtered view of tasks awaiting {{TENANT_PERSON_FIRST_NAME}}'s input.
 # Reads tasks/active.json (lifecycle source) and surfaces only states that
 # need attention: in_review (drafts ready), awaiting_external (held),
 # blocked (need decision). Counts by state for the dashboard's queue badge.
@@ -262,7 +262,7 @@ def parse_summary(section):
                        ("MEDIUM-priority drafted", "medium_drafted"),
                        ("LOW-priority drafted", "low_drafted"),
                        ("Ignored", "ignored"),
-                       ("Flagged UNCLEAR for Daniel", "flagged")]:
+                       ("Flagged UNCLEAR for {{TENANT_PERSON_FIRST_NAME}}", "flagged")]:
         m = re.search(rf"-\s+{re.escape(label)}[^:]*:\s*(\d+)", section)
         counts[key] = int(m.group(1)) if m else 0
     return counts

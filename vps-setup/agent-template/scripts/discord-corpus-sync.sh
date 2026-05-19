@@ -2,7 +2,7 @@
 # Community-Corpus Bridge — reads messages in Discord memory channels that were
 # typed manually by humans (not posted by the bot), and saves them to memory-vault.
 #
-# This makes Discord a memory INPUT, not just output. Daniel can type a fact,
+# This makes Discord a memory INPUT, not just output. {{TENANT_PERSON_FIRST_NAME}} can type a fact,
 # relationship note, or decision directly in any #memory-* channel and the agent
 # will learn it on the next sync (runs every 10 minutes via cron).
 #

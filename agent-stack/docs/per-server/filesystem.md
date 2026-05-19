@@ -25,7 +25,7 @@ All operations are sandboxed to the configured allowed roots. The server cannot 
 
 Claude Code already has its own file operations (Read / Write / Edit) for the project it's running in. Filesystem MCP is for **other** directories — knowledge libraries, content drafts, brand books — that aren't part of any specific project.
 
-For Daniel specifically: this is how the VPS agent reaches into his AI Knowledge Library directories without making them part of every individual project.
+For an operator with their own knowledge library mounted: this is how the VPS agent reaches into his AI Knowledge Library directories without making them part of every individual project.
 
 ## Installation
 

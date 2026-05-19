@@ -4,7 +4,7 @@
 # Idempotent. Run as root on the target Vultr box.
 # Reads vps-setup/tenants/{tenant_id}.yml, ensures the rendered files exist,
 # creates the Linux user, copies files into /opt/{user}/agents/, installs
-# systemd units. Walks Daniel through the manual steps that need a browser
+# systemd units. Walks {{TENANT_PERSON_FIRST_NAME}} through the manual steps that need a browser
 # (Claude login, BotFather, GHL PIT) at the right time.
 #
 # Usage (on a Vultr root shell):

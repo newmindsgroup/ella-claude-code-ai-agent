@@ -10,8 +10,8 @@ Brief JSON schema:
     "company": "Company name",
     "contact": "Contact person name (optional)",
     "url": "Website URL (optional)",
-    "context": "How Daniel knows them / why they're a fit (optional)",
-    "service": "Which service to pitch (optional — defaults to Brand Blueprint)"
+    "context": "How {{TENANT_PERSON_FIRST_NAME}} knows them / why they're a fit (optional)",
+    "service": "Which service to pitch (optional — defaults to the tenant's flagship offer)"
   }
 
 Output:
@@ -34,13 +34,18 @@ from swarm_base import (
 
 SWARM = "bizdev"
 
+# Tenant identity — substituted by render-tenant.sh at deploy time.
+TENANT_NAME = "{{TENANT_PERSON_FULL_NAME}}"
+TENANT_FIRST_NAME = "{{TENANT_PERSON_FIRST_NAME}}"
+TENANT_ROLE = "{{TENANT_PERSON_ROLE_DESCRIPTION}}"
+
 
 def run(brief: dict, task_id: str | None = None) -> None:
     company = brief.get("company", "Unknown")
     contact = brief.get("contact", "")
     url = brief.get("url", "")
     context = brief.get("context", "")
-    service = brief.get("service", "Brand Blueprint Intensive")
+    service = brief.get("service", "the flagship offer")
 
     log(SWARM, f"Starting — prospect: {company}")
     if task_id:
@@ -58,7 +63,7 @@ def run(brief: dict, task_id: str | None = None) -> None:
 
     # --- Step 2: Research the prospect ---
     log(SWARM, "Step 2: Researching prospect")
-    research_prompt = f"""You are a business development researcher for Daniel Gonell, an independent brand/UX/AI consultant.
+    research_prompt = f"""You are a business development researcher for {TENANT_NAME} ({TENANT_ROLE}).
 
 Research this prospect and produce a structured card.
 
@@ -68,7 +73,7 @@ Website: {url or 'not provided'}
 Known context: {context or 'none'}
 {prior_context}
 
-Daniel's services: Brand Blueprint Intensive ($12K, 4 weeks), UX/AI audits, brand strategy, workshop facilitation.
+Refer to the canonical services and pricing doc in the brand repo for {TENANT_FIRST_NAME}'s current offers and pricing.
 
 Based on what you know about this company/person (be specific, cite what you know, don't fabricate):
 
@@ -76,17 +81,17 @@ Return JSON:
 {{
   "company": "{company}",
   "contact": "{contact or 'TBD'}",
-  "tldr": "2 sentences: who they are and why they might fit Daniel's services",
+  "tldr": "2 sentences: who they are and why they might fit",
   "snapshot": {{
     "sector": "industry/sector",
     "stage": "startup/growth/enterprise/unknown",
-    "signals": ["signal 1 — why Daniel is relevant", "signal 2"],
+    "signals": ["signal 1 — why {TENANT_FIRST_NAME} is relevant", "signal 2"],
     "pain_points": ["likely pain point 1", "likely pain point 2"]
   }},
   "fit_score": "high/medium/low",
   "fit_reason": "why this is a good or weak fit",
-  "best_service": "which Daniel service maps best",
-  "opening_angle": "the one thing Daniel should lead with in an outreach"
+  "best_service": "which service maps best",
+  "opening_angle": "the one thing {TENANT_FIRST_NAME} should lead with in an outreach"
 }}"""
 
     research_raw = run_agent(research_prompt, model=CLAUDE_MODEL_FAST, max_tokens=800, timeout=60)
@@ -110,16 +115,16 @@ Return JSON:
     voice_memories = recall_memories(tags="voice,email,outreach", limit=4)
     voice_context = "\n".join([f"- {m['text']}" for m in voice_memories if m.get("type") in ("pattern", "preference")])
 
-    outreach_system = f"""You are Daniel Gonell's ghostwriter for business development outreach.
+    outreach_system = f"""You are {TENANT_NAME}'s ghostwriter for business development outreach.
 Voice: warm, direct, confident without being pushy. Friend who knows their stuff. No hype. No "I hope this finds you well."
 {voice_dna[:1500] if voice_dna else ''}
 {f'Past editing signals: {voice_context}' if voice_context else ''}"""
 
-    outreach_prompt = f"""Write a cold outreach email from Daniel Gonell to this prospect.
+    outreach_prompt = f"""Write a cold outreach email from {TENANT_NAME} to this prospect.
 
 Prospect: {research.get('contact') or company}
 Company: {company}
-Opening angle: {research.get('opening_angle', 'AI is changing brand strategy and most companies are behind')}
+Opening angle: {research.get('opening_angle', 'a specific, recent reason this prospect would care')}
 Best service to pitch: {research.get('best_service', service)}
 Fit reason: {research.get('fit_reason', '')}
 
@@ -127,10 +132,10 @@ Rules:
 - Subject: <60 chars, specific, earns the open
 - Body: 3 short paragraphs max (under 150 words total)
 - Para 1: specific hook — why them, why now. No generic openers.
-- Para 2: what Daniel does, one sentence. The value, not the features.
+- Para 2: what {TENANT_FIRST_NAME} does, one sentence. The value, not the features.
 - Para 3: low-friction ask (15-min call, not "let's jump on a call")
 - No "synergies", no "leverage", no "thrilled to"
-- Sign as Daniel, no title
+- Sign as {TENANT_FIRST_NAME}, no title
 
 Format:
 SUBJECT: [subject]
@@ -140,18 +145,18 @@ BODY: [email body]"""
 
     # --- Step 4: Proposal outline ---
     log(SWARM, "Step 4: Building proposal outline")
-    proposal_prompt = f"""Create a proposal outline for Daniel Gonell pitching {research.get('best_service', service)} to {company}.
+    proposal_prompt = f"""Create a proposal outline for {TENANT_NAME} pitching {research.get('best_service', service)} to {company}.
 
 What we know:
-- Pain points: {', '.join(research.get('snapshot', {}).get('pain_points', ['brand/UX gaps', 'AI integration lag']))}
+- Pain points: {', '.join(research.get('snapshot', {}).get('pain_points', ['operational gaps', 'tooling lag']))}
 - Fit: {research.get('fit_reason', '')}
 - Signals: {', '.join(research.get('snapshot', {}).get('signals', []))}
 
 Produce a proposal outline (not a full proposal):
 1. Problem framing (2-3 bullets from their world)
 2. Proposed engagement (scope, timeline, deliverables — based on {research.get('best_service', service)})
-3. Why Daniel (3 proof points — be specific)
-4. Investment (placeholder: "{service} starts at $12K")
+3. Why {TENANT_FIRST_NAME} (3 proof points — be specific)
+4. Investment (placeholder: "{service} — see tenant's services doc for current pricing")
 5. Next step
 
 Keep it tight — this is an outline, not a deck. Bullets only."""
@@ -203,7 +208,7 @@ Generated: {now_iso()}
     save_memory("relationship", mem_text, f"prospect,bizdev,{slug}", "bizdev-swarm", 0.85)
 
     # --- Step 7: Telegram notification ---
-    log(SWARM, "Step 7: Notifying Daniel")
+    log(SWARM, f"Step 7: Notifying {TENANT_FIRST_NAME}")
 
     def esc(s: str) -> str:
         for c in r"_*[]()~`>#+-=|{}.!\\":

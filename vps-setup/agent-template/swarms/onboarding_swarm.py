@@ -16,7 +16,7 @@ Brief JSON schema:
   {
     "client_name": "Acme Corp",
     "contact": "Sarah Kim",
-    "service": "Brand Blueprint Intensive",
+    "service": "Flagship Engagement",
     "start_date": "2026-05-14",
     "kickoff_date": "2026-05-15",
     "duration_weeks": 4,
@@ -37,11 +37,15 @@ from swarm_base import (
 
 SWARM = "onboarding"
 
+# Tenant identity — substituted by render-tenant.sh at deploy time.
+TENANT_NAME = "{{TENANT_PERSON_FULL_NAME}}"
+TENANT_FIRST_NAME = "{{TENANT_PERSON_FIRST_NAME}}"
+
 
 def run(brief: dict, task_id: str | None = None) -> None:
     client = brief.get("client_name", "Client")
     contact = brief.get("contact", "")
-    service = brief.get("service", "Brand Blueprint Intensive")
+    service = brief.get("service", "Flagship Engagement")
     start_date = brief.get("start_date", "TBD")
     kickoff_date = brief.get("kickoff_date", "TBD")
     duration = brief.get("duration_weeks", 4)
@@ -59,12 +63,12 @@ def run(brief: dict, task_id: str | None = None) -> None:
 
     # --- Agent 1: Welcome email ---
     log(SWARM, "Agent 1: Welcome email")
-    welcome_system = f"""You are Daniel Gonell's ghostwriter. Write client communications in his voice.
+    welcome_system = f"""You are {TENANT_NAME}'s ghostwriter. Write client communications in their voice.
 Voice: warm, direct, confident. Friend who knows what they're doing.
 No corporate fluff. No "thrilled to have you aboard." Start with something specific.
 {voice_dna[:1500] if voice_dna else ''}"""
 
-    welcome_prompt = f"""Write a welcome email to a new client starting their engagement with Daniel.
+    welcome_prompt = f"""Write a welcome email to a new client starting their engagement with {TENANT_FIRST_NAME}.
 
 Client: {contact or client}
 Company: {client}
@@ -78,7 +82,7 @@ Email should:
 - Set clear expectations for the first week
 - Give them 1-2 things to prepare before kickoff
 - Feel personal, not templated
-- Close warmly, sign as Daniel
+- Close warmly, sign as {TENANT_FIRST_NAME}
 
 Format: SUBJECT: / BODY:"""
 
@@ -119,10 +123,10 @@ Create a phased timeline with:
 - Client review checkpoints (where their input is needed)
 - Buffer built in (don't pack every week)
 
-For a Brand Blueprint Intensive, typical phases are:
+For a typical multi-week engagement, common phases are:
 - Week 1: Discovery + audit
-- Week 2: Strategy development
-- Week 3: Brand system draft
+- Week 2: Strategy / planning
+- Week 3: Draft deliverable
 - Week 4: Refinement + handoff
 
 Adapt for the actual service. Format as a clean table or structured list."""
@@ -131,11 +135,11 @@ Adapt for the actual service. Format as a clean table or structured list."""
 
     # --- Agent 4: Assemble welcome kit ---
     log(SWARM, "Agent 4: Assembling welcome kit")
-    kit_prompt = f"""Compile a client welcome kit for {client} starting a {service} with Daniel Gonell.
+    kit_prompt = f"""Compile a client welcome kit for {client} starting a {service} with {TENANT_NAME}.
 
 Include:
 1. A brief intro section ("What to expect from this engagement")
-2. How Daniel works (communication style, response times, revision policy)
+2. How {TENANT_FIRST_NAME} works (communication style, response times, revision policy)
 3. What the client needs to bring (assets, access, decisions)
 4. Project timeline summary
 5. Kickoff agenda
@@ -210,7 +214,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--client", help="Client company name")
     parser.add_argument("--contact", help="Contact person name")
-    parser.add_argument("--service", default="Brand Blueprint Intensive")
+    parser.add_argument("--service", default="Flagship Engagement")
     parser.add_argument("--start-date")
     parser.add_argument("--kickoff-date")
     parser.add_argument("--brief-file", help="Path to JSON brief file")

@@ -15,14 +15,14 @@
 # overlaps that share an exact boundary or are buried in long lists.
 # The bash side guarantees correctness.
 #
-# Schedule: 3×/day at 07:00, 12:00, 17:00 SD. Daniel sees morning
+# Schedule: 3×/day at 07:00, 12:00, 17:00 SD. {{TENANT_PERSON_FIRST_NAME}} sees morning
 # conflicts BEFORE the day starts (07:00), again at midday in case
 # a new event got accepted, and once more in late afternoon for next-
 # day prep.
 #
 # Dedup: notifications/calendar-conflict-nudges.jsonl using
 # (event_a_id, event_b_id, ISO date). One ping per pair per day. If
-# Daniel reschedules and creates a new conflict, that's a new pair
+# {{TENANT_PERSON_FIRST_NAME}} reschedules and creates a new conflict, that's a new pair
 # and it WILL ping again (correct).
 #
 # Tunables (env vars):
@@ -107,7 +107,7 @@ log "step 1: $n_events events returned"
 # ── STEP 2: Detect overlapping pairs ────────────────────────────────────────
 # An overlap is: A.start < B.end AND B.start < A.end. We exclude:
 #   - all_day events (false positives with every meeting)
-#   - declined-by-self events (Daniel said no, not actually attending)
+#   - declined-by-self events ({{TENANT_PERSON_FIRST_NAME}} said no, not actually attending)
 #   - identical event IDs (don't pair an event with itself)
 
 # Extract simplified event list, filter all-day + declined.

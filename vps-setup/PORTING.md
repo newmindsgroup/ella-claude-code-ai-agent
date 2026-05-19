@@ -19,7 +19,7 @@ Before bootstrapping any new tenant, the target VPS needs:
    - `github.com` (brand canon clone)
 4. A separate Vultr box per tenant is recommended for clean isolation. Multi-tenant on one box works but the deny lists in `protected_paths` need to cover all tenants.
 
-If you're using the **same box** that already runs Daniel's stack, that's fine — each tenant gets its own Linux user, its own `/opt/{user}/agents/`, and its own systemd units. They don't interfere.
+If you're using the **same box** that already runs an existing tenant's stack, that's fine — each tenant gets its own Linux user, its own `/opt/{user}/agents/`, and its own systemd units. They don't interfere.
 
 ---
 
@@ -36,7 +36,7 @@ The agent reads from this. It needs at minimum:
 - A content strategy doc.
 - A narrative core doc.
 
-You can copy Daniel's brand-repo structure as a template, then rewrite the contents for the new business. Push to a private git repo. Note the clone URL.
+You can copy the existing tenant's brand-repo structure as a template, then rewrite the contents for the new business. Push to a private git repo. Note the clone URL.
 
 ### 1b. Telegram bot
 
@@ -327,7 +327,7 @@ For a clean redeploy, `bootstrap-tenant.sh` is idempotent — re-running it on t
 
 | Line item | Per tenant |
 |---|---|
-| Vultr VPS (1 GB / 1 vCPU) | $6/mo (or share Daniel's box for $0 incremental) |
+| Vultr VPS (1 GB / 1 vCPU) | $6/mo (or share an existing tenant's box for $0 incremental) |
 | Anthropic LLM | $0 — covered by your existing Max subscription |
 | Telegram bot | Free |
 | GHL Private Integrations Token | Already included in your GHL sub-account |

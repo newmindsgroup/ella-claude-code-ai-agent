@@ -1,6 +1,6 @@
 # Operating principles for the autonomous agent stack
 
-> Lessons captured from the v2.20.0 → v2.22.5 deploy chain (one night, ten releases). These are commitments — both for human operators (Daniel) and for any future Claude Code session running in autonomous mode against this stack.
+> Lessons captured from the v2.20.0 → v2.22.5 deploy chain (one night, ten releases). These are commitments — both for human operators (the tenant operator) and for any future Claude Code session running in autonomous mode against this stack.
 
 ## The core lesson
 
@@ -97,7 +97,7 @@ This stack is **production-ready for one user, one tenant, weekly-ish deploy cad
 - Daily deploy cadence — the cost ($0.07-$1 per deploy in cache rewrites + Claude API calls during smoke) adds up. Add a cost ledger first.
 - Multi-tenant — most templates work but the docs assume one. The render path supports multiple tenants but no one's actually validated it end-to-end.
 - Five-nines uptime — the watchdog gives ~5min recovery on bun-death; nginx + dashboard-chat have no auto-recovery beyond systemd Restart=.
-- Hostile users — the gate model is "Daniel is on the allow-list, everyone else is dropped." If the threat model expands, the channels plugin's auth needs review.
+- Hostile users — the gate model is "the configured allowlist user is on the allow-list, everyone else is dropped." If the threat model expands, the channels plugin's auth needs review.
 
 That's fine. Don't over-engineer.
 

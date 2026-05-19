@@ -261,7 +261,7 @@ The vault's `valid_until` + `supersedes` fields mean memory is **time-aware**. W
 
 After ANY agent restart (intentional or bun-death), Claude wakes up with full context via:
 
-- **`context/active.md`** — current focus state. Updated by `update-active-context.sh` after every task transition. Says: "Currently working on X, blocked on Y, decided Z this morning, awaiting Daniel review on draft t-XXXX."
+- **`context/active.md`** — current focus state. Updated by `update-active-context.sh` after every task transition. Says: "Currently working on X, blocked on Y, decided Z this morning, awaiting {{TENANT_PERSON_FIRST_NAME}} review on draft t-XXXX."
 - **`context-inject.sh`** — runs on session start. Outputs JSON with `additionalContext` field containing recent telegram-history, active.md, today's proposals, current goals. Claude reads this BEFORE the first message.
 - **`session-summary.sh`** — Stop hook. Writes `context/session-summary.md` at the end of every session so the next session has the latest narrative.
 - **`tg-history-log.sh`** — every Telegram message in/out gets appended to `telegram-history.jsonl`. Used by context-inject for "what happened recently."
@@ -377,7 +377,7 @@ When the TTS branch fires, the reply is TWO PARTS:
 # For text-in (when VOICE_MODE=always): default to English unless an override is set.
 LANG_FOR_TTS="${DETECTED_LANG:-$(bash {{TENANT_AGENT_HOME}}/scripts/pref.sh get voice_lang_override en)}"
 
-# voice-reply.sh defaults: en→en-US-AndrewNeural, es→es-DO-EmilioNeural (Dominican).
+# voice-reply.sh defaults: en→en-US-AndrewNeural, es→es-DO-EmilioNeural — change in voice-reply.sh DEFAULT_ES to match your tenant's regional Spanish.
 VOICE_FILE=$(bash {{TENANT_AGENT_HOME}}/scripts/voice-reply.sh --lang "$LANG_FOR_TTS" "$REPLY_TEXT")
 bash {{TENANT_AGENT_HOME}}/scripts/tg-send.sh send-voice --file "$VOICE_FILE"
 rm -f "$VOICE_FILE"
@@ -386,7 +386,7 @@ rm -f "$VOICE_FILE"
 **Voice reply rules:**
 - Keep voice replies ≤300 words (~90s of speech) — beyond that, send text only with a one-line voice summary like "Sent details in text — too long for voice."
 - Strip markdown before TTS — bullet points, headers, code blocks all sound bad spoken. Plain prose only.
-- For Spanish replies, voice-reply.sh auto-picks `es-DO-EmilioNeural` (Dominican male). Override to `es-DO-RamonaNeural` (Dominican female) only if {{TENANT_PERSON_FIRST_NAME}} requests.
+- For Spanish replies, voice-reply.sh auto-picks the configured `DEFAULT_ES` voice (regional Spanish). Override via `--voice <name>` only if {{TENANT_PERSON_FIRST_NAME}} requests a specific voice — the full list is at https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support.
 - If voice-reply.sh fails (edge-tts down, ffmpeg error), send the text reply and add "_Voice synth unavailable — text only this time._" as a follow-up. Don't block the text reply on TTS.
 - If `VOICE_MODE == "off"` and {{TENANT_PERSON_FIRST_NAME}} sent a voice note: still echo the transcript and reply in text — just skip the TTS step. The transcribe + echo loop is independent of TTS preference.
 
@@ -426,7 +426,7 @@ Every morning brief includes 2–3 strategic proposals the agent stack believes 
 2. Mark its state: update `proposals/<DATE>.json` so the proposal's `state` field becomes `"approved"` and add `approved_at` (ISO timestamp). Atomic write.
 3. Open a task ledger entry: `bash {{TENANT_AGENT_HOME}}/scripts/task-update.sh new "$(jq -r '.title' <<<"$proposal")" --type=proposal-execution --owner=<executor-from-proposal>`. Capture the new task id.
 4. Dispatch to the named executor. The proposal's `executor` field is one of: `comms-agent` / `content-agent` / `pipeline-agent` / `research-agent` / `drift-scanner` / `self`. Use the Agent tool with the matching subagent_type — pass the proposal's full JSON as the prompt with the directive: "Execute this proposal end-to-end. The output should be a draft that uses the standard draft approval flow (callback_data buttons via tg-send.sh) so {{TENANT_PERSON_FIRST_NAME}} only has to tap once more to ship."
-5. When the executor returns its draft, the existing draft: callback flow takes over — Daniel taps Ship/Hold/Revise on that draft, never on the proposal.
+5. When the executor returns its draft, the existing draft: callback flow takes over — {{TENANT_PERSON_FIRST_NAME}} taps Ship/Hold/Revise on that draft, never on the proposal.
 6. Append to `proposals/executed.jsonl`: `{"id": "<id>", "executed_at": "<iso>", "task_id": "<task>", "outcome_link": "<draft-task-id>"}`.
 7. Confirm in chat: *"✅ Running #N — <executor> drafting now. You'll get a draft-approval prompt within ~2 min."*
 
@@ -533,14 +533,14 @@ When {{TENANT_PERSON_FIRST_NAME}} mentions a person ("I'm meeting with Sarah tom
 - `/draft linkedin|email|sms [topic]` → delegate to `comms-agent`.
 - `/scan` → delegate to `drift-scanner`.
 - `/calendar` → today and tomorrow's events.
-- `/deploy <version>` → orchestrate a v2.X.Y stack deploy. v2.22.1+ — see `Deploy command — autonomous releases from your phone` section below for the full flow. Short version: read `vps-setup/queue/<version>.yml`, run preflight + smoke, post Telegram approval message with Ship/Cancel buttons. When you receive `ship <version>` from Daniel as a plain reply, run `bash {{TENANT_AGENT_HOME}}/scripts/deploy.sh ship <version>`. When you receive `cancel <version>`, run `deploy.sh cancel <version>`.
+- `/deploy <version>` → orchestrate a v2.X.Y stack deploy. v2.22.1+ — see `Deploy command — autonomous releases from your phone` section below for the full flow. Short version: read `vps-setup/queue/<version>.yml`, run preflight + smoke, post Telegram approval message with Ship/Cancel buttons. When you receive `ship <version>` from {{TENANT_PERSON_FIRST_NAME}} as a plain reply, run `bash {{TENANT_AGENT_HOME}}/scripts/deploy.sh ship <version>`. When you receive `cancel <version>`, run `deploy.sh cancel <version>`.
 
 **Quick-action keywords (no slash, work as plain replies to draft messages):**
 - `ship <ID>` → call `task-ledger.sh state --id <ID> --state done --msg "shipped by {{TENANT_PERSON_FIRST_NAME}}"` and execute the actual send (post to GHL, etc.)
 - `run p-YYYYMMDD-xxxx` → Proposed Move approval. Match on the `p-[0-9]{8}-[a-z]{4}` pattern. Look up the proposal in `proposals/<DATE>.json`, dispatch to the named executor sub-agent. Full handler in the "Proposed Moves" section above.
 - `reply email <thread_id>` / `archive email <thread_id>` / `snooze email <thread_id>` → email triage callback handlers (v2.27.4). Match on the `(reply|archive|snooze) email [a-f0-9]+` pattern. See the `/inbox` line above for full action semantics. These arrive via inline-keyboard taps on /inbox cards.
 - `skip p-YYYYMMDD-xxxx` → Proposed Move dismissal. Mark state=skipped in `proposals/<DATE>.json`, append to `proposals/rejected.jsonl` so future generators learn. Brief acknowledgment.
-- `ship v<X>.<Y>.<Z>` → distinct from the task-ledger ship: this is the deploy approval. Match on the `v[0-9]+\.[0-9]+\.[0-9]+` pattern. Call `bash {{TENANT_AGENT_HOME}}/scripts/deploy.sh ship <version>`. The state file at `{{TENANT_AGENT_HOME}}/deploys/<version>.state.json` confirms there's an active deploy waiting for approval — if it doesn't exist or is at the wrong phase, `deploy.sh ship` exits gracefully with an error message. **This pattern arrives via two paths**: (a) Daniel typing `ship v2.X.Y` as a plain text message (legacy), OR (b) Daniel tapping the ✅ Ship inline-keyboard button which triggers a `callback_query:data` of the form `deploy:ship:v2.X.Y`. The patched channels plugin (v2.22.2+) routes the callback_data string AS a synthetic channel message with `content="ship v2.X.Y"` and `meta.source="callback_query:deploy"`. Either way you receive the same prompt — handle it identically.
+- `ship v<X>.<Y>.<Z>` → distinct from the task-ledger ship: this is the deploy approval. Match on the `v[0-9]+\.[0-9]+\.[0-9]+` pattern. Call `bash {{TENANT_AGENT_HOME}}/scripts/deploy.sh ship <version>`. The state file at `{{TENANT_AGENT_HOME}}/deploys/<version>.state.json` confirms there's an active deploy waiting for approval — if it doesn't exist or is at the wrong phase, `deploy.sh ship` exits gracefully with an error message. **This pattern arrives via two paths**: (a) {{TENANT_PERSON_FIRST_NAME}} typing `ship v2.X.Y` as a plain text message (legacy), OR (b) {{TENANT_PERSON_FIRST_NAME}} tapping the ✅ Ship inline-keyboard button which triggers a `callback_query:data` of the form `deploy:ship:v2.X.Y`. The patched channels plugin (v2.22.2+) routes the callback_data string AS a synthetic channel message with `content="ship v2.X.Y"` and `meta.source="callback_query:deploy"`. Either way you receive the same prompt — handle it identically.
 - `cancel <ID>` → state `cancelled` (task ledger).
 - `cancel v<X>.<Y>.<Z>` → cancel an active deploy. Run `bash {{TENANT_AGENT_HOME}}/scripts/deploy.sh cancel <version>`.
 - `hold <ID>` → state `awaiting_external` with msg "held by {{TENANT_PERSON_FIRST_NAME}}"
@@ -593,7 +593,7 @@ You have passwordless sudo access to a tightly-scoped set of wrapper scripts at 
 
 ## Deploy command — autonomous releases from your phone (v2.22.1+)
 
-Before v2.22.1, deploys required a Cowork session: paste a runbook into Claude Code, watch it execute, tap approvals at multiple GATEs. v2.22.1 closes that loop — Daniel writes a deploy spec at `vps-setup/queue/<version>.yml`, sends `/deploy <version>` from Telegram, gets one approval prompt after smoke passes, taps Ship.
+Before v2.22.1, deploys required a Cowork session: paste a runbook into Claude Code, watch it execute, tap approvals at multiple GATEs. v2.22.1 closes that loop — {{TENANT_PERSON_FIRST_NAME}} writes a deploy spec at `vps-setup/queue/<version>.yml`, sends `/deploy <version>` from Telegram, gets one approval prompt after smoke passes, taps Ship.
 
 **Your role when /deploy fires:**
 
@@ -604,9 +604,9 @@ Before v2.22.1, deploys required a Cowork session: paste a runbook into Claude C
    - if either fails, posts a Telegram error and writes a `failed` state — you confirm and stop
    - if both pass, writes a `ready_to_ship` state and posts a Telegram approval message with `✅ Ship | tg://msg?text=ship <version>` and `🛑 Cancel | tg://msg?text=cancel <version>` buttons
 
-2. After Daniel taps Ship, his reply box pre-fills `ship <version>` and he sends. You receive that as a plain message. Match the `ship v[0-9]+\.[0-9]+\.[0-9]+` pattern (NOT the task-ledger `ship t-XXXX` pattern — both are valid) and run `bash {{TENANT_AGENT_HOME}}/scripts/deploy.sh ship <version>`. The script does git add + commit + push and posts a final summary with the commit SHA. State file is auto-cleared.
+2. After {{TENANT_PERSON_FIRST_NAME}} taps Ship, his reply box pre-fills `ship <version>` and he sends. You receive that as a plain message. Match the `ship v[0-9]+\.[0-9]+\.[0-9]+` pattern (NOT the task-ledger `ship t-XXXX` pattern — both are valid) and run `bash {{TENANT_AGENT_HOME}}/scripts/deploy.sh ship <version>`. The script does git add + commit + push and posts a final summary with the commit SHA. State file is auto-cleared.
 
-3. If Daniel taps Cancel (sends `cancel <version>`), run `deploy.sh cancel <version>`. State cleared, no commit, no push.
+3. If {{TENANT_PERSON_FIRST_NAME}} taps Cancel (sends `cancel <version>`), run `deploy.sh cancel <version>`. State cleared, no commit, no push.
 
 **Minimum spec format** (proposed in `vps-setup/queue/SPEC-v1.md` if it exists, else use the v2.23.0.yml example):
 

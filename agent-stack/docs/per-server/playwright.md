@@ -24,7 +24,7 @@ The accessibility-tree approach means the agent operates on semantic structure (
 
 ## Why it's distinct from Cowork's Chrome control
 
-Cowork's Chrome control runs on Daniel's Mac with his own browser session — visible to him, interactive, manual oversight friendly.
+Cowork's Chrome control runs on the operator's Mac with their own browser session — visible to him, interactive, manual oversight friendly.
 
 Playwright on the VPS is **unattended** — runs headless, no visible browser, perfect for scheduled tasks, batch screenshots, off-hours work.
 

@@ -21,7 +21,7 @@ ExecStartPre=-/usr/bin/tmux kill-session -t claude
 ExecStartPre={{TENANT_AGENT_HOME}}/scripts/patch-channels-plugin.sh
 ExecStart=/usr/bin/tmux new-session -d -s claude -c {{TENANT_AGENT_HOME}} 'claude --channels plugin:telegram@claude-plugins-official --permission-mode dontAsk'
 # v2.25.0: mid-flight resume — if claude-agent restarted while a /deploy was
-# in `ready_to_ship` phase, scan deploys/ and re-nudge Telegram so Daniel
+# in `ready_to_ship` phase, scan deploys/ and re-nudge Telegram so {{TENANT_PERSON_FIRST_NAME}}
 # isn't left with an orphaned approval gate. Idempotent (30-min re-nudge
 # threshold tracked in state file). `=-` prefix: don't fail service start
 # if the nudge script fails (e.g. Telegram unreachable).

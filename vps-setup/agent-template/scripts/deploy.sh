@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # deploy.sh — orchestrate v2.X.0 deploys from inside the agent (v2.22.1+).
 #
-# Closes the v2.20.0–v2.22.0 courier pattern. Daniel's old workflow: open Cowork,
+# Closes the v2.20.0–v2.22.0 courier pattern. {{TENANT_PERSON_FIRST_NAME}}'s old workflow: open Cowork,
 # paste runbook into Claude Code, watch it execute, tap approvals at GATEs.
 # New workflow: send /deploy v2.X.Y in Telegram, get one approval prompt after
 # smoke passes, deploy runs autonomously on the VPS.
@@ -10,7 +10,7 @@
 #
 #   start <version>   Read vps-setup/queue/<version>.yml, run preflight + smoke,
 #                     write state file, post Telegram approval message.
-#   ship <version>    After Daniel taps Ship, do git add + commit + push.
+#   ship <version>    After {{TENANT_PERSON_FIRST_NAME}} taps Ship, do git add + commit + push.
 #                     Post final summary. Delete state file.
 #   cancel <version>  Rollback staging, delete state file, post cancel message.
 #   status <version>  Print current phase from state file.
@@ -195,7 +195,7 @@ cmd_start() {
 
   state_write "$version" "ready_to_ship" "{\"smoke_pass\":${SMOKE_PASS:-0},\"smoke_fail\":0}"
 
-  # 4) Approval gate. Buttons pre-fill Daniel's reply box; he sends the literal
+  # 4) Approval gate. Buttons pre-fill {{TENANT_PERSON_FIRST_NAME}}'s reply box; he sends the literal
   #    text back, which arrives at the agent's prompt as "ship $version" (or "cancel").
   local commits_pending
   cd "$REPO_ROOT" || { tg_md "🛑 Cannot cd to \\\`$REPO_ROOT\\\` on VPS\\."; return 1; }
@@ -435,7 +435,7 @@ Usage:
                                 the v2.22.x bug class where each fix only surfaced the
                                 next layer in production.
   deploy.sh start <version>     Run preflight + smoke, post approval message
-  deploy.sh ship <version>      After Daniel approves, commit + push
+  deploy.sh ship <version>      After {{TENANT_PERSON_FIRST_NAME}} approves, commit + push
   deploy.sh cancel <version>    Rollback staging, clear state
   deploy.sh status <version>    Show current phase from state file
 

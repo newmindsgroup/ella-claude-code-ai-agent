@@ -2,8 +2,8 @@
 # voice-reply.sh — synthesize text to a Telegram-ready voice note (OGG/Opus).
 #
 # Usage:
-#   voice-reply.sh "Hello Daniel, here's your update."           (default: en-US Andrew)
-#   voice-reply.sh --lang es "Buenos días, aquí tu resumen."     (Dominican Spanish)
+#   voice-reply.sh "Hello, here's your update."                  (default: en-US Andrew)
+#   voice-reply.sh --lang es "Buenos días, aquí tu resumen."     (Spanish — see DEFAULT_ES below)
 #   voice-reply.sh --lang auto "..."                              (detect from text)
 #   voice-reply.sh --voice es-DO-RamonaNeural "..."               (specific voice)
 #   voice-reply.sh --out /path/to/output.ogg "..."                (default: /tmp/voice-reply-PID.ogg)
@@ -15,9 +15,11 @@
 # is transcoded to OGG/Opus via ffmpeg. Average synthesis time ~1-2s for
 # typical sentences.
 #
-# Voice selection:
+# Voice selection (defaults — override via --voice or change DEFAULT_ES / DEFAULT_EN below):
 #   en  → en-US-AndrewNeural (warm, confident, conversational)
-#   es  → es-DO-EmilioNeural (Dominican male, friendly, positive)
+#   es  → es-DO-EmilioNeural (a Spanish voice — the full list of regional
+#         options is at https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support
+#         pick es-MX, es-ES, es-AR, es-CO, etc. to match your tenant's locale)
 #   auto → simple heuristic on the first 200 chars (no library dependency)
 set -euo pipefail
 

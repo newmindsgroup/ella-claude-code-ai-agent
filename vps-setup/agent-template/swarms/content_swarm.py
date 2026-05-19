@@ -36,6 +36,10 @@ import subprocess
 
 SWARM = "content"
 
+# Tenant identity — substituted by render-tenant.sh at deploy time.
+TENANT_NAME = "{{TENANT_PERSON_FULL_NAME}}"
+TENANT_FIRST_NAME = "{{TENANT_PERSON_FIRST_NAME}}"
+
 
 def stage_ghl_social(platform: str, text: str, label: str) -> str | None:
     """Stage a social post draft in GHL. Returns post ID or None."""
@@ -76,10 +80,10 @@ def run(brief: dict, task_id: str | None = None) -> None:
 
     # --- Step 2: Core idea + angle (fast model) ---
     log(swarm_name, "Step 2: Generating core angle")
-    angle_prompt = f"""You are Daniel Gonell's content strategist. Generate a sharp, specific content angle for this topic.
+    angle_prompt = f"""You are {TENANT_NAME}'s content strategist. Generate a sharp, specific content angle for this topic.
 
 Topic: {brief.get('topic', '')}
-Audience: {brief.get('audience', 'founders, brand builders, and professionals navigating AI disruption')}
+Audience: {brief.get('audience', 'the tenant\'s target audience — see brand canon for ICP')}
 Additional angle hint: {brief.get('angle', 'none')}
 
 Return JSON only:
@@ -105,7 +109,7 @@ Return JSON only:
     # --- Step 3: Newsletter draft ---
     log(swarm_name, "Step 3: Drafting newsletter")
 
-    newsletter_system = f"""You are Daniel Gonell's newsletter ghostwriter for Future Fluent.
+    newsletter_system = f"""You are {TENANT_NAME}'s newsletter ghostwriter.
 Voice rules (non-negotiable):
 - Friend who happens to know what they're doing. Warm, direct, sometimes funny. Never pompous.
 - No "I'm thrilled to" openers. No LinkedIn slide deck language.
@@ -116,7 +120,7 @@ Voice rules (non-negotiable):
 {voice_dna[:2000] if voice_dna else ''}
 {memory_context}"""
 
-    newsletter_prompt = f"""Write a Future Fluent newsletter issue on this topic.
+    newsletter_prompt = f"""Write a newsletter issue on this topic in {TENANT_FIRST_NAME}'s voice.
 
 Hook: {core_data.get('hook', '')}
 Angle: {core_data.get('angle', '')}
@@ -146,7 +150,7 @@ Angle: {core_data.get('angle', '')}
 Big idea: {core_data.get('big_idea', '')}
 Evidence: {core_data.get('evidence', '')}
 
-LinkedIn rules for Daniel:
+LinkedIn rules for {TENANT_FIRST_NAME}:
 - Start with a hook that earns the scroll (not "I'm excited to share")
 - 150-250 words total
 - Short lines — max 2 sentences per paragraph
@@ -236,7 +240,7 @@ Caption: [caption text with 3-5 hashtags]"""
     )
 
     # --- Step 9: Telegram notification ---
-    log(swarm_name, "Step 9: Notifying Daniel")
+    log(swarm_name, f"Step 9: Notifying {TENANT_FIRST_NAME}")
     topic_esc = brief.get("topic", "").replace("-", "\\-").replace(".", "\\.").replace("(", "\\(").replace(")", "\\)")
 
     # Extract subject line for preview

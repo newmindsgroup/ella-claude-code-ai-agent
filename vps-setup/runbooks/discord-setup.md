@@ -11,7 +11,7 @@ Discord is an OPTIONAL second command surface for the agent. When enabled, it pr
 - **#ghl-activity** — pipeline + contact events from the GHL webhook
 - **#gmail-alerts** — hot-lead detections from the inbox watcher
 
-It's NOT a Telegram replacement — it's a separate surface optimized for richer formatting, searchable history, threads, and parallel conversations. Daniel keeps Telegram as the primary "talking to my agent on my phone" channel and Discord as the "command center I open on my desktop."
+It's NOT a Telegram replacement — it's a separate surface optimized for richer formatting, searchable history, threads, and parallel conversations. The tenant keeps Telegram as the primary "talking to my agent on my phone" channel and Discord as the "command center I open on my desktop."
 
 ## Setup (~10 minutes)
 

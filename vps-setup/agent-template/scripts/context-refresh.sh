@@ -78,17 +78,17 @@ except: pass
 " 2>/dev/null || echo "")
 
 cat > "$CONTEXT" << CONTEXT_EOF
-# Active context — Daniel Gonell chief-of-staff
+# Active context — {{TENANT_PERSON_FULL_NAME}} chief-of-staff
 
 Last updated: $(now)
 
 ## Current focus
 ${in_progress:-_No tasks in progress_}
 
-## Pending reviews (needs Daniel's attention)
+## Pending reviews (needs {{TENANT_PERSON_FIRST_NAME}}'s attention)
 ${awaiting_review:-_No items awaiting review_}
 
-## Waiting on Daniel
+## Waiting on {{TENANT_PERSON_FIRST_NAME}}
 ${awaiting_external:-_Nothing awaiting external action_}
 
 ## Recent decisions
@@ -98,7 +98,7 @@ ${recent_decisions:-_No recent decisions in vault_}
 ${active_relationships:-_No relationship memories yet_}
 
 ## Notes
-Update this file when: major decisions are made, new clients onboarded, focus shifts, or Daniel explicitly asks to note something here.
+Update this file when: major decisions are made, new clients onboarded, focus shifts, or {{TENANT_PERSON_FIRST_NAME}} explicitly asks to note something here.
 CONTEXT_EOF
 
 echo "context refreshed at $(now)"

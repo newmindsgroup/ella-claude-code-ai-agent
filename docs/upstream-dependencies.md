@@ -98,7 +98,7 @@ If you're auditing this for a security-conscious deployment, this is the documen
 - **License:** GPL-3.0
 - **Why:** Text-to-speech. Agent replies as audio when voice mode is `always`. Uses Microsoft Edge's free TTS service.
 - **Cost:** $0 — free service from Microsoft.
-- **Voices:** Multilingual; the example deployment uses an English voice + Dominican Spanish voice with auto-detect.
+- **Voices:** Multilingual; defaults are configurable per tenant (English + a regional Spanish voice — set `DEFAULT_ES` in `voice-reply.sh`).
 
 ---
 

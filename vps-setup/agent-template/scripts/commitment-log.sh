@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# commitment-log.sh — log a promise Daniel made to a person/company.
+# commitment-log.sh — log a promise {{TENANT_PERSON_FIRST_NAME}} made to a person/company.
 # Usage: commitment-log.sh --to "Name" --text "promised X by Y" [--deadline DATE] [--task TASK_ID]
 set -euo pipefail
 

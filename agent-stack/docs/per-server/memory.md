@@ -14,7 +14,7 @@ A knowledge-graph persistent memory MCP server, official Anthropic reference imp
 Provides a small set of tools the agent can call to persist knowledge:
 
 - `create_entities` — add named entities with type and observations
-- `create_relations` — link entities (e.g., "Daniel manages NewMindsGroup")
+- `create_relations` — link entities (e.g., "Jane manages AcmeCorp")
 - `add_observations` — append facts to an existing entity
 - `read_graph` — retrieve the entire knowledge graph
 - `search_nodes` — query the graph by keyword

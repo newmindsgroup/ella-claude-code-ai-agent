@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# signal-edit.sh — log a pattern from Daniel editing a draft.
-# Usage: signal-edit.sh --text "Daniel cut X and replaced with Y" [--task TASK_ID] [--platform linkedin|email|newsletter]
+# signal-edit.sh — log a pattern from {{TENANT_PERSON_FIRST_NAME}} editing a draft.
+# Usage: signal-edit.sh --text "{{TENANT_PERSON_FIRST_NAME}} cut X and replaced with Y" [--task TASK_ID] [--platform linkedin|email|newsletter]
 set -euo pipefail
 
 AGENT_HOME="${TENANT_AGENT_HOME:-{{TENANT_AGENT_HOME}}}"

@@ -68,7 +68,10 @@ for m in all_memories:
     text = m.get('text', '')
     # Find capitalized names: 2+ words where first letter is cap, or single CamelCase names
     # Exclude common words
-    STOP = {'Daniel', 'Gonell', 'GHL', 'LinkedIn', 'Instagram', 'Telegram', 'Claude',
+    # STOP list: the tenant's own first + last name go here (you don't auto-link
+    # YOURSELF as a relationship), plus common product names + English words
+    # that look like proper nouns. Customize for your tenant.
+    STOP = {'{{TENANT_PERSON_FIRST_NAME}}', 'GHL', 'LinkedIn', 'Instagram', 'Telegram', 'Claude',
             'AI', 'UX', 'PDF', 'SMS', 'ID', 'OK', 'The', 'A', 'An', 'In', 'On', 'For',
             'To', 'Is', 'Are', 'Was', 'Will', 'When', 'That', 'This', 'With', 'From'}
     # Match: FirstName LastName, or single proper nouns that are company-like

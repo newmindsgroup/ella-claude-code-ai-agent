@@ -201,7 +201,7 @@ features:
   obsidian_vault_mirror:    true   # memory-export.py renders SQLite → obsidian-vault/memories/*.md every 5 min
   entity_linker:            true   # nightly auto-promote names appearing 3+ times to relationship records
   commitment_tracking:      true   # commitment-log.sh + commitment-deadline-watcher.sh (separate from tasks)
-  signal_edit_tracking:     true   # voice DNA feedback loop — log Daniel's edits to drafts
+  signal_edit_tracking:     true   # voice DNA feedback loop — log the tenant's edits to drafts
   save_recommendation:      true   # capture strategic plans as type=recommendation memories
   context_system:           true   # active.md + context-inject + session-summary for wake-up state
   # v0.5+ Discord command center (optional second surface)

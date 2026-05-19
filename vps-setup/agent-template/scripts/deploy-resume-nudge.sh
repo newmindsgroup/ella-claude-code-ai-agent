@@ -5,7 +5,7 @@
 #
 # v2.25.0+. Wired as ExecStartPost on claude-agent.service. Runs after the
 # new claude session is up. Outbound Telegram (curl-based via tg-send.sh)
-# works even before the bun poller comes back, so the ping reaches Daniel
+# works even before the bun poller comes back, so the ping reaches {{TENANT_PERSON_FIRST_NAME}}
 # regardless of inbound channel state.
 #
 # Idempotent via a `last_resume_nudge_at` field added to the state file —
@@ -13,7 +13,7 @@
 # more than 30 minutes have passed since the last nudge for this version.
 #
 # This complements deploy-timeout-sweep.timer (which auto-cancels after
-# 2hr): if Daniel's been gone for an hour and the agent restarted, the
+# 2hr): if {{TENANT_PERSON_FIRST_NAME}}'s been gone for an hour and the agent restarted, the
 # nudge tells him "still here, waiting"; if the deploy hits 2hr untapped,
 # the sweep cancels it cleanly.
 
@@ -53,7 +53,7 @@ for f in "$STATE_DIR"/*.state.json; do
   version=$(jq -r '.version // ""' "$f" 2>/dev/null)
   [[ -z "$version" ]] && continue
 
-  # When did we last nudge this deploy? If <30min ago, skip — Daniel just
+  # When did we last nudge this deploy? If <30min ago, skip — {{TENANT_PERSON_FIRST_NAME}} just
   # got a ping; agent probably just restarted briefly (watchdog cycle).
   last_nudge=$(jq -r '.last_resume_nudge_at // ""' "$f" 2>/dev/null)
   if [[ -n "$last_nudge" ]]; then

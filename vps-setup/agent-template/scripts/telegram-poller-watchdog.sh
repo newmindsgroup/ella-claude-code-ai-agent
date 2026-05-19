@@ -5,7 +5,7 @@
 # Closes the silent-wedge gap surfaced during v2.20.0 deploy: the Claude CLI
 # process stayed alive but the bun-based grammy poller sub-process disappeared
 # from the cgroup, so Telegram messages were marked read but never reached the
-# agent prompt. Daniel sent "what's on my plate today?" and got nothing back.
+# agent prompt. {{TENANT_PERSON_FIRST_NAME}} sent "what's on my plate today?" and got nothing back.
 #
 # Detection: the agent's cgroup MUST contain a process whose command line
 # matches "bun run --cwd .*claude-plugins-official/telegram". If not, the

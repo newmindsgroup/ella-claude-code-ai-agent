@@ -2,6 +2,48 @@
 
 All notable changes to this repo. Format roughly follows [Keep a Changelog](https://keepachangelog.com/). This is a multi-tenant template, so versions reflect what's available to clone for a new tenant — not what's running at any one customer's deployment.
 
+## [v0.6.1] — 2026-05-19
+
+### Changed — Public-readiness scrub (the leaks-fixed release)
+
+A pre-public-flip audit caught significant single-tenant content that had leaked back into the template across v0.5 and v0.6. v0.6.1 sweeps everything clean and adds public-repo polish.
+
+**Hard blockers fixed:**
+- **`vps-setup/agent-template/scripts/_memory_import_canon.py`** — was 179 lines of the upstream author's personal facts (family member names, kids' birth years, business entity structure, residence, career details). Now a clean skeleton template with commented-out shape examples + a `{{TENANT_*}}` placeholder pattern.
+- **`vps-setup/agent-template/swarms/*.py`** (4 swarm files) — hardcoded "Daniel Gonell" in agent prompts + real product pricing + "Future Fluent" newsletter name. Now parameterized via module-level `TENANT_NAME` / `TENANT_FIRST_NAME` constants rendered from `{{TENANT_PERSON_FULL_NAME}}` / `{{TENANT_PERSON_FIRST_NAME}}`. Pricing references replaced with "see tenant's services doc."
+- **`vps-setup/agent-template/dashboard/index.html`** — TENANT JS constant was hardcoded with name/email/title. Now uses `{{TENANT_ID}}` / `{{TENANT_PERSON_FIRST_NAME}}` / `{{TENANT_CONTACT_EMAIL}}` / `{{TENANT_PERSON_FULL_NAME}}`. Four sentinel-style "if (TENANT.name === 'Daniel')" fallback checks simplified to plain truthiness checks.
+- **`vps-setup/agent-template/scripts/{memory-extract,update-active-context,context-refresh,memory-export}`** — LLM prompt strings + active.md headers hardcoded the upstream author's name. All now use `{{TENANT_PERSON_FULL_NAME}}` / `{{TENANT_PERSON_FIRST_NAME}}` placeholders.
+- **`vps-setup/agent-template/scripts/discord-memory-digest.sh`** — comment said "Run every Friday at 17:00 (Santo Domingo time)" leaking residence. Now "(tenant timezone)".
+- **`vps-setup/agent-template/obsidian-vault/README.md`** — example memory file used a real third-party client's name + their company. Replaced with `<Contact Name>` / `<Company Name>` template scaffolds.
+- **`vps-setup/agent-template/scripts/skill-runner.sh.tmpl`** — voice rules referenced specific entity-separation entity names by string ("no NMG / CreateMomento"). Now references the configured `entity_separation_terms` list generically.
+- **`vps-setup/agent-template/scripts/entity-linker.sh`** STOP list — was hardcoded with the upstream author's first/last name. Now uses `{{TENANT_PERSON_FIRST_NAME}}` placeholder + comments explaining the customization point.
+
+**Soft issues fixed:**
+- Voice scripts (`voice-reply.sh`, `CLAUDE.md.tmpl`) — replaced "Dominican Spanish" location-revealing defaults with generic "regional Spanish" + a Microsoft voice-list link so each tenant picks their own `DEFAULT_ES`.
+- `CONTRIBUTING.md` example `/opt/danielgonell/...` → `/opt/<your_user>/...`.
+- `agent-stack/config/client.example.env` example path → generic placeholder.
+- `docs/upstream-dependencies.md` "Dominican Spanish voice" reference → generic.
+- `agent-stack/docs/per-server/{chroma,memory,playwright,filesystem}.md` — reference docs were written from the original author's perspective ("Daniel's AI Knowledge Library", "Daniel's Mac"). Now generic operator phrasing.
+- `vps-setup/PORTING.md` + `vps-setup/runbooks/{discord-setup,operating-principles}.md` — same generic phrasing pass.
+- 13 script files in `vps-setup/agent-template/scripts/` had bare "Daniel" in code comments and embedded LLM prompts. All replaced with `{{TENANT_PERSON_FIRST_NAME}}` so the rendered output uses the tenant's name.
+- `CLAUDE.md.tmpl` — 7 deploy-section references to "Daniel" → `{{TENANT_PERSON_FIRST_NAME}}`.
+
+**Repo metadata polish:**
+- **`LICENSE`** — removed the trailing `---` separator + third-party-deps note that confused GitHub's license auto-detector. LICENSE is now pure MIT; the third-party note moved to a new `NOTICE` file. GitHub should now correctly auto-detect MIT.
+- **`NOTICE`** (new) — third-party deps attribution + a pointer to `docs/upstream-dependencies.md`.
+- **`SECURITY.md`** (new) — vulnerability reporting policy. Preferred channel: GitHub Security Advisories. Alternative: `info@newmindsgroup.com`. Includes a post-deploy hardening checklist for operators.
+- **`CHANGELOG.md`** v0.2.1 entry corrected — the historical claim "no more lingering 'Daniel'/'Santo Domingo' leaks" was misleading; updated to point readers at v0.6.1 for the actual public-readiness pass.
+
+### Result
+
+- **0 hard blockers** remaining in the template or rendered EXAMPLE_TENANT output
+- The only remaining "Daniel" / "New Minds Group" references are: (1) the `CHANGELOG.md` historical attribution of the project's origin, (2) the `LICENSE` + `NOTICE` copyright holder. Both are intentional and correct for a public repo.
+- 142 files render cleanly; only the pre-existing `{{TENANT_TLD}}` warning from v0.3 remains.
+
+After v0.6.1: safe to flip the repo to public.
+
+---
+
 ## [v0.6.0] — 2026-05-19
 
 ### Added — Multi-tier sub-agent delegation framework
@@ -232,7 +274,7 @@ The pre-flight is the key innovation — it tests EVERY credential against its r
 - `vps_host` field in tenant.yml for `render-and-deploy.sh`.
 
 ### Changed
-- Pre-v0.3 privacy + tenant scrub on docs (no more lingering "Daniel"/"Santo Domingo" leaks in examples).
+- Pre-v0.3 privacy + tenant scrub on docs (note: a more thorough public-readiness scrub landed in v0.6.1 — see that entry).
 
 ---
 
@@ -261,6 +303,7 @@ Initial public release. Sanitized fork from a production single-tenant agent sta
 - Sub-agent skills directory pattern.
 - Tool-leverage heuristics + combo-pattern table in CLAUDE.md template.
 
+[v0.6.1]: https://github.com/newmindsgroup/ella-claude-code-ai-agent/releases/tag/v0.6.1
 [v0.6.0]: https://github.com/newmindsgroup/ella-claude-code-ai-agent/releases/tag/v0.6.0
 [v0.5.0]: https://github.com/newmindsgroup/ella-claude-code-ai-agent/releases/tag/v0.5.0
 [v0.4.0]: https://github.com/newmindsgroup/ella-claude-code-ai-agent/releases/tag/v0.4.0

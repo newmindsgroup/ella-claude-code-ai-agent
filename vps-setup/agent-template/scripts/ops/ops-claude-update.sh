@@ -17,7 +17,7 @@
 #   8. Ping Telegram with the version delta + smoke summary
 #
 # Always logs to /var/log/{{TENANT_LINUX_USER}}-agent-ops.log (audit trail).
-# Exits non-zero on any failure; the agent should surface that to Daniel.
+# Exits non-zero on any failure; the agent should surface that to {{TENANT_PERSON_FIRST_NAME}}.
 set -euo pipefail
 
 AUDIT_LOG=/var/log/{{TENANT_LINUX_USER}}-agent-ops.log
@@ -92,7 +92,7 @@ audit "running smoke test"
 SMOKE_OUT=$(sudo -u {{TENANT_LINUX_USER}} bash {{TENANT_AGENT_HOME}}/scripts/smoke-test.sh 2>&1 | tail -5)
 audit "smoke test result: $(echo "$SMOKE_OUT" | grep -E 'Passed|Failed')"
 
-# 9. Notify Daniel
+# 9. Notify {{TENANT_PERSON_FIRST_NAME}}
 SMOKE_SUMMARY=$(echo "$SMOKE_OUT" | grep -E 'Passed|Failed' | head -1)
 sudo -u {{TENANT_LINUX_USER}} "$TG_SEND" send --text "✅ Claude Code updated: ${BEFORE:-?} → ${AFTER:-?}. ${SMOKE_SUMMARY}. Channels-plugin patches: $((5 - MISSING))/5 intact." 2>/dev/null || true
 

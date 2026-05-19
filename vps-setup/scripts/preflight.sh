@@ -14,7 +14,7 @@
 #                      config under vps-setup/agents-config/{tenant_id}/.
 #   VPS_HOST         — optional. SSH target (e.g. root@<your-vps-ip>).
 #                      Defaults to PREFLIGHT_VPS_HOST env var, else
-#                      root@<your-vps-ip> (Daniel's tenant default).
+#                      root@<your-vps-ip> ({{TENANT_PERSON_FIRST_NAME}}'s tenant default).
 #
 # Exit codes:
 #   0  — all checks PASS

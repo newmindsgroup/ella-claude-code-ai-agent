@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""client-delivery-swarm — Brand Blueprint brief → full strategy deliverable.
+"""client-delivery-swarm — client brief → full strategy deliverable.
 
 Agents:
   1. Brief parser — extracts structured context from the raw brief
@@ -21,7 +21,7 @@ Brief JSON schema:
     "goals": "...",
     "competitors": ["Co A", "Co B"],
     "audience": "...",
-    "budget_signal": "Brand Blueprint Intensive"
+    "budget_signal": "flagship engagement tier"
   }
 """
 import argparse
@@ -37,6 +37,10 @@ from swarm_base import (
 )
 
 SWARM = "client-delivery"
+
+# Tenant identity — substituted by render-tenant.sh at deploy time.
+TENANT_NAME = "{{TENANT_PERSON_FULL_NAME}}"
+TENANT_FIRST_NAME = "{{TENANT_PERSON_FIRST_NAME}}"
 
 
 def run(brief: dict, task_id: str | None = None) -> None:
@@ -170,7 +174,7 @@ Format as a professional strategy document with:
 - Each section clearly labeled
 - Confident, direct language — no hedge words like "could", "might", "potentially"
 
-This is a client-facing document. Daniel's name goes on it."""
+This is a client-facing document. {TENANT_NAME}'s name goes on it."""
 
     final_doc = run_agent(assemble_prompt, model=CLAUDE_MODEL_MAIN, max_tokens=2500, timeout=150)
 
@@ -194,8 +198,8 @@ This is a client-facing document. Daniel's name goes on it."""
     # Save memory
     save_memory(
         "relationship",
-        f"{client} — Brand Blueprint deliverable generated {ts}. Problem: {ctx.get('current_brand_problem', '')}",
-        f"client,brand-blueprint,{slug}",
+        f"{client} — strategy deliverable generated {ts}. Problem: {ctx.get('current_brand_problem', '')}",
+        f"client,strategy-deliverable,{slug}",
         "client-delivery-swarm", 0.9
     )
 
@@ -216,7 +220,7 @@ _All in_ `{str(AGENT_HOME / 'drafts' / SWARM)}`"""
 
     if task_id:
         tg_send(tg_msg, callback_buttons=f"✅ Approve|swarm:approve:{task_id},✏️ Revise|swarm:revise:{task_id}")
-        update_task(task_id, "awaiting_review", f"Brand Blueprint deliverable ready for {client}")
+        update_task(task_id, "awaiting_review", f"strategy deliverable ready for {client}")
     else:
         tg_send(tg_msg)
 

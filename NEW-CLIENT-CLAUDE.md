@@ -6,7 +6,7 @@
 
 ---
 
-## Your role (local Claude on Daniel's Mac)
+## Your role (local Claude on the operator's Mac)
 
 You are the **deployment orchestrator**. The human has provisioned a VPS, registered a domain, created a Telegram bot, and gathered all the credentials in `client-credentials.md`. Your job is to take that input and stand up a fully-functional always-on agent for the client — from blank Ubuntu to first morning brief — in one Claude Code session.
 
