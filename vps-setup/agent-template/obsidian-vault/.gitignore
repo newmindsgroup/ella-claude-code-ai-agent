@@ -1,0 +1,10 @@
+# Don't commit user-state memory files. The template ships the structure, not the content.
+memories/**/*.md
+!memories/**/.gitkeep
+daily/**/*.md
+!daily/**/.gitkeep
+inbox/**/*.md
+!inbox/**/.gitkeep
+brand/**/*.md
+!brand/**/.gitkeep
+.obsidian/

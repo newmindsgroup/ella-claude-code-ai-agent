@@ -1,0 +1,16 @@
+[Unit]
+Description=Post-session memory extraction — scans recent activity and saves memorable events
+After=network.target claude-agent.service
+
+[Service]
+Type=oneshot
+User={{TENANT_LINUX_USER}}
+Group={{TENANT_LINUX_USER}}
+WorkingDirectory={{TENANT_AGENT_HOME}}
+Environment="HOME={{TENANT_USER_HOME}}"
+Environment="TENANT_AGENT_HOME={{TENANT_AGENT_HOME}}"
+Environment="PATH=/usr/local/bin:/usr/bin:/bin:{{TENANT_USER_HOME}}/.bun/bin:{{TENANT_USER_HOME}}/.local/bin"
+ExecStart={{TENANT_AGENT_HOME}}/scripts/memory-extract.sh
+StandardOutput=append:{{TENANT_AGENT_HOME}}/logs/memory-extract.log
+StandardError=append:{{TENANT_AGENT_HOME}}/logs/memory-extract.log
+TimeoutStartSec=300

@@ -2,6 +2,92 @@
 
 All notable changes to this repo. Format roughly follows [Keep a Changelog](https://keepachangelog.com/). This is a multi-tenant template, so versions reflect what's available to clone for a new tenant — not what's running at any one customer's deployment.
 
+## [v0.5.0] — 2026-05-19
+
+### Added — Memory layer v2 (SQLite + FTS + vector embeddings + Obsidian mirror)
+
+The biggest substantive upgrade since v0.1. Memory is no longer "a folder of markdown files." It's a SQLite vault with full-text search, vector embeddings via a sentence-transformer daemon, supersession chains, time-aware validity, plus a markdown mirror Obsidian can render and Syncthing can sync to your Mac.
+
+**29 scripts ported from the production single-tenant deployment** (all sanitized — zero Daniel-specific paths). The major new pieces:
+
+- **`memory-vault.sh` v2** — 9 subcommands (add, supersede, invalidate, history, recall, summarize, forget, rebuild, list). 8 memory types (fact / decision / relationship / preference / pattern / commitment / goal / context). Confidence scores, expiry dates, access counts, supersession chains.
+- **`_memory_helpers.py` v2** — 614 lines (was 165 in v0.4). SQLite + FTS5 + vector search wiring.
+- **`embedding-service.py`** — sentence-transformer daemon (`all-MiniLM-L6-v2`) serving over Unix socket. Keeps the model hot for sub-second semantic recall.
+- **`memory-export.py`** — bridges SQLite → `obsidian-vault/memories/<type>/m-XXXX.md` every 5 minutes via cron. Each memory becomes a markdown file with YAML frontmatter + wikilinks + history log.
+- **`memory-extract.sh`** + `memory-consolidate.sh` + systemd timers — extract from claude session jsonl files hourly, consolidate nightly.
+- **`_memory_import_canon.py`** — one-shot import of brand-repo canonical docs as canonical-type memories.
+- **`entity-linker.sh`** (nightly cron) — promotes names appearing 3+ times across memories to canonical `relationship` records.
+
+### Added — Obsidian vault mirror
+
+- **`vps-setup/agent-template/obsidian-vault/`** — directory skeleton (brand / daily / inbox / memories/<8 types>) shipped with `.gitkeep` files so the structure exists from day one.
+- **`obsidian-vault/README.md`** — documents the pipeline + each memory file's YAML frontmatter format + wikilink conventions.
+- **Syncthing-ready** — vault is structured to be paired between VPS and user's Mac via Syncthing. Optional, documented in a future runbook. When enabled, the user browses memories in the Obsidian app on their Mac and sees the graph view + backlinks automatically.
+
+### Added — Discord command center (optional second surface)
+
+- **`vps-setup/RUNBOOKS/discord-setup.md`** — 10-minute setup guide. Create the server + bot, enable Developer Mode, create 16 channels organized into Ops / Memory / Intel categories.
+- **`scripts/discord-memory.sh`** — post/log/search/notify/client-thread (multi-purpose). Rich embeds, color-coded by memory type.
+- **`scripts/discord-commands.sh`** — polls `#commands` every 60s, routes user prompts to the agent CLI, posts results back. Bidirectional surface (you type, agent reads).
+- **`scripts/discord-corpus-sync.sh`** — reads human-typed messages in `#memory-*` channels and imports them to the SQLite vault every 10 min. Discord becomes a memory INPUT, not just output.
+- **`scripts/discord-task-thread.sh`** — per-task Discord threads in `#task-events` with state-transition log.
+- **`scripts/discord-memory-digest.sh`** — weekly memory digest posted Fridays 17:00 tenant-TZ.
+- **`discord-webhook-server.js`** — lightweight Node HTTP server on :8090. Receives GHL/Gmail webhooks, routes to the relevant Discord channel via `discord-memory.sh notify`.
+- **`systemd/discord-webhook-server.service.tmpl`** — auto-starts the webhook server on boot.
+- **`channels-discord/.env.discord.template`** — every env var the discord-* scripts need.
+- Channel taxonomy: `#commands`, `#agent-log`, `#task-events`, `#daily-brief`, `#memory-{facts,decisions,relationships,patterns,commitments,preferences,goals,context}`, `#intel`, `#ghl-activity`, `#gmail-alerts`.
+
+### Added — Context system (wake-up with state)
+
+- **`context-inject.sh`** — runs on session start. Outputs JSON with `additionalContext` containing recent telegram-history + active.md + today's proposals + current goals. Claude reads this BEFORE the first message of a session, so it wakes up oriented.
+- **`context-refresh.sh`** — rewrites `context/active.md` from task ledger + memory vault. Called by `task-update.sh` on every state transition.
+- **`update-active-context.sh`** — called from PostToolUse hooks to keep active.md current.
+- **`session-summary.sh`** — Stop hook. Writes a rich snapshot at session end so the next session has the latest narrative.
+- **`tg-history-log.sh`** — appends every Telegram in/out to `telegram-history.jsonl`. Used by context-inject.
+- **`startup-ping.sh`** — confirms the agent came back up after any restart (Telegram + Discord notification).
+
+### Added — Commitment tracking (distinct from tasks)
+
+A commitment is "I promised X to person Y by date Z." Tracked as a `commitment`-type memory (so it lives in the vault, not the task ledger), with its own deadline watcher.
+
+- **`commitment-log.sh`** — `commitment-log.sh --to "Name" --text "..." --deadline DATE [--task TASK_ID]`
+- **`commitment-deadline-watcher.sh`** — hourly cron. Pings at 24h / 4h / now before the deadline. Architecture mirrors `task-deadline-watcher.sh` but reads from memory vault, not task ledger.
+
+### Added — Voice DNA feedback loop
+
+- **`signal-edit.sh`** — when the user edits a draft you produced, log the diff as a `pattern` memory immediately. *"Daniel cut 'thrilled to' opener, replaced with the direct ask"* → future drafts apply the lesson preemptively.
+- **`save-recommendation.sh`** — capture strategic recommendations as a special memory type that future briefs can reference.
+
+### Added — Search
+
+- **`search.sh`** — unified `search.sh "query"` across memory vault + tasks + drafts. Replaces "where did I see that thing about X" with one command.
+
+### Added — tenant.yml feature toggles (12 new flags)
+
+`features.memory_vault_v2`, `memory_auto_extract`, `memory_consolidate`, `obsidian_vault_mirror`, `entity_linker`, `commitment_tracking`, `signal_edit_tracking`, `save_recommendation`, `context_system`, `discord_enabled`, `syncthing_enabled`, `graphiti_temporal_graph`, `multi_agent_swarms`.
+
+Plus new tenant.yml DISCORD block with `discord_bot_token_env`, `discord_guild_id`, `discord_owner_user_id`, and `discord_channels.*` for all 15 channel ID slots.
+
+### Added — Crontab template
+
+- **`crontab/tenant.crontab.tmpl`** — single template covering all high-frequency jobs (Discord polling, memory export, entity linker, commitment watcher, startup ping, embedding daemon @reboot, optional Syncthing). Cron is used for >1/hour cadence; systemd timers for the rest.
+
+### Changed
+
+- **`CLAUDE.md.tmpl`** — Memory layer section EXPANDED with v2 architecture diagram, all 9 subcommand uses, time-aware fact semantics, context system, Discord channel handling.
+- **`EXAMPLE_TENANT.yml`** — new DISCORD block + 12 feature toggles.
+- Render count: 135 files (was 88 in v0.4 = 47 new files).
+
+### Why this matters
+
+Before v0.5: Ella shipped a basic memory layer + GraphRAG via Graphify, but no semantic recall, no Obsidian mirror, no Discord, no commitment tracking distinct from tasks, no context-system for "wake up with state." Daniel-stack had ALL of these built autonomously in production over 2 months.
+
+After v0.5: Every client deployment starts with the same memory + Discord + Obsidian + context capabilities that Daniel-stack uses today. The agent can recall semantically ("show me memories similar to 'how Acme felt about pricing'"), supersede facts when they change, mirror to Obsidian for visual browsing, and (optionally) run a Discord command center alongside Telegram.
+
+Anyone deploying Ella for a new client gets the same brain Daniel uses for his own business.
+
+---
+
 ## [v0.4.0] — 2026-05-19
 
 ### Added — Fresh-client deployment orchestration

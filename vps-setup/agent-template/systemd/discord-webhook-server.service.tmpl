@@ -1,0 +1,21 @@
+[Unit]
+Description={{TENANT_PERSON_FIRST_NAME}}'s agent Discord webhook server (port 8090)
+Documentation=https://github.com/newmindsgroup/ella-claude-code-ai-agent
+After=network.target
+
+[Service]
+Type=simple
+User={{TENANT_LINUX_USER}}
+Group={{TENANT_LINUX_GROUP}}
+WorkingDirectory={{TENANT_AGENT_HOME}}
+Environment="HOME={{TENANT_USER_HOME}}"
+Environment="PATH=/usr/local/bin:/usr/bin:/bin:{{TENANT_USER_HOME}}/.bun/bin:{{TENANT_USER_HOME}}/.local/bin"
+EnvironmentFile=-{{TENANT_AGENT_HOME}}/.env
+ExecStart=/usr/bin/node {{TENANT_AGENT_HOME}}/discord-webhook-server.js
+Restart=on-failure
+RestartSec=10
+StandardOutput=append:{{TENANT_AGENT_HOME}}/logs/discord-webhook-server.log
+StandardError=append:{{TENANT_AGENT_HOME}}/logs/discord-webhook-server.log
+
+[Install]
+WantedBy=multi-user.target

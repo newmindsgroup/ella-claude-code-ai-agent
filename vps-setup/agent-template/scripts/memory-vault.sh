@@ -12,16 +12,20 @@
 #   context      — general background
 #
 # Subcommands:
-#   add       --type T --text "..." [--tags "a,b,c"] [--source S] [--expires DATE] [--confidence 0.95] [--links id1,id2]
-#   recall    [--type T] [--tags "a,b"] [--query "fts"] [--since DATE] [--limit N]
-#   summarize [--type T] [--tags "a,b"] [--limit N]    Renders MarkdownV2 for Telegram
-#   forget    --id MEMORY_ID
-#   rebuild   Re-materialize indexes
-#   list      List all memory IDs
+#   add         --type T --text "..." [--tags "a,b,c"] [--source S] [--expires DATE] [--confidence 0.95] [--supersedes ID]
+#   supersede   --id OLD_ID --type T --text "NEW TEXT" [--tags ...] [--source ...]
+#               Saves new memory, marks old one as superseded. Use when facts change.
+#   invalidate  --id MEMORY_ID [--reason "why"]   Mark a memory invalid without a replacement.
+#   history     --id MEMORY_ID                    Show full validity chain for a memory.
+#   recall      [--type T] [--tags "a,b"] [--query "fts"] [--since DATE] [--limit N] [--include-history]
+#   summarize   [--type T] [--tags "a,b"] [--limit N]    Renders MarkdownV2 for Telegram
+#   forget      --id MEMORY_ID
+#   rebuild     Re-materialize indexes
+#   list        List all memory IDs
 
 set -euo pipefail
 
-MEM_DIR="${TENANT_AGENT_HOME:-/opt/{{TENANT_LINUX_USER}}/agents}/memory"
+MEM_DIR="${TENANT_AGENT_HOME:-{{TENANT_AGENT_HOME}}}/memory"
 VAULT="$MEM_DIR/vault.jsonl"
 INDEX_DIR="$MEM_DIR/index"
 HELPERS="$(dirname "$0")/_memory_helpers.py"
@@ -36,7 +40,7 @@ gen_id() { printf "m-%s-%s" "$(date +%Y%m%d)" "$(openssl rand -hex 2)"; }
 
 cmd="${1:-help}"; shift || true
 type_="" text="" tags="" source_="" expires="" confidence="0.9" links=""
-id="" query="" since="" limit="20"
+id="" query="" since="" limit="20" supersedes="" include_history="" reason=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --type)        type_="$2"; shift 2 ;;
@@ -50,6 +54,9 @@ while [[ $# -gt 0 ]]; do
     --query)       query="$2"; shift 2 ;;
     --since)       since="$2"; shift 2 ;;
     --limit)       limit="$2"; shift 2 ;;
+    --supersedes)  supersedes="$2"; shift 2 ;;
+    --include-history) include_history="1"; shift ;;
+    --reason)      reason="$2"; shift 2 ;;
     *)             shift ;;
   esac
 done
@@ -84,16 +91,36 @@ case "$cmd" in
     links_json=$(python3 -c "import json,sys; t='$links'; print(json.dumps([x.strip() for x in t.split(',') if x.strip()]))")
     ev=$(jq -nc --arg ts "$(now)" --arg id "$new_id" --arg type "$type_" --arg text "$text" \
                 --argjson tags "$tags_json" --arg source "$source_" --arg expires "$expires" \
-                --arg conf "$confidence" --argjson links "$links_json" \
+                --arg conf "$confidence" --argjson links "$links_json" --arg sup "$supersedes" \
         '{ts:$ts, id:$id, event:"add", type:$type, text:$text, tags:$tags,
           source:$source, expires_at:(if $expires=="" then null else $expires end),
-          created_at:$ts, confidence:($conf|tonumber), links:$links}')
+          created_at:$ts, confidence:($conf|tonumber), links:$links,
+          supersedes:(if $sup=="" then null else $sup end)}')
     echo "$ev" >> "$VAULT"
+    # If superseding an old memory, mark it
+    if [[ -n "$supersedes" ]]; then
+      sup_ev=$(jq -nc --arg ts "$(now)" --arg old_id "$supersedes" --arg new_id "$new_id" \
+        '{ts:$ts, id:$old_id, event:"superseded_by", superseded_by:$new_id}')
+      echo "$sup_ev" >> "$VAULT"
+    fi
     python3 "$HELPERS" rebuild >/dev/null
+    # Mirror to Discord (fire-and-forget, never block on failure)
+    DISCORD_SCRIPT="$(dirname "$0")/discord-memory.sh"
+    if [[ -x "$DISCORD_SCRIPT" ]]; then
+      bash "$DISCORD_SCRIPT" post \
+        --type "$type_" --text "$text" --tags "$tags" --id "$new_id" &>/dev/null &
+      # For relationship memories, also create/update a client thread
+      if [[ "$type_" == "relationship" ]]; then
+        NAME=$(echo "$text" | python3 -c "import sys,re; m=re.match(r'^([^—\-\|]+)', sys.stdin.read()); print(m.group(1).strip() if m else '')")
+        [[ -n "$NAME" ]] && bash "$DISCORD_SCRIPT" client-thread \
+          --name "$NAME" --text "$text" &>/dev/null &
+      fi
+    fi
     echo "$new_id"
     ;;
   recall)
     MV_TYPE="$type_" MV_TAGS="$tags" MV_QUERY="$query" MV_SINCE="$since" MV_LIMIT="$limit" \
+      MV_INCLUDE_HISTORY="$include_history" \
       python3 "$HELPERS" recall
     ;;
   summarize)
@@ -112,6 +139,22 @@ case "$cmd" in
     ;;
   list)
     jq -r 'keys[]' "$INDEX_DIR/by-id.json"
+    ;;
+  supersede)
+    [[ -z "$id" || -z "$type_" || -z "$text" ]] && { echo "missing --id, --type, or --text" >&2; exit 1; }
+    # Create new memory that supersedes the old one
+    new_id=$(bash "$0" add --type "$type_" --text "$text" --tags "$tags" --source "$source_" \
+                           --confidence "$confidence" --supersedes "$id")
+    echo "$new_id"
+    ;;
+  invalidate)
+    [[ -z "$id" ]] && { echo "missing --id" >&2; exit 1; }
+    MV_ID="$id" MV_REASON="$reason" python3 "$HELPERS" invalidate
+    python3 "$HELPERS" rebuild >/dev/null
+    ;;
+  history)
+    [[ -z "$id" ]] && { echo "missing --id" >&2; exit 1; }
+    MV_ID="$id" python3 "$HELPERS" history
     ;;
   help|*)
     usage; exit 0

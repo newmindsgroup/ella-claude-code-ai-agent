@@ -1,0 +1,17 @@
+[Unit]
+Description=Nightly memory consolidation — dedup and contradiction check
+After=network.target memory-extract.service
+
+[Service]
+Type=oneshot
+User={{TENANT_LINUX_USER}}
+Group={{TENANT_LINUX_USER}}
+WorkingDirectory={{TENANT_AGENT_HOME}}
+Environment="HOME={{TENANT_USER_HOME}}"
+Environment="TENANT_AGENT_HOME={{TENANT_AGENT_HOME}}"
+Environment="TG_CHAT_ID=1439634560"
+Environment="PATH=/usr/local/bin:/usr/bin:/bin:{{TENANT_USER_HOME}}/.bun/bin:{{TENANT_USER_HOME}}/.local/bin"
+ExecStart={{TENANT_AGENT_HOME}}/scripts/memory-consolidate.sh --quiet
+StandardOutput=append:{{TENANT_AGENT_HOME}}/logs/memory-consolidate.log
+StandardError=append:{{TENANT_AGENT_HOME}}/logs/memory-consolidate.log
+TimeoutStartSec=300

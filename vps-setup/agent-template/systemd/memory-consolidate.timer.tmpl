@@ -1,0 +1,11 @@
+[Unit]
+Description=Nightly memory consolidation — 2 AM Atlantic
+
+[Timer]
+OnCalendar=*-*-* 02:00:00 America/Santo_Domingo
+Persistent=true
+RandomizedDelaySec=120
+Unit=memory-consolidate.service
+
+[Install]
+WantedBy=timers.target

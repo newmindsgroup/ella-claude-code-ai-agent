@@ -1,0 +1,11 @@
+[Unit]
+Description=Nightly memory extraction — 11:45 PM Atlantic (safety net for session context)
+
+[Timer]
+OnCalendar=*-*-* 23:45:00 America/Santo_Domingo
+Persistent=true
+RandomizedDelaySec=60
+Unit=memory-extract.service
+
+[Install]
+WantedBy=timers.target

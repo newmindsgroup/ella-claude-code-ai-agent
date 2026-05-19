@@ -1,0 +1,39 @@
+# {{TENANT_LINUX_USER}} crontab — installed via `crontab -u {{TENANT_LINUX_USER}} <this-file>`
+# during bootstrap. Used for HIGH-FREQUENCY jobs where systemd timers would
+# be overkill (e.g. every 60s Discord polling).
+#
+# Rule of thumb: systemd timers for >= 4h cadence, cron for higher frequency.
+#
+# Each line logs to {{TENANT_AGENT_HOME}}/logs/<job>.log for audit.
+
+# Memory pipeline — export SQLite vault → Obsidian markdown every 5 min
+# This is what makes the memory vault visible in Obsidian + syncable via Syncthing
+*/5 * * * * python3 {{TENANT_AGENT_HOME}}/scripts/memory-export.py >> {{TENANT_AGENT_HOME}}/logs/memory-export.log 2>&1
+
+# Entity linker — nightly scan for names appearing 3+ times, auto-promote to relationship records
+0 3 * * * bash {{TENANT_AGENT_HOME}}/scripts/entity-linker.sh --quiet >> {{TENANT_AGENT_HOME}}/logs/entity-linker.log 2>&1
+
+# Commitment deadline watcher — hourly nudge on commitments stored in memory vault
+0 * * * * bash {{TENANT_AGENT_HOME}}/scripts/commitment-deadline-watcher.sh >> {{TENANT_AGENT_HOME}}/logs/commitment-deadline-watcher.log 2>&1
+
+# Discord — poll #commands channel every 60s, route to agent CLI
+# Comment out if Discord disabled
+* * * * * bash {{TENANT_AGENT_HOME}}/scripts/discord-commands.sh >> {{TENANT_AGENT_HOME}}/logs/discord-commands.log 2>&1
+
+# Discord — read human-typed messages in #memory-* channels, save to vault every 10 min
+# Comment out if Discord disabled
+*/10 * * * * bash {{TENANT_AGENT_HOME}}/scripts/discord-corpus-sync.sh >> {{TENANT_AGENT_HOME}}/logs/discord-corpus.log 2>&1
+
+# Discord — weekly memory digest posted to #daily-brief every Friday 17:00 tenant-TZ
+# Comment out if Discord disabled
+0 21 * * 5 bash {{TENANT_AGENT_HOME}}/scripts/discord-memory-digest.sh >> {{TENANT_AGENT_HOME}}/logs/discord-memory-digest.log 2>&1
+
+# Embedding daemon — start at boot, kept alive by start-embedding-daemon.sh's own watchdog
+@reboot bash {{TENANT_AGENT_HOME}}/scripts/start-embedding-daemon.sh >> {{TENANT_AGENT_HOME}}/logs/embedding-service.log 2>&1
+
+# Startup ping — confirm agent came back up after a reboot (Telegram + Discord notification)
+@reboot sleep 15 && bash {{TENANT_AGENT_HOME}}/scripts/startup-ping.sh >> {{TENANT_AGENT_HOME}}/logs/startup-ping.log 2>&1
+
+# OPTIONAL — Syncthing for syncing the Obsidian vault to user's Mac
+# Uncomment if syncthing_enabled in tenant.yml
+# @reboot {{TENANT_USER_HOME}}/bin/syncthing serve --config {{TENANT_USER_HOME}}/.config/syncthing --data {{TENANT_USER_HOME}}/.config/syncthing --no-browser --gui-address 127.0.0.1:8384 >> {{TENANT_AGENT_HOME}}/logs/syncthing.log 2>&1

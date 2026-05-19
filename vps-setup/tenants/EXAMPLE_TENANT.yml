@@ -86,6 +86,33 @@ ghl_pit_env: "GHL_API_KEY"                    # REQUIRED if ghl_enabled.
 ghl_base_url: "https://services.leadconnectorhq.com"  # OPTIONAL.
 
 # -----------------------------------------------------------------------------
+# DISCORD (v0.5+ optional second surface — see vps-setup/RUNBOOKS/discord-setup.md)
+# -----------------------------------------------------------------------------
+discord_enabled: false                        # OPTIONAL. Set true after running discord-setup.md
+# Set the following ONLY if discord_enabled: true. Bootstrap writes these to
+# {{TENANT_AGENT_HOME}}/.env from these values.
+discord_bot_token_env: "DISCORD_BOT_TOKEN"    # Name of env var (the token itself stays in .env, never in YAML)
+discord_guild_id: ""                          # Server ID. Right-click server → Copy Server ID
+discord_owner_user_id: ""                     # Your Discord user ID for the #commands allowlist
+# Channel IDs — fill after creating channels per the runbook
+discord_channels:                             # OPTIONAL. Leave empty if discord_enabled: false
+  facts: ""
+  decisions: ""
+  relationships: ""
+  patterns: ""
+  commitments: ""
+  preferences: ""
+  goals: ""
+  context: ""
+  agent_log: ""
+  task_events: ""
+  intel: ""
+  commands: ""
+  daily_brief: ""
+  ghl_activity: ""
+  gmail_alerts: ""
+
+# -----------------------------------------------------------------------------
 # TELEGRAM
 # -----------------------------------------------------------------------------
 telegram_enabled: true                        # REQUIRED.
@@ -167,6 +194,23 @@ features:
   agent_self_service_ops:   true   # adds sudoers entry for {{TENANT_LINUX_USER}}
   # v0.3+ voice round-trip (whisper.cpp transcribe + edge-tts reply)
   voice_round_trip:         true   # auto-detect EN/ES, configurable voice mode via /voice
+  # v0.5+ memory layer v2 (SQLite + FTS + vector embeddings + supersession)
+  memory_vault_v2:          true   # 8 memory types, embedding-service.py daemon, semantic recall
+  memory_auto_extract:      true   # extracts memories from claude session jsonl files (hourly timer)
+  memory_consolidate:       true   # nightly consolidation of duplicate/stale memories
+  obsidian_vault_mirror:    true   # memory-export.py renders SQLite → obsidian-vault/memories/*.md every 5 min
+  entity_linker:            true   # nightly auto-promote names appearing 3+ times to relationship records
+  commitment_tracking:      true   # commitment-log.sh + commitment-deadline-watcher.sh (separate from tasks)
+  signal_edit_tracking:     true   # voice DNA feedback loop — log Daniel's edits to drafts
+  save_recommendation:      true   # capture strategic plans as type=recommendation memories
+  context_system:           true   # active.md + context-inject + session-summary for wake-up state
+  # v0.5+ Discord command center (optional second surface)
+  discord_enabled:          false  # see vps-setup/RUNBOOKS/discord-setup.md to enable
+  # v0.5+ Obsidian sync to Mac (optional)
+  syncthing_enabled:        false  # see vps-setup/RUNBOOKS/syncthing-setup.md to enable
+  # v0.5+ alternative knowledge graphs (optional, advanced)
+  graphiti_temporal_graph:  false  # FalkorDB + Graphiti MCP for temporal knowledge graphs (needs Docker)
+  multi_agent_swarms:       false  # bizdev/content/delivery/onboarding swarms via swarm-router.sh
 
 # -----------------------------------------------------------------------------
 # METADATA

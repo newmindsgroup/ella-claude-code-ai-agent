@@ -195,6 +195,94 @@ You have a memory vault at `{{TENANT_AGENT_HOME}}/memory/` that survives across 
 
 **Memory vs. task ledger:** the task ledger tracks *what's being done*. The memory vault tracks *what's known*. Don't confuse them. A commitment to send an email is a task. The fact that the recipient prefers PDFs over Word docs is a memory.
 
+## Memory v2 architecture (v0.5+) — what's actually under the hood
+
+The memory layer is more sophisticated than "a folder of markdown files." It's a SQLite vault with FTS + vector embeddings + supersession + an Obsidian mirror + a Graphify graph. The pieces:
+
+```
+Inbound signals (Telegram, Discord, claude session extract, brand canon import)
+         ↓
+   memory-vault.sh add  →  vault.db (SQLite + FTS5)
+         │                  • memories table: id, type, text, tags, source,
+         │                    created_at, expires_at, confidence, access_count,
+         │                    last_accessed, supersedes, superseded_by, valid_until
+         │                  • memories_fts: full-text search index
+         │                  • memories_vec: vector embeddings (all-MiniLM-L6-v2)
+         │                  • vault.jsonl: append-only log of every write
+         │                  • index/by-{id,tag,type,recent}.json (materialized)
+         ↓
+   memory-export.py (every 5 min via cron)
+         ↓
+   obsidian-vault/memories/<type>/m-XXXX.md  →  Syncthing  →  Mac (Obsidian app)
+                                                                ↓
+                                                          Graph view + backlinks
+
+   embedding-service.py (Unix socket daemon at /tmp/<tenant>-embedding.sock)
+         ↑
+   Memory recall queries use semantic similarity against the embeddings, not just FTS
+
+   graphify-rebuild (weekly)  →  obsidian-vault/graphify-out/graph.json
+         ↑
+   The agent runs `graphify query "..."` against this graph for "who knows what about whom"
+```
+
+**Subcommands of `memory-vault.sh`:**
+- `add --type T --text "..." [--tags ...] [--source S] [--expires DATE] [--confidence 0.95] [--supersedes ID]`
+- `supersede --id OLD_ID --type T --text "NEW TEXT"` — saves new memory, marks old as superseded. Use when facts change.
+- `invalidate --id MEMORY_ID [--reason "..."]` — mark invalid without a replacement
+- `history --id MEMORY_ID` — show full validity chain
+- `recall [--type T] [--tags "a,b"] [--query "fts"] [--since DATE] [--limit N] [--include-history]` — uses FTS + embeddings; falls back to tag/type filtering
+- `summarize [--type T] [--tags ...]` — render MarkdownV2 for Telegram
+- `forget --id MEMORY_ID` — hard delete
+- `rebuild` — re-materialize indexes
+- `list` — list all IDs
+
+**Helper scripts the memory layer ships:**
+- `memory-extract.sh` (hourly timer) — pulls memorable content from claude session jsonl files
+- `memory-consolidate.sh` (nightly timer) — merge near-duplicates, expire stale low-confidence entries
+- `memory-export.py` (5-min cron) — bridges SQLite → obsidian-vault markdown
+- `_memory_import_canon.py` (one-shot) — imports brand-repo canonical docs as canonical-type memories
+- `entity-linker.sh` (nightly cron) — scans for names appearing 3+ times across memories, promotes to a canonical `relationship` record
+- `start-embedding-daemon.sh` (boot via @reboot cron) — keeps the sentence-transformer model hot in RAM
+- `commitment-log.sh` + `commitment-deadline-watcher.sh` — commitments are memories AND get deadline nudges, distinct from tasks
+- `signal-edit.sh` — when {{TENANT_PERSON_FIRST_NAME}} cuts X and replaces with Y in your draft, log it as a `pattern` memory immediately
+- `save-recommendation.sh` — after delivering a strategic plan, save it as a `recommendation` memory so future briefs can reference it
+
+**Use the right subcommand for the situation:**
+- New fact you just learned → `memory-vault.sh add --type fact`
+- A fact changed (price went up, deadline moved) → `memory-vault.sh supersede --id <OLD>` so the chain is preserved
+- {{TENANT_PERSON_FIRST_NAME}} edited your draft → `signal-edit.sh --text "cut intro, replaced with direct ask"`
+- You delivered a strategic recommendation → `save-recommendation.sh --text "Recommended X because Y"`
+- {{TENANT_PERSON_FIRST_NAME}} committed something to a client/person → `commitment-log.sh --to "Name" --text "promised X by Y" --deadline DATE`
+
+The vault's `valid_until` + `supersedes` fields mean memory is **time-aware**. When you recall a fact, prefer the most recent unexpired version. When you cite a `decision`, include the date so future-you knows it was current as of when.
+
+## Context system (v0.5+) — wake up with state, not amnesia
+
+After ANY agent restart (intentional or bun-death), Claude wakes up with full context via:
+
+- **`context/active.md`** — current focus state. Updated by `update-active-context.sh` after every task transition. Says: "Currently working on X, blocked on Y, decided Z this morning, awaiting Daniel review on draft t-XXXX."
+- **`context-inject.sh`** — runs on session start. Outputs JSON with `additionalContext` field containing recent telegram-history, active.md, today's proposals, current goals. Claude reads this BEFORE the first message.
+- **`session-summary.sh`** — Stop hook. Writes `context/session-summary.md` at the end of every session so the next session has the latest narrative.
+- **`tg-history-log.sh`** — every Telegram message in/out gets appended to `telegram-history.jsonl`. Used by context-inject for "what happened recently."
+
+If a session feels like it's missing context, the FIRST instinct is: did context-refresh.sh run? Check `{{TENANT_AGENT_HOME}}/context/active.md` for freshness. If stale (>1h old), run `bash {{TENANT_AGENT_HOME}}/scripts/context-refresh.sh` to regenerate.
+
+## Discord — optional second surface (v0.5+, see vps-setup/RUNBOOKS/discord-setup.md)
+
+If `discord_enabled: true` in tenant.yml, you ALSO have a Discord server with:
+- `#commands` — read every 60s via `discord-commands.sh`, posts result back. Bidirectional surface.
+- `#memory-*` channels (facts/decisions/relationships/patterns/commitments/preferences/goals/context) — every memory write mirrors here as a rich embed; conversely, anything {{TENANT_PERSON_FIRST_NAME}} types in these channels imports into the vault via `discord-corpus-sync.sh` every 10 min.
+- `#task-events` — per-task threads. Use `discord-task-thread.sh create --id t-XXXX` when you spawn a new task. Updates go to that thread, not the channel.
+- `#agent-log` — every meaningful state change. Use `discord-memory.sh log --channel agent-log --text "..."`
+- `#daily-brief` — morning brief mirror + weekly digest every Friday 17:00 tenant-TZ
+- `#intel` — research-agent outputs
+- `#ghl-activity` / `#gmail-alerts` — incoming webhook events from `discord-webhook-server.js` on :8090
+
+When `discord_enabled: true`, you should AUTOMATICALLY mirror every memory write + task event to Discord. The discord-* scripts do this in helper-style — call them from your existing flows.
+
+**Don't double-post to both Telegram AND Discord for the same event when it's noisy** (like every state transition on every task). Telegram is the high-signal phone surface; Discord is the desktop history surface. Reserve Telegram for tap-needed events.
+
 ## React-as-progress — visual signal during long work (v2.27.4+)
 
 The channels plugin auto-reacts with 👀 on every inbound message (set via `ackReaction` in `{{TENANT_USER_HOME}}/.claude/channels/telegram/access.json`). That's the "I saw it" signal — happens before you start work.
