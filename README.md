@@ -171,6 +171,29 @@ bash vps-setup/scripts/bootstrap-tenant.sh vps-setup/tenants/<your-tenant-id>.ym
 
 Then point your domain's DNS at the VPS and you have a fully autonomous always-on agent reachable via your Telegram bot in ~60 minutes from blank Ubuntu.
 
+### Fresh-client deploy (v0.4+) — local Claude orchestrates the whole thing
+
+For deploying a new client agent on a fresh VPS, the recommended flow is **local-Claude orchestrated**. You open Claude Code in a workspace folder, give it the client's credentials + brand context, and Claude SSH's to the VPS and walks through every step (DNS, TLS, Telegram, systemd, smoke test). About 30 minutes from "I have credentials" to "first morning brief fires."
+
+```bash
+mkdir -p ~/code/<client>-workspace && cd ~/code/<client>-workspace
+
+# Get the latest templates
+git clone --depth=1 https://github.com/newmindsgroup/ella-claude-code-ai-agent /tmp/ella-tmp
+cp /tmp/ella-tmp/examples/client-credentials.template.md client-credentials.md
+cp /tmp/ella-tmp/NEW-CLIENT-CLAUDE.md NEW-CLIENT-CLAUDE.md
+
+# Fill in credentials + write a client-context.md
+$EDITOR client-credentials.md     # tick every checkbox at the bottom
+$EDITOR client-context.md         # paragraphs about the brand, voice, business
+
+# Open Claude Code in the workspace and say:
+#  "Deploy a fresh agent for this client following NEW-CLIENT-CLAUDE.md"
+claude
+```
+
+Full runbook (12 phases, dependency-ordered): [`vps-setup/DEPLOY-NEW-CLIENT.md`](vps-setup/DEPLOY-NEW-CLIENT.md). Pre-flight check that validates every credential before mutating state: [`vps-setup/scripts/preflight-new-client.sh`](vps-setup/scripts/preflight-new-client.sh).
+
 ---
 
 ## What makes this different

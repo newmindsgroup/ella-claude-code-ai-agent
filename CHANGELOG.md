@@ -2,6 +2,33 @@
 
 All notable changes to this repo. Format roughly follows [Keep a Changelog](https://keepachangelog.com/). This is a multi-tenant template, so versions reflect what's available to clone for a new tenant — not what's running at any one customer's deployment.
 
+## [v0.4.0] — 2026-05-19
+
+### Added — Fresh-client deployment orchestration
+
+Closes the "how do I clone this for a new client" question with a concrete, local-Claude-orchestrated flow. Three new files at the top level + new template + new preflight script.
+
+- **`NEW-CLIENT-CLAUDE.md`** (new top-level) — the orchestrator instructions the LOCAL Claude reads when you're deploying a fresh client agent. 10 phases. Hard gates at pre-flight and smoke-test. Explicit "what you DO" and "what you DON'T" sections so Claude doesn't try to register domains or move money.
+- **`vps-setup/DEPLOY-NEW-CLIENT.md`** — master runbook. Workspace layout, dependency-ordered phase list (1 local prep → 12 archive credentials), rollback strategy per phase, branching for clients without GHL.
+- **`examples/client-credentials.template.md`** — comprehensive credentials template. Every YAML slot a new client deploy needs (VPS, GitHub PAT, Cloudflare token, Telegram bot, CRM, TLS cert, OAuth, Anthropic). Inline comments explain where each value comes from. Pre-deploy checklist at the bottom.
+- **`vps-setup/scripts/preflight-new-client.sh`** — validates EVERY credential against its live endpoint before any state mutates. 8 sections (VPS SSH, GitHub PAT, Cloudflare token + zone match, Telegram bot + user_id numeric, CRM, TLS cert presence, Anthropic account, DNS pre-resolution). Exit code = "is it safe to start deploying?"
+
+### Why this matters
+
+Before v0.4: porting Ella to a new client meant manually rendering the template, manually SCP-ing to a VPS, manually wiring DNS, manually setting up the Telegram bot, manually testing each step. ~3-4 hours per client and easy to drop a step.
+
+After v0.4: open Claude Code in a workspace folder, give it credentials + context, say "deploy this." Local Claude reads `NEW-CLIENT-CLAUDE.md`, runs the pre-flight gate, SSH's to the VPS, walks through every phase, runs the smoke test, pushes the client's repo to GitHub. ~30 minutes per client + most of that is `pnpm install` time on the VPS.
+
+The pre-flight is the key innovation — it tests EVERY credential against its real endpoint BEFORE mutating anything. No more "20 minutes into a deploy, discovers Cloudflare token has wrong scope."
+
+### Use this for
+
+- Standing up a fresh client agent on a fresh VPS in one sitting
+- Pressure-testing a credentials file before committing to a deploy
+- Onboarding a new team member to the deployment process (the runbook is the training material)
+
+---
+
 ## [v0.3.0] — 2026-05-15
 
 ### Added — Proactive notification pipeline (7 new watchers)
