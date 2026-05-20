@@ -1,0 +1,30 @@
+{
+  "generated_at": "2026-05-20T11:30:00Z",
+  "flagged": [
+    {
+      "anomaly": "noteworthy_high",
+      "metric": "api_cost_usd",
+      "today": 1.79,
+      "mean": 1.12,
+      "std": 0.34,
+      "z_score": 1.97,
+      "ewma": 1.21
+    },
+    {
+      "anomaly": "noteworthy_high",
+      "metric": "task_count",
+      "today": 7,
+      "mean": 4.6,
+      "std": 1.3,
+      "z_score": 1.85,
+      "ewma": 4.9
+    }
+  ],
+  "metrics": {
+    "api_cost_usd": { "mean": 1.12, "std": 0.34, "ewma": 1.21, "today": 1.79 },
+    "task_count": { "mean": 4.6, "std": 1.3, "ewma": 4.9, "today": 7 },
+    "total_tokens": { "mean": 1180000, "std": 240000, "ewma": 1210000, "today": 1310800 },
+    "cache_hit_ratio": { "mean": 0.845, "std": 0.012, "ewma": 0.846, "today": 0.843 }
+  },
+  "history_days_used": 14
+}

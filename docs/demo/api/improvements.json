@@ -1,0 +1,74 @@
+{
+  "generated_at": "2026-05-20T11:30:00Z",
+  "reviews": [
+    {
+      "review_date": "2026-05-18",
+      "filename": "2026-05-18-self-improvement.md",
+      "context": "Weekly self-improvement review covering the past 7 days of agent activity. Three patterns surfaced worth codifying into CLAUDE.md.",
+      "proposals": [
+        {
+          "id": "improve-1",
+          "number": 1,
+          "title": "Pre-draft RFP responses on Wednesdays",
+          "pattern": "Inbound RFP-style emails consistently land Thursday afternoons, but draft turnaround takes ~6 hours because brand context has to be re-gathered each time.",
+          "rule": "Each Wednesday, pre-stage a discovery-call invite template and pull the latest case-study snippets so Thursday RFP replies can ship in under an hour.",
+          "where": "CLAUDE.md — Inbound Triage section",
+          "why": "Cuts response latency on the highest-value inbound from hours to minutes, which materially improves close rate on time-sensitive RFPs.",
+          "status": "pending"
+        },
+        {
+          "id": "improve-2",
+          "number": 2,
+          "title": "Lead social posts with a concrete outcome",
+          "pattern": "Posts opening with a specific client result outperform abstract framework posts ~3x on engagement, but the social drafter defaults to framework-first openings.",
+          "rule": "When drafting LinkedIn or X content, open with a concrete, quantified client outcome before introducing any framework or principle.",
+          "where": "CLAUDE.md — Social Drafting voice rules",
+          "why": "Engagement is the leading indicator for newsletter list growth, which is a Q2 goal currently at risk.",
+          "status": "pending"
+        },
+        {
+          "id": "improve-3",
+          "number": 3,
+          "title": "Confirm scheduling preference before proposing slots",
+          "pattern": "The scheduler proposed slots that conflicted with Jane's Tuesday/Thursday deep-work blocks twice this week, requiring manual correction.",
+          "rule": "Always query the calendar-preference memories (working-hours, deep-work) before proposing any external meeting slot.",
+          "where": "CLAUDE.md — Calendar Scheduling section",
+          "why": "Prevents back-and-forth and protects protected focus time, reducing manual intervention.",
+          "status": "applied"
+        }
+      ]
+    },
+    {
+      "review_date": "2026-05-11",
+      "filename": "2026-05-11-self-improvement.md",
+      "context": "Weekly self-improvement review. Two proposals around cost discipline and draft quality.",
+      "proposals": [
+        {
+          "id": "improve-4",
+          "number": 1,
+          "title": "Cap research tasks at a token budget",
+          "pattern": "A single research task consumed 3x the typical token budget chasing tangential sources without adding value to the summary.",
+          "rule": "For research tasks, set a soft token ceiling and stop gathering once the core question is answered with two corroborating sources.",
+          "where": "CLAUDE.md — Research task guidance",
+          "why": "Keeps per-task cost predictable and protects the daily budget ceiling.",
+          "status": "pending"
+        },
+        {
+          "id": "improve-5",
+          "number": 2,
+          "title": "Run a banned-phrase pass on every client draft",
+          "pattern": "Two drafts this week included hype phrases the brand voice forbids, caught only at human review.",
+          "rule": "Before marking any client-facing draft in_review, run a banned-phrase check and rewrite any flagged lines.",
+          "where": "CLAUDE.md — Voice DNA enforcement",
+          "why": "Reduces review burden and keeps every draft on-voice without manual cleanup.",
+          "status": "applied"
+        }
+      ]
+    }
+  ],
+  "totals": {
+    "reviews": 2,
+    "proposals": 5,
+    "pending": 3
+  }
+}

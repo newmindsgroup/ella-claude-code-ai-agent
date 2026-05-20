@@ -1,0 +1,24 @@
+{
+  "ok": true,
+  "generated_at": "2026-05-20T11:30:00Z",
+  "services": {
+    "claude-agent.service": "active",
+    "dashboard-chat.service": "active",
+    "telemetry-calc.timer": "active",
+    "nginx": "active",
+    "telegram-poller-watchdog.timer": "active",
+    "deploy-timeout-sweep.timer": "active"
+  },
+  "telegram_poller": {
+    "alive": true,
+    "pid": "48217"
+  },
+  "watchdog": {
+    "recent_restarts_30min": 0
+  },
+  "tls_cert": {
+    "expiry": "Aug 12 09:00:00 2026 GMT",
+    "days_remaining": 84
+  },
+  "stack_version": "2.57.0"
+}

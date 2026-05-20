@@ -1,0 +1,34 @@
+{
+  "generated_at": "2026-05-20T11:30:00Z",
+  "skills": [
+    { "unit": "agent-skill@social-drafter.timer", "category": "skill", "description": "Drafts daily day-themed social content (LinkedIn, X, IG)", "schedule": "daily 07:00 ET", "last_ago_seconds": 16200, "next_in_seconds": 70200 },
+    { "unit": "agent-skill@newsletter-drafter.timer", "category": "skill", "description": "Drafts the weekly newsletter from RSS sources", "schedule": "Wed 05:30 ET", "last_ago_seconds": 21480, "next_in_seconds": 583320 },
+    { "unit": "agent-skill@inbound-triage.timer", "category": "skill", "description": "Triages inbound email + CRM, drafts replies", "schedule": "every 4h", "last_ago_seconds": 8700, "next_in_seconds": 5700 },
+    { "unit": "agent-skill@pipeline-reporter.timer", "category": "skill", "description": "Weekly CRM pipeline report + stalled-deal flags", "schedule": "Mon 08:00 ET", "last_ago_seconds": 79200, "next_in_seconds": 252000 },
+    { "unit": "agent-skill@brand-drift-scanner.timer", "category": "skill", "description": "Scans published copy for banned phrases + off-canon claims", "schedule": "daily 06:00 ET", "last_ago_seconds": 19800, "next_in_seconds": 66600 },
+    { "unit": "agent-skill@competitive-monitor.timer", "category": "skill", "description": "Daily diff of tracked competitor sites", "schedule": "daily 06:30 ET", "last_ago_seconds": 18000, "next_in_seconds": 68400 },
+    { "unit": "agent-skill@calendar-scheduler.timer", "category": "skill", "description": "Finds time + books meetings on confirmation", "schedule": "on demand", "last_ago_seconds": 600, "next_in_seconds": null },
+    { "unit": "agent-skill@self-improvement-review.timer", "category": "skill", "description": "Weekly self-review proposing CLAUDE.md improvements", "schedule": "Sun 18:00 ET", "last_ago_seconds": 153000, "next_in_seconds": 432000 },
+    { "unit": "task-deadline-watcher.timer", "category": "watcher", "description": "Pings on tasks approaching their deadline", "schedule": "hourly", "last_ago_seconds": 1800, "next_in_seconds": 1800 },
+    { "unit": "goal-deadline-watcher.timer", "category": "watcher", "description": "Flags goals behind pace or near due date", "schedule": "daily 09:00 ET", "last_ago_seconds": 9000, "next_in_seconds": 77400 },
+    { "unit": "stalled-deal-watcher.timer", "category": "watcher", "description": "Surfaces CRM deals with no activity 14d+", "schedule": "every 6h", "last_ago_seconds": 10800, "next_in_seconds": 10800 },
+    { "unit": "hot-lead-inbox-watcher.timer", "category": "watcher", "description": "Cross-refs hot inbound against CRM lead status", "schedule": "every 2h", "last_ago_seconds": 4200, "next_in_seconds": 3000 },
+    { "unit": "calendar-conflict-watcher.timer", "category": "watcher", "description": "Detects overlapping calendar events", "schedule": "every 3h", "last_ago_seconds": 5400, "next_in_seconds": 5400 },
+    { "unit": "disk-space-watcher.timer", "category": "watcher", "description": "Alerts on disk usage thresholds", "schedule": "every 30m", "last_ago_seconds": 900, "next_in_seconds": 900 },
+    { "unit": "dashboard-sync.timer", "category": "infra", "description": "Copies live state into the dashboard webroot", "schedule": "every 1m", "last_ago_seconds": 40, "next_in_seconds": 20 },
+    { "unit": "telemetry-calc.timer", "category": "infra", "description": "Computes token/cost telemetry + merged tasks.json", "schedule": "every 5m", "last_ago_seconds": 120, "next_in_seconds": 180 },
+    { "unit": "graphify-rebuild.timer", "category": "infra", "description": "Rebuilds the knowledge graph (AST-only)", "schedule": "weekly Sun 03:00", "last_ago_seconds": 198000, "next_in_seconds": 387000 },
+    { "unit": "rules-engine.timer", "category": "infra", "description": "Evaluates behavioral rules", "schedule": "every 5m", "last_ago_seconds": 90, "next_in_seconds": 210 },
+    { "unit": "anomaly-detect.timer", "category": "infra", "description": "Rolling z-score + EWMA over telemetry", "schedule": "daily 23:30 ET", "last_ago_seconds": 43200, "next_in_seconds": 43200 },
+    { "unit": "morning-brief.timer", "category": "lifecycle", "description": "Sends the rich morning brief to Telegram", "schedule": "daily 06:45 ET", "last_ago_seconds": 18900, "next_in_seconds": 67500 },
+    { "unit": "evening-rollup.timer", "category": "lifecycle", "description": "Sends the end-of-day activity rollup", "schedule": "daily 22:00 ET", "last_ago_seconds": 48600, "next_in_seconds": 37800 },
+    { "unit": "telegram-poller-watchdog.timer", "category": "lifecycle", "description": "Restarts the Telegram poller if it dies", "schedule": "every 2m", "last_ago_seconds": 60, "next_in_seconds": 60 }
+  ],
+  "totals": {
+    "total": 22,
+    "skill": 8,
+    "watcher": 6,
+    "infra": 5,
+    "lifecycle": 3
+  }
+}

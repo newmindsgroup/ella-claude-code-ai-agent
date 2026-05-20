@@ -1,0 +1,99 @@
+{
+  "generated_at": "2026-05-20T11:30:00Z",
+  "reports": [
+    {
+      "report_date": "2026-05-20",
+      "compared_against": "2026-05-19 snapshot",
+      "targets": [
+        {
+          "name": "Northwind Studio",
+          "status": "threat",
+          "descriptor": "Direct competitor — brand + product design",
+          "url": "https://northwind.example/pricing",
+          "change_text": "Removed the free Starter tier; now a single $99/mo Pro plan.",
+          "new_thing": "Single $99/mo Pro plan, positioned as 'serious teams only'.",
+          "before": "Free Starter + $49 Growth + $149 Pro three-tier structure.",
+          "implication": "They're moving upmarket and abandoning low-end leads. Opening to capture price-sensitive founders Northwind is now ignoring.",
+          "summary": "Removed the free Starter tier; now a single $99/mo Pro plan.",
+          "raw_body_excerpt": ""
+        },
+        {
+          "name": "Globex Creative",
+          "status": "change",
+          "descriptor": "Adjacent agency — occasional overlap",
+          "url": "https://globexcreative.example",
+          "change_text": "Published a new case study and added an AI services page.",
+          "new_thing": "Added a dedicated 'AI brand systems' service line.",
+          "before": "Services limited to traditional brand identity.",
+          "implication": "AI-positioning is becoming table stakes among peers. Reinforce Example Co's deeper AI-native differentiation in messaging.",
+          "summary": "Published a new case study and added an AI services page.",
+          "raw_body_excerpt": ""
+        },
+        {
+          "name": "Initech Labs",
+          "status": "ok",
+          "descriptor": "Peer — product studio",
+          "url": "https://initechlabs.example",
+          "change_text": "",
+          "new_thing": "",
+          "before": "",
+          "implication": "",
+          "summary": "No changes detected since last scan.",
+          "raw_body_excerpt": ""
+        },
+        {
+          "name": "Vandelay Design",
+          "status": "dormant",
+          "descriptor": "Inspiration account — boutique studio",
+          "url": "https://vandelay.example",
+          "change_text": "",
+          "new_thing": "",
+          "before": "",
+          "implication": "",
+          "summary": "No site updates in 60+ days.",
+          "raw_body_excerpt": ""
+        }
+      ],
+      "counts": { "total": 4, "changes": 2, "threats": 1, "ok": 1, "dormant": 1 }
+    },
+    {
+      "report_date": "2026-05-19",
+      "compared_against": "2026-05-18 snapshot",
+      "targets": [
+        {
+          "name": "Northwind Studio",
+          "status": "ok",
+          "descriptor": "Direct competitor — brand + product design",
+          "url": "https://northwind.example",
+          "change_text": "",
+          "new_thing": "",
+          "before": "",
+          "implication": "",
+          "summary": "No changes detected since last scan.",
+          "raw_body_excerpt": ""
+        },
+        {
+          "name": "Globex Creative",
+          "status": "change",
+          "descriptor": "Adjacent agency — occasional overlap",
+          "url": "https://globexcreative.example/blog",
+          "change_text": "Posted a thought-leadership article on design systems.",
+          "new_thing": "Long-form blog post: 'Design systems that scale'.",
+          "before": "Last blog post was 5 weeks ago.",
+          "implication": "Ramping content cadence. Worth monitoring whether this becomes consistent.",
+          "summary": "Posted a thought-leadership article on design systems.",
+          "raw_body_excerpt": ""
+        }
+      ],
+      "counts": { "total": 2, "changes": 1, "threats": 0, "ok": 1, "dormant": 0 }
+    }
+  ],
+  "totals": {
+    "reports": 2,
+    "targets_latest": 4,
+    "changes_latest": 2,
+    "threats_latest": 1,
+    "changes_14d": 3,
+    "threats_14d": 1
+  }
+}

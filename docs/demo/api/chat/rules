@@ -1,0 +1,72 @@
+{
+  "rules": [
+    {
+      "name": "cost-spike-alert",
+      "description": "Alert when today's API cost exceeds 2x the 7-day daily average",
+      "enabled": true,
+      "filename": "cost-spike-alert.yaml",
+      "when_count": 2,
+      "then_count": 1,
+      "throttle_minutes": 720,
+      "last_evaluated": "2026-05-20T11:25:00Z",
+      "last_fired": "",
+      "fire_count": 0,
+      "last_matched": false
+    },
+    {
+      "name": "stalled-deal-nudge",
+      "description": "Flag CRM deals with no activity for 14+ days",
+      "enabled": true,
+      "filename": "stalled-deal-nudge.yaml",
+      "when_count": 1,
+      "then_count": 2,
+      "throttle_minutes": 1440,
+      "last_evaluated": "2026-05-20T11:25:00Z",
+      "last_fired": "2026-05-19T08:30:00Z",
+      "fire_count": 3,
+      "last_matched": true
+    },
+    {
+      "name": "deadline-imminent",
+      "description": "Ping when a loud task is within 24h of its deadline",
+      "enabled": true,
+      "filename": "deadline-imminent.yaml",
+      "when_count": 2,
+      "then_count": 1,
+      "throttle_minutes": 360,
+      "last_evaluated": "2026-05-20T11:25:00Z",
+      "last_fired": "2026-05-20T08:00:00Z",
+      "fire_count": 5,
+      "last_matched": false
+    },
+    {
+      "name": "drift-persistence",
+      "description": "Escalate brand-drift items unfixed across 3+ scans",
+      "enabled": true,
+      "filename": "drift-persistence.yaml",
+      "when_count": 1,
+      "then_count": 1,
+      "throttle_minutes": 2880,
+      "last_evaluated": "2026-05-20T11:25:00Z",
+      "last_fired": "",
+      "fire_count": 0,
+      "last_matched": false
+    },
+    {
+      "name": "context-window-warning",
+      "description": "Warn when a session crosses 90% context usage",
+      "enabled": false,
+      "filename": "context-window-warning.yaml",
+      "when_count": 1,
+      "then_count": 1,
+      "throttle_minutes": 60,
+      "last_evaluated": "",
+      "last_fired": "",
+      "fire_count": 0,
+      "last_matched": false
+    }
+  ],
+  "total": 5,
+  "enabled_count": 4,
+  "generated_at": "2026-05-20T11:30:00Z"
+}

@@ -1,0 +1,72 @@
+{
+  "generated_at": "2026-05-20T11:30:00Z",
+  "deploys": [
+    {
+      "version": "2.57.0",
+      "phase": "smoke_passed",
+      "started_at": "2026-05-20T10:55:00Z",
+      "updated_at": "2026-05-20T11:21:00Z",
+      "state_file": "deploys/2.57.0.state.json",
+      "history": ["started", "preflight_passed", "smoke_passed"],
+      "is_legal": true,
+      "illegal_reason": "",
+      "is_terminal": false,
+      "age_seconds": 2100,
+      "extra": { "triggered_by": "dashboard", "smoke_checks": 57 }
+    },
+    {
+      "version": "2.56.0",
+      "phase": "shipped",
+      "started_at": "2026-05-19T14:10:00Z",
+      "updated_at": "2026-05-19T14:38:00Z",
+      "state_file": "deploys/2.56.0.state.json",
+      "history": ["started", "preflight_passed", "smoke_passed", "ready_to_ship", "shipped"],
+      "is_legal": true,
+      "illegal_reason": "",
+      "is_terminal": true,
+      "age_seconds": 76800,
+      "extra": { "triggered_by": "telegram", "smoke_checks": 57 }
+    },
+    {
+      "version": "2.55.1",
+      "phase": "shipped",
+      "started_at": "2026-05-18T09:20:00Z",
+      "updated_at": "2026-05-18T09:46:00Z",
+      "state_file": "deploys/2.55.1.state.json",
+      "history": ["started", "preflight_passed", "smoke_passed", "ready_to_ship", "shipped"],
+      "is_legal": true,
+      "illegal_reason": "",
+      "is_terminal": true,
+      "age_seconds": 180600,
+      "extra": { "triggered_by": "cli", "smoke_checks": 56 }
+    },
+    {
+      "version": "2.55.0",
+      "phase": "failed",
+      "started_at": "2026-05-18T08:40:00Z",
+      "updated_at": "2026-05-18T08:44:00Z",
+      "state_file": "deploys/2.55.0.state.json",
+      "history": ["started", "failed"],
+      "is_legal": true,
+      "illegal_reason": "",
+      "is_terminal": true,
+      "age_seconds": 183000,
+      "extra": { "triggered_by": "cli", "fail_reason": "preflight: nginx config test failed" }
+    }
+  ],
+  "summary": {
+    "total": 4,
+    "active": 1,
+    "terminal": 3,
+    "illegal": 0,
+    "by_phase": {
+      "started": 0,
+      "preflight_passed": 0,
+      "smoke_passed": 1,
+      "ready_to_ship": 0,
+      "shipped": 2,
+      "failed": 1,
+      "cancelled": 0
+    }
+  }
+}

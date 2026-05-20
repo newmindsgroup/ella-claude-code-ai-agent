@@ -1,0 +1,56 @@
+{
+  "generated_at": "2026-05-20T11:30:00Z",
+  "drafts": [
+    {
+      "platform": "LinkedIn",
+      "platform_raw": "linkedin",
+      "date": "2026-05-20",
+      "filename": "2026-05-20-linkedin.md",
+      "title": "Why most onboarding flows fail at the first screen",
+      "preview": "Acme Corp rebuilt their onboarding around one question: what does the user need to believe before they'll keep going? The answer wasn't more features — it was fewer decisions. Here's the three-step teardown we used.",
+      "in_ghl": false,
+      "modified_at": "2026-05-20T08:41:00Z"
+    },
+    {
+      "platform": "X",
+      "platform_raw": "x-thread",
+      "date": "2026-05-20",
+      "filename": "2026-05-20-x-thread.md",
+      "title": "The clarity tax: what vague copy actually costs",
+      "preview": "Every confusing sentence on your landing page is a tax. Users pay it in attention, you pay it in conversions. A thread on the hidden cost of clever copy (and how to find it on your own site in 10 minutes).",
+      "in_ghl": false,
+      "modified_at": "2026-05-20T07:55:00Z"
+    },
+    {
+      "platform": "Instagram",
+      "platform_raw": "instagram",
+      "date": "2026-05-19",
+      "filename": "2026-05-19-instagram.md",
+      "title": "Before/after: a SaaS hero section rewrite",
+      "preview": "Same product. Same screenshot. One sentence changed — and the bounce rate dropped 22%. Swipe to see the rewrite and the reasoning behind every word.",
+      "in_ghl": true,
+      "modified_at": "2026-05-19T15:20:00Z"
+    },
+    {
+      "platform": "LinkedIn",
+      "platform_raw": "linkedin",
+      "date": "2026-05-19",
+      "filename": "2026-05-19-linkedin.md",
+      "title": "Northwind just made a bold pricing bet",
+      "preview": "Northwind killed their Starter tier this week. No more $0 entry point — they're betting the whole funnel on a single $99 plan. It's a clarity play, and I think it's the right call. Here's why simplifying your pricing can grow revenue.",
+      "in_ghl": true,
+      "modified_at": "2026-05-19T11:10:00Z"
+    },
+    {
+      "platform": "X",
+      "platform_raw": "x-thread",
+      "date": "2026-05-18",
+      "filename": "2026-05-18-x-thread.md",
+      "title": "5 brand-voice mistakes I see in every founder deck",
+      "preview": "I've reviewed 40+ founder decks this year. The same five voice mistakes show up every time — and they all make a strong product sound generic. Thread.",
+      "in_ghl": false,
+      "modified_at": "2026-05-18T16:30:00Z"
+    }
+  ],
+  "total": 5
+}

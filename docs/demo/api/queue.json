@@ -1,0 +1,43 @@
+{
+  "generated_at": "2026-05-20T11:30:00Z",
+  "queue": [
+    {
+      "id": "task-20260519-1405-ep",
+      "summary": "Triage inbound email + draft replies to Initech RFP question",
+      "state": "awaiting_external",
+      "owner": "agent",
+      "source": "inbound-triage",
+      "age_minutes": 252
+    },
+    {
+      "id": "task-20260518-0900-gr",
+      "summary": "Schedule discovery call with Acme Corp marketing lead next week",
+      "state": "blocked",
+      "owner": "agent",
+      "source": "calendar-scheduler",
+      "age_minutes": 8
+    },
+    {
+      "id": "task-20260517-1100-it",
+      "summary": "Draft this week's newsletter from RSS sources on AI + design",
+      "state": "in_review",
+      "owner": "agent",
+      "source": "newsletter-drafter",
+      "age_minutes": 338
+    },
+    {
+      "id": "task-20260519-0830-ax",
+      "summary": "Draft LinkedIn post on AI-native onboarding flows for Acme Corp launch",
+      "state": "in_review",
+      "owner": "agent",
+      "source": "social-drafter",
+      "age_minutes": 169
+    }
+  ],
+  "by_state": {
+    "in_review": 2,
+    "awaiting_external": 1,
+    "blocked": 1
+  },
+  "total": 4
+}

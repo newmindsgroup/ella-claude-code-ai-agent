@@ -1,0 +1,172 @@
+{
+  "generated_at": "2026-05-20T11:30:00Z",
+  "tenant_id": "example-co",
+  "pricing_model": "claude-sonnet-4-6",
+  "pricing_per_mtok_usd": {
+    "input": 3.0,
+    "output": 15.0,
+    "cache_write": 3.75,
+    "cache_read": 0.3
+  },
+  "rollup": {
+    "today": {
+      "task_count": 7,
+      "input_tokens": 176800,
+      "output_tokens": 27000,
+      "cache_read_tokens": 951000,
+      "cache_write_tokens": 156000,
+      "api_cost_usd": 1.792,
+      "value_usd": 583.33,
+      "net_savings_usd": 581.54,
+      "human_eq_minutes": 230,
+      "cache_hit_ratio": 0.8432,
+      "human_eq_hours": 3.83
+    },
+    "week": {
+      "task_count": 41,
+      "input_tokens": 1142000,
+      "output_tokens": 178000,
+      "cache_read_tokens": 6210000,
+      "cache_write_tokens": 994000,
+      "api_cost_usd": 12.84,
+      "value_usd": 3920.0,
+      "net_savings_usd": 3907.16,
+      "human_eq_minutes": 1685,
+      "cache_hit_ratio": 0.8447,
+      "human_eq_hours": 28.08
+    },
+    "month": {
+      "task_count": 168,
+      "input_tokens": 4810000,
+      "output_tokens": 742000,
+      "cache_read_tokens": 26400000,
+      "cache_write_tokens": 4120000,
+      "api_cost_usd": 54.91,
+      "value_usd": 16240.0,
+      "net_savings_usd": 16185.09,
+      "human_eq_minutes": 6980,
+      "cache_hit_ratio": 0.8458,
+      "human_eq_hours": 116.33
+    },
+    "all_time": {
+      "task_count": 612,
+      "input_tokens": 17900000,
+      "output_tokens": 2740000,
+      "cache_read_tokens": 98100000,
+      "cache_write_tokens": 15200000,
+      "api_cost_usd": 203.77,
+      "value_usd": 59800.0,
+      "net_savings_usd": 59596.23,
+      "human_eq_minutes": 25700,
+      "cache_hit_ratio": 0.8457,
+      "human_eq_hours": 428.33
+    }
+  },
+  "daily_token_history": [
+    { "date": "2026-05-07", "input": 138000, "output": 21000, "cache_read": 742000, "cache_write": 118000 },
+    { "date": "2026-05-08", "input": 152000, "output": 24000, "cache_read": 818000, "cache_write": 131000 },
+    { "date": "2026-05-09", "input": 96000, "output": 14000, "cache_read": 512000, "cache_write": 82000 },
+    { "date": "2026-05-10", "input": 71000, "output": 10000, "cache_read": 388000, "cache_write": 61000 },
+    { "date": "2026-05-11", "input": 164000, "output": 26000, "cache_read": 889000, "cache_write": 142000 },
+    { "date": "2026-05-12", "input": 181000, "output": 29000, "cache_read": 981000, "cache_write": 157000 },
+    { "date": "2026-05-13", "input": 173000, "output": 27000, "cache_read": 942000, "cache_write": 150000 },
+    { "date": "2026-05-14", "input": 159000, "output": 25000, "cache_read": 861000, "cache_write": 138000 },
+    { "date": "2026-05-15", "input": 168000, "output": 26000, "cache_read": 912000, "cache_write": 146000 },
+    { "date": "2026-05-16", "input": 88000, "output": 13000, "cache_read": 471000, "cache_write": 75000 },
+    { "date": "2026-05-17", "input": 79000, "output": 11000, "cache_read": 421000, "cache_write": 67000 },
+    { "date": "2026-05-18", "input": 171000, "output": 27000, "cache_read": 926000, "cache_write": 148000 },
+    { "date": "2026-05-19", "input": 186000, "output": 30000, "cache_read": 1008000, "cache_write": 161000 },
+    { "date": "2026-05-20", "input": 176800, "output": 27000, "cache_read": 951000, "cache_write": 156000 }
+  ],
+  "by_type": [
+    { "type": "strategy", "type_label": "Strategy", "count": 6, "task_count": 6, "input_tokens": 312000, "output_tokens": 48600, "cache_read_tokens": 1266000, "cache_write_tokens": 228000, "api_cost_usd": 6.92, "value_usd": 1800.0, "net_savings_usd": 1793.08 },
+    { "type": "newsletter", "type_label": "Newsletter", "count": 4, "task_count": 4, "input_tokens": 188000, "output_tokens": 36800, "cache_read_tokens": 752000, "cache_write_tokens": 124000, "api_cost_usd": 3.41, "value_usd": 900.0, "net_savings_usd": 896.59 },
+    { "type": "research", "type_label": "Research", "count": 9, "task_count": 9, "input_tokens": 370800, "output_tokens": 50400, "cache_read_tokens": 1782000, "cache_write_tokens": 297000, "api_cost_usd": 3.64, "value_usd": 1350.0, "net_savings_usd": 1346.36 },
+    { "type": "social-draft", "type_label": "Social drafting", "count": 12, "task_count": 12, "input_tokens": 220800, "output_tokens": 34800, "cache_read_tokens": 1704000, "cache_write_tokens": 252000, "api_cost_usd": 2.24, "value_usd": 540.0, "net_savings_usd": 537.76 },
+    { "type": "pipeline-report", "type_label": "Pipeline report", "count": 3, "task_count": 3, "input_tokens": 66000, "output_tokens": 10200, "cache_read_tokens": 357000, "cache_write_tokens": 54000, "api_cost_usd": 0.615, "value_usd": 150.0, "net_savings_usd": 149.39 },
+    { "type": "drift-scan", "type_label": "Brand audit", "count": 5, "task_count": 5, "input_tokens": 155000, "output_tokens": 20500, "cache_read_tokens": 780000, "cache_write_tokens": 120000, "api_cost_usd": 1.46, "value_usd": 250.0, "net_savings_usd": 248.54 },
+    { "type": "outreach", "type_label": "Outreach", "count": 8, "task_count": 8, "input_tokens": 128000, "output_tokens": 17600, "cache_read_tokens": 704000, "cache_write_tokens": 112000, "api_cost_usd": 1.14, "value_usd": 180.0, "net_savings_usd": 178.86 },
+    { "type": "memory", "type_label": "Memory note", "count": 14, "task_count": 14, "input_tokens": 44800, "output_tokens": 5600, "cache_read_tokens": 252000, "cache_write_tokens": 42000, "api_cost_usd": 0.392, "value_usd": 58.33, "net_savings_usd": 57.94 }
+  ],
+  "by_owner": [
+    { "owner": "agent", "count": 56, "input_tokens": 1042000, "output_tokens": 160000, "cache_read_tokens": 5810000, "cache_write_tokens": 920000, "api_cost_usd": 11.21, "value_usd": 3290.0, "net_savings_usd": 3278.79 },
+    { "owner": "jane", "count": 6, "input_tokens": 100000, "output_tokens": 18000, "cache_read_tokens": 400000, "cache_write_tokens": 74000, "api_cost_usd": 1.63, "value_usd": 630.0, "net_savings_usd": 628.37 }
+  ],
+  "top_tasks": [
+    {
+      "task_id": "task-20260519-1002-cc", "id": "task-20260519-1002-cc",
+      "summary": "Build a Q3 brand strategy memo for the Globex rebrand engagement",
+      "owner": "jane", "source": "telegram", "type": "strategy", "type_label": "Strategy",
+      "state": "in_progress", "created_at": "2026-05-20T10:02:00Z", "completed_at": null,
+      "input_tokens": 52000, "output_tokens": 8100, "cache_read_tokens": 211000, "cache_write_tokens": 38000,
+      "wall_seconds": null, "api_cost_usd": 0.487, "value_usd": 300.0, "human_eq_minutes": 90,
+      "human_hourly_rate_usd": 200.0, "net_savings_usd": 299.51, "cache_hit_ratio": 0.8023
+    },
+    {
+      "task_id": "task-20260517-1100-it", "id": "task-20260517-1100-it",
+      "summary": "Draft this week's newsletter from RSS sources on AI + design",
+      "owner": "agent", "source": "newsletter-drafter", "type": "newsletter", "type_label": "Newsletter",
+      "state": "in_review", "created_at": "2026-05-20T05:30:00Z", "completed_at": null,
+      "input_tokens": 47000, "output_tokens": 9200, "cache_read_tokens": 188000, "cache_write_tokens": 31000,
+      "wall_seconds": 1320, "api_cost_usd": 0.451, "value_usd": 225.0, "human_eq_minutes": 90,
+      "human_hourly_rate_usd": 150.0, "net_savings_usd": 224.55, "cache_hit_ratio": 0.8
+    },
+    {
+      "task_id": "task-20260519-0915-bm", "id": "task-20260519-0915-bm",
+      "summary": "Research Northwind's new pricing page and summarize positioning shifts",
+      "owner": "agent", "source": "competitive-monitor", "type": "research", "type_label": "Research",
+      "state": "done", "created_at": "2026-05-20T09:15:00Z", "completed_at": "2026-05-20T09:38:00Z",
+      "input_tokens": 41200, "output_tokens": 5600, "cache_read_tokens": 198000, "cache_write_tokens": 33000,
+      "wall_seconds": 1320, "api_cost_usd": 0.404, "value_usd": 150.0, "human_eq_minutes": 60,
+      "human_hourly_rate_usd": 150.0, "net_savings_usd": 149.6, "cache_hit_ratio": 0.8278
+    },
+    {
+      "task_id": "task-20260519-1130-dn", "id": "task-20260519-1130-dn",
+      "summary": "Generate weekly pipeline report from CRM and flag stalled deals",
+      "owner": "agent", "source": "pipeline-reporter", "type": "pipeline-report", "type_label": "Pipeline report",
+      "state": "done", "created_at": "2026-05-19T13:30:00Z", "completed_at": "2026-05-19T13:42:00Z",
+      "input_tokens": 22000, "output_tokens": 3400, "cache_read_tokens": 119000, "cache_write_tokens": 18000,
+      "wall_seconds": 720, "api_cost_usd": 0.205, "value_usd": 50.0, "human_eq_minutes": 30,
+      "human_hourly_rate_usd": 100.0, "net_savings_usd": 49.8, "cache_hit_ratio": 0.844
+    },
+    {
+      "task_id": "task-20260519-1620-fq", "id": "task-20260519-1620-fq",
+      "summary": "Run brand-drift scan across this week's published social + site copy",
+      "owner": "agent", "source": "brand-drift-scanner", "type": "drift-scan", "type_label": "Brand audit",
+      "state": "done", "created_at": "2026-05-20T06:00:00Z", "completed_at": "2026-05-20T06:12:00Z",
+      "input_tokens": 31000, "output_tokens": 4100, "cache_read_tokens": 156000, "cache_write_tokens": 24000,
+      "wall_seconds": 720, "api_cost_usd": 0.292, "value_usd": 50.0, "human_eq_minutes": 30,
+      "human_hourly_rate_usd": 100.0, "net_savings_usd": 49.71, "cache_hit_ratio": 0.8342
+    },
+    {
+      "task_id": "task-20260519-0830-ax", "id": "task-20260519-0830-ax",
+      "summary": "Draft LinkedIn post on AI-native onboarding flows for Acme Corp launch",
+      "owner": "agent", "source": "social-drafter", "type": "social-draft", "type_label": "Social drafting",
+      "state": "in_review", "created_at": "2026-05-20T08:30:00Z", "completed_at": null,
+      "input_tokens": 18400, "output_tokens": 2900, "cache_read_tokens": 142000, "cache_write_tokens": 21000,
+      "wall_seconds": 600, "api_cost_usd": 0.187, "value_usd": 45.0, "human_eq_minutes": 30,
+      "human_hourly_rate_usd": 90.0, "net_savings_usd": 44.81, "cache_hit_ratio": 0.8853
+    },
+    {
+      "task_id": "task-20260518-1430-hs", "id": "task-20260518-1430-hs",
+      "summary": "Write evening rollup summarizing today's agent activity",
+      "owner": "agent", "source": "evening-rollup", "type": "evening-rollup", "type_label": "Evening rollup",
+      "state": "done", "created_at": "2026-05-19T22:00:00Z", "completed_at": "2026-05-19T22:06:00Z",
+      "input_tokens": 12000, "output_tokens": 1900, "cache_read_tokens": 71000, "cache_write_tokens": 11000,
+      "wall_seconds": 360, "api_cost_usd": 0.109, "value_usd": 18.75, "human_eq_minutes": 15,
+      "human_hourly_rate_usd": 75.0, "net_savings_usd": 18.64, "cache_hit_ratio": 0.8554
+    },
+    {
+      "task_id": "task-20260519-1405-ep", "id": "task-20260519-1405-ep",
+      "summary": "Triage inbound email + draft replies to Initech RFP question",
+      "owner": "agent", "source": "inbound-triage", "type": "outreach", "type_label": "Outreach",
+      "state": "awaiting_external", "created_at": "2026-05-20T07:05:00Z", "completed_at": null,
+      "input_tokens": 16000, "output_tokens": 2200, "cache_read_tokens": 88000, "cache_write_tokens": 14000,
+      "wall_seconds": 780, "api_cost_usd": 0.142, "value_usd": 22.5, "human_eq_minutes": 15,
+      "human_hourly_rate_usd": 90.0, "net_savings_usd": 22.36, "cache_hit_ratio": 0.8462
+    }
+  ],
+  "unattributed_tokens": { "input": 24000, "output": 3100, "cache_read": 98000, "cache_write": 16000 },
+  "task_count": 62,
+  "event_count": 318
+}

@@ -1,0 +1,30 @@
+{
+  "generated_at": "2026-05-20T11:30:00Z",
+  "latest_date": "2026-05-20",
+  "latest_age_days": 0.2,
+  "latest_content": "# Weekly Insight — 2026-05-20\n\n**The week in one line:** Strong revenue momentum, but list growth is the soft spot worth a deliberate push.\n\n- **Revenue is tracking ahead of pace.** Two of four Q2 engagements are signed and the Globex proposal goes out Friday. At 68% of the $60K target with six weeks left, this goal is comfortably on track — the constraint now is delivery capacity, not pipeline.\n- **The agent is carrying real load.** 41 tasks this week at $12.84 in API cost produced an estimated $3,920 in human-equivalent value — a 305x return. Cache hit ratio held at 84%, keeping per-task cost predictable.\n- **Newsletter list growth is the one at-risk goal.** At 2,140 of 2,500 subscribers, the lead magnet shipped but the referral loop hasn't. Highest-leverage move this week: launch the referral incentive and lean social content toward outcome-first hooks (which engage ~3x better).\n- **Competitive tempo is picking up.** Northwind abandoned its free tier and Globex added an AI services line. The opening: capture the price-sensitive founders Northwind just walked away from, and sharpen the AI-native differentiation before it becomes table stakes.\n- **Two self-improvement proposals are worth applying now** — pre-staging RFP responses on Wednesdays and capping research token budgets. Both reduce manual intervention on the highest-frequency work.",
+  "total_insights": 6,
+  "history": [
+    {
+      "date": "2026-05-20",
+      "age_days": 0.2,
+      "size_kb": 1.9,
+      "preview": "Strong revenue momentum, but list growth is the soft spot worth a deliberate push.",
+      "content": "# Weekly Insight — 2026-05-20\n\n**The week in one line:** Strong revenue momentum, but list growth is the soft spot worth a deliberate push.\n\n- **Revenue is tracking ahead of pace.** Two of four Q2 engagements are signed and the Globex proposal goes out Friday. At 68% of the $60K target with six weeks left, this goal is comfortably on track.\n- **The agent is carrying real load.** 41 tasks this week at $12.84 in API cost produced an estimated $3,920 in human-equivalent value — a 305x return.\n- **Newsletter list growth is the one at-risk goal.** At 2,140 of 2,500 subscribers, the lead magnet shipped but the referral loop hasn't.\n- **Competitive tempo is picking up.** Northwind abandoned its free tier and Globex added an AI services line."
+    },
+    {
+      "date": "2026-05-13",
+      "age_days": 7.2,
+      "size_kb": 1.6,
+      "preview": "A quiet, high-leverage week — content cadence held and ops automation crossed 70%.",
+      "content": "# Weekly Insight — 2026-05-13\n\n**The week in one line:** A quiet, high-leverage week — content cadence held and ops automation crossed 70%.\n\n- **Content cadence was fully met:** three LinkedIn posts and one newsletter shipped on schedule.\n- **Automation milestone:** routine ops crossed 70% autonomous, with pipeline reporting now fully hands-off.\n- **Watch item:** a single research task ran 3x over its typical token budget — worth a soft ceiling."
+    },
+    {
+      "date": "2026-05-06",
+      "age_days": 14.2,
+      "size_kb": 1.5,
+      "preview": "Pipeline filling faster than delivery capacity — start protecting deep-work time.",
+      "content": "# Weekly Insight — 2026-05-06\n\n**The week in one line:** Pipeline filling faster than delivery capacity — start protecting deep-work time.\n\n- **Three new inbound leads** arrived, two of them warm referrals.\n- **Scheduling friction:** the agent proposed slots conflicting with deep-work blocks twice — a calendar-preference check would prevent this.\n- **Cache savings** topped $40 this week as session warming improved."
+    }
+  ]
+}

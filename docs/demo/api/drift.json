@@ -1,0 +1,71 @@
+{
+  "generated_at": "2026-05-20T11:30:00Z",
+  "scans": [
+    {
+      "scan_date": "2026-05-20",
+      "summary_text": "0 RED, 0 HIGH, 2 MEDIUM, 1 LOW across 14 published assets",
+      "counts": { "red": 0, "high": 0, "medium": 2, "low": 1 },
+      "callout": "Brand voice is largely on-spec. Two medium items relate to a non-canonical CTA reused from an older template; one has persisted across two scans.",
+      "items": {
+        "red": [],
+        "high": [],
+        "medium": [
+          {
+            "title": "Non-canonical CTA on services page",
+            "source": "exampleco.example/services",
+            "item": "\"Let's chat about your project\"",
+            "violation": "CTA does not match the canonical \"Book a clarity call\" used elsewhere; weakens the funnel's consistency.",
+            "status": "Flagged 2026-05-19, 2026-05-20",
+            "fix": "Replace with the canonical CTA \"Book a clarity call\" and link to the scheduling page.",
+            "persistence_days": 2
+          },
+          {
+            "title": "Hype phrasing in a scheduled LinkedIn draft",
+            "source": "drafts/social/2026-05-18-linkedin.md",
+            "item": "\"thrilled to announce\"",
+            "violation": "Uses a banned hype phrase from the voice playbook.",
+            "status": "Flagged 2026-05-20",
+            "fix": "Rewrite to lead with the announcement directly: state what shipped and why it matters.",
+            "persistence_days": 0
+          }
+        ],
+        "low": [
+          {
+            "title": "Inconsistent capitalization of product name",
+            "source": "exampleco.example/about",
+            "item": "\"example co\" vs \"Example Co\"",
+            "violation": "Brand name should be title-cased consistently.",
+            "status": "Flagged 2026-05-20",
+            "fix": "Standardize to \"Example Co\" throughout.",
+            "persistence_days": 0
+          }
+        ]
+      }
+    },
+    {
+      "scan_date": "2026-05-19",
+      "summary_text": "0 RED, 0 HIGH, 1 MEDIUM, 0 LOW across 12 published assets",
+      "counts": { "red": 0, "high": 0, "medium": 1, "low": 0 },
+      "callout": "Clean scan apart from a recurring non-canonical CTA on the services page.",
+      "items": {
+        "red": [],
+        "high": [],
+        "medium": [
+          {
+            "title": "Non-canonical CTA on services page",
+            "source": "exampleco.example/services",
+            "item": "\"Let's chat about your project\"",
+            "violation": "CTA does not match the canonical \"Book a clarity call\".",
+            "status": "Flagged 2026-05-19",
+            "fix": "Replace with the canonical CTA \"Book a clarity call\".",
+            "persistence_days": 1
+          }
+        ],
+        "low": []
+      }
+    }
+  ],
+  "latest": { "red": 0, "high": 0, "medium": 2, "low": 1 },
+  "persistent_in_latest": 1,
+  "total_scans_14d": 2
+}

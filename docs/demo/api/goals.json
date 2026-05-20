@@ -1,0 +1,62 @@
+{
+  "generated_at": "2026-05-20T11:30:00Z",
+  "goals": [
+    {
+      "id": "goal-q2-revenue",
+      "title": "Close $60K in new consulting revenue this quarter",
+      "description": "Net-new signed engagements across brand + AI advisory.",
+      "status": "on_track",
+      "progress": 0.68,
+      "due_at": "2026-06-30T23:59:59Z",
+      "last_check_in": "2026-05-19T14:00:00Z",
+      "milestones": [
+        { "title": "Acme Corp brand sprint signed ($18K)", "done": true },
+        { "title": "Northwind AI advisory retainer ($24K)", "done": true },
+        { "title": "Globex rebrand proposal sent ($22K)", "done": false },
+        { "title": "Initech RFP response submitted", "done": false }
+      ]
+    },
+    {
+      "id": "goal-content-cadence",
+      "title": "Publish 3 LinkedIn posts + 1 newsletter per week",
+      "description": "Consistent thought-leadership cadence to grow inbound.",
+      "status": "on_track",
+      "progress": 0.85,
+      "due_at": "2026-06-30T23:59:59Z",
+      "last_check_in": "2026-05-20T08:45:00Z",
+      "milestones": [
+        { "title": "Week of May 12 — full cadence hit", "done": true },
+        { "title": "Week of May 19 — 2 of 3 posts published", "done": false }
+      ]
+    },
+    {
+      "id": "goal-list-growth",
+      "title": "Grow newsletter list to 2,500 subscribers",
+      "description": "Currently at 2,140. Lead magnet + referral loop driving growth.",
+      "status": "at_risk",
+      "progress": 0.42,
+      "due_at": "2026-07-15T23:59:59Z",
+      "last_check_in": "2026-05-18T10:30:00Z",
+      "milestones": [
+        { "title": "Ship UX audit lead magnet", "done": true },
+        { "title": "Reach 2,200 subscribers", "done": false },
+        { "title": "Launch referral incentive", "done": false }
+      ]
+    },
+    {
+      "id": "goal-agent-autonomy",
+      "title": "Move 80% of routine ops to autonomous agent",
+      "description": "Triage, drafting, scheduling, reporting handled without manual steps.",
+      "status": "on_track",
+      "progress": 0.74,
+      "due_at": "2026-06-15T23:59:59Z",
+      "last_check_in": "2026-05-20T06:30:00Z",
+      "milestones": [
+        { "title": "Inbound triage fully automated", "done": true },
+        { "title": "Social drafting on daily schedule", "done": true },
+        { "title": "Pipeline reporting weekly", "done": true },
+        { "title": "Scheduling end-to-end without handoff", "done": false }
+      ]
+    }
+  ]
+}

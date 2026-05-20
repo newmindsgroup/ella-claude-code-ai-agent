@@ -1,0 +1,26 @@
+{
+  "events": [
+    { "action": "tab-switch", "target": "overview", "details": {}, "source": "dashboard", "ts": "2026-05-20T11:29:40Z", "request_id": "evt-1001" },
+    { "action": "approve", "target": "task-20260519-0915-bm", "details": { "from": "in_review" }, "source": "dashboard", "ts": "2026-05-20T11:28:55Z", "request_id": "evt-1002" },
+    { "action": "skill-run", "target": "agent-skill@brand-drift-scanner.service", "details": { "result": "fired" }, "source": "dashboard", "ts": "2026-05-20T11:22:10Z", "request_id": "evt-1003" },
+    { "action": "tab-switch", "target": "telemetry", "details": {}, "source": "dashboard", "ts": "2026-05-20T11:18:02Z", "request_id": "evt-1004" },
+    { "action": "snooze", "target": "drafts-pending", "details": { "snooze_seconds": 86400 }, "source": "dashboard", "ts": "2026-05-20T10:55:33Z", "request_id": "evt-1005" },
+    { "action": "rules-evaluate-now", "target": "rules-engine", "details": {}, "source": "dashboard", "ts": "2026-05-20T10:40:18Z", "request_id": "evt-1006" },
+    { "action": "approve", "target": "task-20260519-1130-dn", "details": { "from": "in_review" }, "source": "telegram", "ts": "2026-05-20T09:42:05Z", "request_id": "evt-1007" },
+    { "action": "tab-switch", "target": "competitive", "details": {}, "source": "dashboard", "ts": "2026-05-20T09:30:11Z", "request_id": "evt-1008" },
+    { "action": "audit-refresh", "target": "", "details": {}, "source": "dashboard", "ts": "2026-05-20T09:15:44Z", "request_id": "evt-1009" },
+    { "action": "edit-task", "target": "task-20260519-1002-cc", "details": { "field": "deadline" }, "source": "dashboard", "ts": "2026-05-20T08:50:27Z", "request_id": "evt-1010" },
+    { "action": "skill-run", "target": "agent-skill@inbound-triage.service", "details": { "result": "fired" }, "source": "telegram", "ts": "2026-05-20T07:05:00Z", "request_id": "evt-1011" },
+    { "action": "tab-switch", "target": "drafts", "details": {}, "source": "dashboard", "ts": "2026-05-20T06:48:12Z", "request_id": "evt-1012" },
+    { "action": "morning-brief-open", "target": "telegram", "details": {}, "source": "telegram", "ts": "2026-05-20T06:46:30Z", "request_id": "evt-1013" },
+    { "action": "snooze", "target": "competitive-changes", "details": { "snooze_seconds": 86400 }, "source": "dashboard", "ts": "2026-05-19T22:10:05Z", "request_id": "evt-1014" },
+    { "action": "approve", "target": "task-20260518-1430-hs", "details": { "from": "in_review" }, "source": "dashboard", "ts": "2026-05-19T22:06:40Z", "request_id": "evt-1015" },
+    { "action": "deploy-trigger", "target": "2.56.0", "details": { "phase": "started" }, "source": "telegram", "ts": "2026-05-19T14:10:00Z", "request_id": "evt-1016" },
+    { "action": "deploy-ship", "target": "2.56.0", "details": { "phase": "shipped" }, "source": "telegram", "ts": "2026-05-19T14:38:00Z", "request_id": "evt-1017" },
+    { "action": "tab-switch", "target": "memory", "details": {}, "source": "dashboard", "ts": "2026-05-19T13:20:09Z", "request_id": "evt-1018" },
+    { "action": "remember", "target": "mem-0011", "details": { "type": "decision" }, "source": "telegram", "ts": "2026-05-19T17:00:00Z", "request_id": "evt-1019" },
+    { "action": "budget-unblock", "target": "research", "details": {}, "source": "dashboard", "ts": "2026-05-18T16:12:50Z", "request_id": "evt-1020" }
+  ],
+  "total": 20,
+  "returned": 20
+}

@@ -1,0 +1,58 @@
+{
+  "generated_at": "2026-05-20T11:30:00Z",
+  "sessions": [
+    {
+      "session_id": "a1f3c9d2-7b4e-4a18-9c2f-1e6d8b3a0f55",
+      "project": "agents",
+      "last_activity_iso": "2026-05-20T11:28:30Z",
+      "age_seconds": 90,
+      "status": "active",
+      "size_kb": 412.6,
+      "message_count": { "user": 24, "assistant": 31 },
+      "context_tokens": 84200,
+      "context_pct": 42.1,
+      "last_text_preview": "Drafting the LinkedIn post on AI-native onboarding flows for the Acme launch. Pulled the brand voice spec and the three hook variants."
+    },
+    {
+      "session_id": "b7e2d418-3a9c-4f06-8d51-2c7a9e1b4d33",
+      "project": "brand-repo/website",
+      "last_activity_iso": "2026-05-20T11:14:00Z",
+      "age_seconds": 960,
+      "status": "idle",
+      "size_kb": 287.3,
+      "message_count": { "user": 12, "assistant": 15 },
+      "context_tokens": 162500,
+      "context_pct": 81.3,
+      "last_text_preview": "Reworking the services page hero. Replacing the non-canonical CTA flagged by the drift scanner with 'Book a clarity call'."
+    },
+    {
+      "session_id": "c4a8f201-9d6b-4e73-a1c8-5f3e2b7d9a04",
+      "project": "agents/competitive",
+      "last_activity_iso": "2026-05-20T09:38:00Z",
+      "age_seconds": 6720,
+      "status": "stale",
+      "size_kb": 198.9,
+      "message_count": { "user": 8, "assistant": 11 },
+      "context_tokens": 51800,
+      "context_pct": 25.9,
+      "last_text_preview": "Finished the Northwind pricing teardown. They dropped the Starter tier and are moving upmarket."
+    },
+    {
+      "session_id": "d9c1e573-2f48-4b90-8e6a-7a4c1d05f288",
+      "project": "agents/newsletter",
+      "last_activity_iso": "2026-05-20T05:52:00Z",
+      "age_seconds": 20280,
+      "status": "stale",
+      "size_kb": 233.1,
+      "message_count": { "user": 6, "assistant": 9 },
+      "context_tokens": 43600,
+      "context_pct": 21.8,
+      "last_text_preview": "Newsletter draft staged. 11 RSS items curated into the AI + design weekly."
+    }
+  ],
+  "totals": {
+    "total": 4,
+    "active": 1,
+    "idle": 1
+  }
+}

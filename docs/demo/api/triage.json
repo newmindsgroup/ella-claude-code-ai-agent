@@ -1,0 +1,89 @@
+{
+  "generated_at": "2026-05-20T11:30:00Z",
+  "runs": [
+    {
+      "date": "2026-05-20",
+      "time": "9:00 AM",
+      "summary": {
+        "total": 11,
+        "high_drafted": 1,
+        "medium_drafted": 2,
+        "low_drafted": 3,
+        "ignored": 5,
+        "flagged": 0
+      },
+      "high_items": [
+        {
+          "title": "Initech RFP follow-up question",
+          "from": "Marcus Webb <marcus@initech.example>",
+          "subject": "Re: Brand + UX engagement scope",
+          "why": "Active RFP. Marcus is asking for a fixed-fee breakdown and references a board decision next week. Time-sensitive and high-value — direct path to a $20K+ engagement."
+        }
+      ],
+      "medium_items": [
+        {
+          "title": "Acme Corp asset handoff timing",
+          "from": "Dana Liu <dana@acme.example>",
+          "subject": "Final logo files before launch?",
+          "why": "Existing client checking delivery timeline ahead of the June 3 launch. Needs a clear date but not blocking today."
+        },
+        {
+          "title": "Podcast guest invitation",
+          "from": "host@designsignal.example",
+          "subject": "Guest on the Design Signal podcast",
+          "why": "Inbound brand-building opportunity. Worth a reply but lower urgency than client work."
+        }
+      ]
+    },
+    {
+      "date": "2026-05-19",
+      "time": "1:00 PM",
+      "summary": {
+        "total": 8,
+        "high_drafted": 0,
+        "medium_drafted": 1,
+        "low_drafted": 2,
+        "ignored": 5,
+        "flagged": 1
+      },
+      "high_items": [],
+      "medium_items": [
+        {
+          "title": "Globex contract redline",
+          "from": "legal@globex.example",
+          "subject": "MSA redlines for review",
+          "why": "Standard contract redlines on the Globex engagement. Needs review before the proposal goes out Friday."
+        }
+      ]
+    },
+    {
+      "date": "2026-05-19",
+      "time": "9:00 AM",
+      "summary": {
+        "total": 9,
+        "high_drafted": 1,
+        "medium_drafted": 0,
+        "low_drafted": 4,
+        "ignored": 4,
+        "flagged": 0
+      },
+      "high_items": [
+        {
+          "title": "Stalled deal re-engagement: Vandelay",
+          "from": "art@vandelay.example",
+          "subject": "Picking our project back up",
+          "why": "A deal that went quiet 3 weeks ago just reopened. Vandelay wants to restart the brand sprint conversation — warm and ready to move."
+        }
+      ],
+      "medium_items": []
+    }
+  ],
+  "totals_14d": {
+    "runs": 3,
+    "processed": 28,
+    "high": 2,
+    "medium": 3,
+    "low": 9,
+    "ignored": 14
+  }
+}
