@@ -195,41 +195,25 @@ def cost_from_usage(u: dict) -> float:
 
 
 def create_ledger_task(summary: str) -> str:
-    """Create a `dashboard-chat` task in the ledger and return its id."""
-    tid = f"dchat_{uuid.uuid4().hex[:12]}"
-    try:
-        subprocess.run(
-            ["bash", LEDGER_BIN, "create",
-             "--id", tid,
-             "--summary", summary[:160],
-             "--owner", "dashboard-chat",
-             "--source", "dashboard",
-             "--type", "dashboard-chat",
-             "--state", "in_progress",
-             "--loud", "false"],
-            check=False, timeout=10,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-    except Exception:
-        pass
-    return tid
+    """Return a synthetic id for this chat turn. Returns a synthetic id.
+
+    v2.66.0: this NO LONGER writes to the task ledger. Previously it called
+    task-ledger.sh create with --loud false to stay silent, but in the live
+    environment that ledger create fired a "🔧 Working on it … Tracking it"
+    Telegram ping for every casual dashboard message — cross-surface noise.
+    The unified conversation store (_conversation.append_message) already
+    records every chat message with tokens + cost, so a separate ledger task
+    is redundant. Dropping it kills the ping bulletproofly AND declutters the
+    Tasks tab (chat messages aren't really tasks). The synthetic id keeps the
+    /api/chat response shape (task_id) intact for the dashboard.
+    """
+    return f"dchat_{uuid.uuid4().hex[:12]}"
 
 
 def complete_ledger_task(tid: str, summary: str) -> None:
-    try:
-        subprocess.run(
-            ["bash", LEDGER_BIN, "update",
-             "--id", tid,
-             "--state", "done",
-             "--summary", summary[:160],
-             "--loud", "false"],
-            check=False, timeout=10,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-    except Exception:
-        pass
+    """No-op (v2.66.0). See create_ledger_task — chat is tracked in the
+    conversation store, not the task ledger."""
+    return None
 
 
 # ---------------------------------------------------------------------------

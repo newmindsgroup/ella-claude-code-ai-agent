@@ -2,6 +2,18 @@
 
 All notable changes to this repo. Format roughly follows [Keep a Changelog](https://keepachangelog.com/). This is a multi-tenant template, so versions reflect what's available to clone for a new tenant — not what's running at any one customer's deployment.
 
+## [v0.8.3] — 2026-05-20
+
+### Added — `scripts/redeploy.sh` (one-command live deploy)
+
+Ports the upstream redeploy helper (Daniel v2.66.0). One command, run on the VPS, that ends the file-by-file copy drift: pulls the brand repo, diff-copies rendered `scripts/` + `dashboard-chat/` into the live agent home, refreshes pip deps, restarts `dashboard-chat`. `--with-agent` also restarts `claude-agent` (opt-in, respects the don't-batch-restart rule); `--no-pull` and `--dry-run` supported.
+
+### Fixed — dashboard chat no longer writes a pinging ledger task
+
+`create_ledger_task()` / `complete_ledger_task()` are now no-ops (the unified conversation store already records every chat message with tokens + cost). This eliminates the `🔧 Working on it … Tracking it` Telegram ping that fired for casual dashboard messages — the backend created a task with `--loud false`, but in some live environments the silent flag wasn't honored. Dropping the redundant task is bulletproof and declutters the Tasks tab. The v0.8.2 agent-side guard remains.
+
+---
+
 ## [v0.8.2] — 2026-05-20
 
 ### Fixed — dashboard chat no longer fires loud Telegram task-pings
