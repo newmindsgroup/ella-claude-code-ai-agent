@@ -242,8 +242,22 @@ def sync_daily_brief():
     today_value = tel.get("rollup", {}).get("today", {}).get("value_usd", 0)
     spend = spend_snapshot()
 
+    # Executive summary — reuse the morning-brief's LLM narrative (zero extra cost).
+    mb = read_json(AGENT_HOME / "state" / "morning-brief-llm.json", {})
+    exec_summary = {
+        "insight": mb.get("insight", ""),
+        "priorities": mb.get("priorities", []) if isinstance(mb.get("priorities"), list) else [],
+        "pipeline": mb.get("pipeline_summary", ""),
+        "calendar": mb.get("calendar_summary", ""),
+        "inbox": mb.get("inbox_summary", ""),
+        "as_of": mb.get("generated_at", ""),
+        "date": mb.get("date", ""),
+        "is_today": mb.get("date", "") == today,
+    }
+
     write("daily-brief", {
         "generated_at": now.isoformat(),
+        "executive_summary": exec_summary,
         "overnight": {
             "jobs_completed": jobs_overnight,
             "growth": [{"title": g.get("title"), "tier": g.get("tier"), "outcome": g.get("outcome")} for g in growth_overnight],

@@ -439,6 +439,19 @@
             <span class="text-xs text-slate-400 mono shrink-0 ml-4">as of <span data-bind="briefAsOf">—</span></span>
           </div>
 
+          <!-- Executive summary (reuses the morning-brief's LLM narrative) -->
+          <div id="brief-exec" class="hidden rounded-xl bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-950/40 dark:to-violet-950/30 border border-indigo-200 dark:border-indigo-900/60 p-5 card-shadow mb-6">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="text-base">🧠</span>
+              <h3 class="text-sm font-semibold tracking-tight">What matters today</h3>
+              <span class="mc-tip"><button type="button" class="mc-tip-dot" aria-label="More info" tabindex="0">i</button><span class="mc-tip-pop" role="tooltip">The same AI-composed insight your Telegram morning brief uses — captured once when the brief runs, so it costs nothing extra here.</span></span>
+              <span id="brief-exec-stale" class="hidden ml-auto text-[11px] mono px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300">from <span data-bind="briefExecDate">—</span></span>
+            </div>
+            <p id="brief-exec-insight" class="text-sm text-slate-700 dark:text-slate-200 leading-relaxed"></p>
+            <ul id="brief-exec-priorities" class="mt-3 space-y-1.5"></ul>
+            <div id="brief-exec-chips" class="mt-3 flex items-center gap-2 flex-wrap"></div>
+          </div>
+
           <!-- KPI row -->
           <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
             <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
@@ -565,6 +578,22 @@
             </div>
           </div>
 
+          <div id="growth-chart-card" class="hidden rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow mb-6">
+            <div class="flex items-center gap-1 mb-3">
+              <h3 class="text-sm font-semibold tracking-tight">Improvement activity</h3>
+              <span class="mc-tip"><button type="button" class="mc-tip-dot" aria-label="More info" tabindex="0">i</button><span class="mc-tip-pop" role="tooltip">Improvements logged per day over the last 14 days. Green = auto-applied, amber = proposed for your approval.</span></span>
+              <span class="ml-auto text-[11px] mono text-slate-400">last 14 days</span>
+            </div>
+            <div id="growth-chart" class="flex items-end gap-1.5 h-24"></div>
+            <div id="growth-chart-axis" class="flex gap-1.5 mt-1.5"></div>
+          </div>
+
+          <div class="flex items-center gap-1.5 mb-3 flex-wrap" id="growth-filters">
+            <button data-action="growth-filter" data-gf="all" class="growth-filter px-3 py-1.5 text-xs rounded-full border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">All</button>
+            <button data-action="growth-filter" data-gf="pending" class="growth-filter px-3 py-1.5 text-xs rounded-full border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">Awaiting you</button>
+            <button data-action="growth-filter" data-gf="green" class="growth-filter px-3 py-1.5 text-xs rounded-full border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">Green</button>
+            <button data-action="growth-filter" data-gf="yellow" class="growth-filter px-3 py-1.5 text-xs rounded-full border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">Yellow</button>
+          </div>
           <div id="growth-feed" class="space-y-4"></div>
           <div id="growth-empty" class="hidden p-10 text-center text-sm text-slate-500 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">No self-growth entries yet — the loop runs nightly at 22:30.</div>
         </section>
@@ -1604,6 +1633,22 @@
   </div>
 </div>
 
+<!-- Cmd-K command palette -->
+<div id="palette" class="hidden fixed inset-0 z-[80] flex items-start justify-center pt-[12vh] px-4" role="dialog" aria-modal="true" aria-label="Command palette">
+  <div id="palette-backdrop" class="absolute inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm"></div>
+  <div class="relative w-full max-w-xl rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl overflow-hidden">
+    <div class="flex items-center gap-2 px-4 border-b border-slate-200 dark:border-slate-800">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" class="text-slate-400 shrink-0"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="palette-input" type="text" autocomplete="off" placeholder="Jump to a page, run an action, or filter tasks (try: blocked tasks)…" class="flex-1 bg-transparent py-3.5 text-sm outline-none placeholder:text-slate-400" />
+      <kbd class="text-[10px] mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-400 shrink-0">esc</kbd>
+    </div>
+    <ul id="palette-list" class="max-h-[50vh] overflow-y-auto py-2 scroll-soft"></ul>
+    <div class="px-4 py-2 border-t border-slate-200 dark:border-slate-800 text-[11px] text-slate-400 flex items-center gap-3">
+      <span><kbd class="mono">↑↓</kbd> navigate</span><span><kbd class="mono">↵</kbd> select</span><span class="ml-auto">⌘K / Ctrl-K anywhere</span>
+    </div>
+  </div>
+</div>
+
 <script>
 (() => {
   'use strict';
@@ -1616,7 +1661,7 @@
   };
 
   const state = {
-    briefing: { overnight: { jobs_completed: [], growth: [], nudges_fired: 0 }, today: { open_goals: [], stale_tasks: 0, cost_today: 0, value_today: 0, spend: {} }, for_approval: [], generated_at: null },
+    briefing: { executive_summary: {}, overnight: { jobs_completed: [], growth: [], nudges_fired: 0 }, today: { open_goals: [], stale_tasks: 0, cost_today: 0, value_today: 0, spend: {} }, for_approval: [], generated_at: null },
     proposals: { today: [], recent: [], by_state: {}, updated_at: null },
     growth: { entries: [], stats: {}, updated_at: null },
     jobs: { running: [], recent: [], running_count: 0, updated_at: null },
@@ -1648,7 +1693,7 @@
     lastPoll: null,
     stale: false,
     tasksView: (localStorage.getItem('tasks-view') || 'list'),
-    filters: { state: 'all', owner: '', search: '', memoryType: 'all', memorySearch: '', draftPlatform: 'all', draftSearch: '', topTasksSort: 'value', skillsCategory: 'all', skillsSearch: '', auditSearch: '' },
+    filters: { state: 'all', owner: '', search: '', memoryType: 'all', memorySearch: '', draftPlatform: 'all', draftSearch: '', topTasksSort: 'value', skillsCategory: 'all', skillsSearch: '', auditSearch: '', growthFilter: 'all' },
     chatTyping: false,
     chatStreaming: false,   // v2.61.0 — an agent reply is currently streaming in
     chatStreamText: '',     // accumulated text of the in-flight reply
@@ -1790,7 +1835,7 @@
 
   const statePill = (st) => {
     const meta = STATE_META[st] || STATE_META.queued;
-    return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ' + meta.cls + '">' + meta.label + '</span>';
+    return '<span class="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-full text-xs font-medium ' + meta.cls + '">' + meta.label + '</span>';
   };
 
   const MEMORY_META = {
@@ -1806,7 +1851,7 @@
 
   const memoryPill = (type) => {
     const meta = MEMORY_META[type] || MEMORY_META.context;
-    return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ' + meta.cls + '">' + type + '</span>';
+    return '<span class="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-full text-[11px] font-medium ' + meta.cls + '">' + type + '</span>';
   };
 
   // ---------------------------------------------------------------------------
@@ -2120,6 +2165,7 @@
       const t = briefData.today || {};
       state.briefing = {
         generated_at: briefData.generated_at || null,
+        executive_summary: briefData.executive_summary || {},
         overnight: {
           jobs_completed: Array.isArray(o.jobs_completed) ? o.jobs_completed : [],
           growth: Array.isArray(o.growth) ? o.growth : [],
@@ -3589,6 +3635,32 @@
     const goals = Array.isArray(t.open_goals) ? t.open_goals : [];
     const approvals = Array.isArray(b.for_approval) ? b.for_approval : [];
 
+    // Executive summary (AI narrative reused from the morning brief)
+    const ex = b.executive_summary || {};
+    const exEl = $('#brief-exec');
+    if (exEl) {
+      const hasContent = !!(ex.insight || (Array.isArray(ex.priorities) && ex.priorities.length) || ex.pipeline || ex.calendar || ex.inbox);
+      exEl.classList.toggle('hidden', !hasContent);
+      if (hasContent) {
+        const ins = $('#brief-exec-insight'); if (ins) ins.textContent = ex.insight || '';
+        const pri = $('#brief-exec-priorities');
+        if (pri) pri.innerHTML = (Array.isArray(ex.priorities) ? ex.priorities : []).map(p =>
+          '<li class="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-200"><span class="text-indigo-500 mt-0.5">▸</span><span>' + escapeHtml(p) + '</span></li>').join('');
+        const chips = $('#brief-exec-chips');
+        if (chips) {
+          const c = [];
+          const chip = (icon, txt) => '<span class="text-[11px] mono px-2 py-1 rounded-lg bg-white/70 dark:bg-slate-900/50 border border-indigo-200/60 dark:border-indigo-900/40 text-slate-600 dark:text-slate-300">' + icon + ' ' + escapeHtml(txt) + '</span>';
+          if (ex.pipeline) c.push(chip('💰', ex.pipeline));
+          if (ex.calendar) c.push(chip('📅', ex.calendar));
+          if (ex.inbox) c.push(chip('📨', ex.inbox));
+          chips.innerHTML = c.join('');
+        }
+        setBind('briefExecDate', ex.date || '');
+        const staleFlag = $('#brief-exec-stale');
+        if (staleFlag) staleFlag.classList.toggle('hidden', ex.is_today !== false);
+      }
+    }
+
     // KPIs
     setBind('briefJobsDone', jobs.length);
     setBind('briefGrowth', growth.length);
@@ -3764,6 +3836,37 @@
     }
   };
 
+  const growthIsApplied = (e) => ['applied', 'auto-applied', 'auto-applying-green'].includes(e.outcome);
+  const growthIsPending = (e) => (e.tier || '').toLowerCase() === 'yellow' && !growthIsApplied(e) && e.outcome !== 'skipped';
+
+  const renderGrowthChart = () => {
+    const wrap = $('#growth-chart-card'); const chart = $('#growth-chart'); const axis = $('#growth-chart-axis');
+    if (!chart) return;
+    const entries = (state.growth && state.growth.entries) || [];
+    // bucket by YYYY-MM-DD for the last 14 days
+    const days = [];
+    for (let i = 13; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); days.push(d.toISOString().slice(0, 10)); }
+    const counts = {}; days.forEach(d => counts[d] = { green: 0, yellow: 0 });
+    entries.forEach(e => {
+      const d = (e.logged_at || '').slice(0, 10);
+      if (counts[d]) { const t = (e.tier || '').toLowerCase(); counts[d][t === 'green' ? 'green' : 'yellow']++; }
+    });
+    const max = Math.max(1, ...days.map(d => counts[d].green + counts[d].yellow));
+    if (wrap) wrap.classList.toggle('hidden', entries.length === 0);
+    chart.innerHTML = days.map(d => {
+      const c = counts[d]; const tot = c.green + c.yellow;
+      const h = Math.round((tot / max) * 100);
+      const gh = tot ? Math.round((c.green / tot) * 100) : 0;
+      const title = d + ': ' + tot + ' (' + c.green + ' green, ' + c.yellow + ' yellow)';
+      return '<div class="flex-1 flex flex-col justify-end items-stretch" title="' + title + '" style="height:100%">' +
+        (tot ? '<div class="rounded-t overflow-hidden flex flex-col-reverse" style="height:' + Math.max(6, h) + '%">' +
+          '<div class="bg-emerald-500" style="height:' + gh + '%"></div><div class="bg-amber-500" style="height:' + (100 - gh) + '%"></div></div>'
+          : '<div class="rounded-t bg-slate-200 dark:bg-slate-800" style="height:4px"></div>') +
+      '</div>';
+    }).join('');
+    if (axis) axis.innerHTML = days.map((d, i) => '<div class="flex-1 text-center text-[9px] mono text-slate-400">' + (i % 2 === 0 ? d.slice(5) : '') + '</div>').join('');
+  };
+
   const renderGrowth = () => {
     const g = state.growth || {};
     const entries = Array.isArray(g.entries) ? g.entries : [];
@@ -3776,16 +3879,33 @@
     setBind('growthCount', st.total || 0);
     setBind('growthAsOf', g.updated_at ? relTime(g.updated_at) : '—');
 
+    renderGrowthChart();
+
+    const gf = state.filters.growthFilter || 'all';
+    $$('.growth-filter').forEach(b => {
+      const active = b.dataset.gf === gf;
+      b.classList.toggle('bg-indigo-600', active); b.classList.toggle('text-white', active); b.classList.toggle('border-indigo-600', active);
+    });
+    const shown = entries.filter(e => {
+      const tier = (e.tier || '').toLowerCase();
+      if (gf === 'pending') return growthIsPending(e);
+      if (gf === 'green') return tier === 'green';
+      if (gf === 'yellow') return tier === 'yellow';
+      return true;
+    });
+
     const feed = $('#growth-feed'); const empty = $('#growth-empty');
     if (feed) {
-      feed.innerHTML = entries.map(e => {
+      feed.innerHTML = shown.map(e => {
         const tier = (e.tier || '').toLowerCase();
         const tierCls = tier === 'green' ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
                       : tier === 'yellow' ? 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300'
                       : 'bg-slate-200 dark:bg-slate-800 text-slate-500';
         const outcome = e.outcome || '';
         const detail = e.expected_benefit || e.rationale || '';
-        return '<div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 card-shadow">' +
+        const pending = growthIsPending(e);
+        const gid = e.id || '';
+        return '<div class="rounded-xl bg-white dark:bg-slate-900 border ' + (pending ? 'border-amber-300 dark:border-amber-800' : 'border-slate-200 dark:border-slate-800') + ' p-4 card-shadow" data-growth-card="' + escapeHtml(gid) + '">' +
           '<div class="flex items-start gap-2">' +
             '<div class="min-w-0"><div class="text-sm font-medium text-slate-800 dark:text-slate-100">' + escapeHtml(e.title || 'improvement') + '</div>' +
             (detail ? '<div class="mt-1.5 text-xs text-slate-500 line-clamp-3">' + escapeHtml(detail) + '</div>' : '') +
@@ -3793,12 +3913,18 @@
               '<span class="text-[11px] mono px-1.5 py-0.5 rounded ' + tierCls + '">' + escapeHtml(e.tier || 'tier?') + '</span>' +
               (e.type ? '<span class="text-[11px] mono text-slate-400">' + escapeHtml(e.type) + '</span>' : '') +
               (outcome ? '<span class="text-[11px] mono text-slate-400">' + escapeHtml(outcome) + '</span>' : '') +
-              '<span class="text-[11px] mono text-slate-400">' + escapeHtml(e.id || '') + '</span>' +
+              '<span class="text-[11px] mono text-slate-400">' + escapeHtml(gid) + '</span>' +
             '</div></div>' +
-            '<span class="ml-auto text-[11px] mono text-slate-400 shrink-0">' + relTime(e.logged_at) + '</span>' +
+            '<div class="ml-auto flex flex-col items-end gap-2 shrink-0">' +
+              '<span class="text-[11px] mono text-slate-400">' + relTime(e.logged_at) + '</span>' +
+              (pending ? '<div class="flex items-center gap-1.5">' +
+                '<button data-action="growth-apply" data-growth-id="' + escapeHtml(gid) + '" class="text-xs px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium">Apply</button>' +
+                '<button data-action="growth-skip" data-growth-id="' + escapeHtml(gid) + '" class="text-xs px-2.5 py-1 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300">Skip</button>' +
+              '</div>' : '') +
+            '</div>' +
           '</div></div>';
       }).join('');
-      if (empty) empty.classList.toggle('hidden', entries.length > 0);
+      if (empty) empty.classList.toggle('hidden', shown.length > 0);
     }
   };
 
@@ -4210,7 +4336,7 @@
       total += cards.length;
       return '<div class="kanban-col flex flex-col min-w-[78vw] sm:min-w-[270px] lg:min-w-0 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 p-3" data-col-drop="' + col.drop + '">' +
         '<div class="flex items-center gap-1 mb-3 px-1">' +
-          '<span class="text-xs font-semibold uppercase tracking-wider text-slate-500">' + escapeHtml(col.label) + '</span>' +
+          '<span class="text-xs font-semibold uppercase tracking-wider text-slate-500 whitespace-nowrap">' + escapeHtml(col.label) + '</span>' +
           (COL_TIPS[col.key] ? infoDot(COL_TIPS[col.key]) : '') +
           '<span class="ml-auto text-[11px] mono px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-500">' + cards.length + '</span>' +
         '</div>' +
@@ -4336,7 +4462,7 @@
     'X':        'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
     'Instagram':'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300',
   };
-  const platformBadge = (p) => '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ' + (PLATFORM_BADGE[p] || 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300') + '">' + escapeHtml(p) + '</span>';
+  const platformBadge = (p) => '<span class="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-full text-xs font-medium ' + (PLATFORM_BADGE[p] || 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300') + '">' + escapeHtml(p) + '</span>';
 
   const renderDrafts = () => {
     const grid = $('#drafts-grid');
@@ -5660,6 +5786,32 @@
       moveTask(target.dataset.taskId, 'done');
       return;
     }
+    if (action === 'growth-filter') {
+      e.preventDefault();
+      state.filters.growthFilter = target.dataset.gf || 'all';
+      renderGrowth();
+      return;
+    }
+    if (action === 'growth-apply' || action === 'growth-skip') {
+      e.preventDefault(); e.stopPropagation();
+      const id = target.dataset.growthId;
+      if (!id) return;
+      const verb = action === 'growth-apply' ? 'apply' : 'skip';
+      if (verb === 'skip' && !confirm('Skip this self-improvement? It will be logged as declined.')) return;
+      const card = document.querySelector('[data-growth-card="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]');
+      if (card) { card.style.opacity = '0.6'; card.querySelectorAll('button').forEach(b => b.disabled = true); }
+      mcToast(verb === 'apply' ? 'Applying ' + id + '…' : 'Skipping ' + id + '…');
+      postAudit('growth-' + verb, id, {}, 'dashboard');
+      fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: verb + ' ' + id, source: 'dashboard' }) })
+        .then(() => {
+          const e2 = (state.growth.entries || []).find(x => (x.id || '') === id);
+          if (e2) e2.outcome = verb === 'apply' ? 'applied' : 'skipped';
+          renderGrowth();
+          setTimeout(() => { refreshAll().catch(() => {}); }, 3000);
+        })
+        .catch(() => { if (card) { card.style.opacity = '1'; card.querySelectorAll('button').forEach(b => b.disabled = false); } mcToast('Action failed — try again', 'error'); });
+      return;
+    }
     if (action === 'prop-run' || action === 'prop-skip') {
       e.preventDefault(); e.stopPropagation();
       const id = target.dataset.propId;
@@ -5747,8 +5899,80 @@
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && ae && ae.id === 'chat-input') {
       e.preventDefault();
       sendChat();
+      return;
+    }
+    // Cmd/Ctrl-K toggles the command palette
+    if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+      e.preventDefault();
+      _palette.open ? closePalette() : openPalette();
+      return;
+    }
+    if (_palette.open) {
+      if (e.key === 'Escape') { e.preventDefault(); closePalette(); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); _palette.sel = Math.min(_palette.items.length - 1, _palette.sel + 1); renderPalette(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); _palette.sel = Math.max(0, _palette.sel - 1); renderPalette(); }
+      else if (e.key === 'Enter') { e.preventDefault(); runPaletteSel(); }
     }
   });
+
+  // ── Cmd-K command palette ──────────────────────────────────────────────────
+  const _palette = { open: false, items: [], sel: 0 };
+  const STATE_WORDS = { 'blocked': 'blocked', 'in progress': 'in_progress', 'in-progress': 'in_progress', 'progress': 'in_progress', 'in review': 'in_review', 'review': 'in_review', 'done': 'done', 'queued': 'queued', 'stale': 'stale', 'committed': 'committed', 'awaiting': 'awaiting_external', 'cancelled': 'cancelled' };
+
+  const buildPaletteItems = (q) => {
+    const items = [];
+    const ql = (q || '').toLowerCase().trim();
+    // Natural-language task filters synthesized from the query (shown on top).
+    if (ql) {
+      for (const w in STATE_WORDS) {
+        if (ql.includes(w)) { const stt = STATE_WORDS[w];
+          items.push({ icon: '▦', label: 'Tasks → filter: ' + w, hint: 'filter', run: () => { setActiveTab('tasks'); state.tasksView = 'board'; localStorage.setItem('tasks-view', 'board'); state.filters.state = stt; renderTasks(); } });
+          break; }
+      }
+      const om = ql.match(/(?:owned by|owner|by)\s+([a-z0-9\-]+)/);
+      if (om) { const o = om[1]; items.push({ icon: '▦', label: 'Tasks → owner: ' + o, hint: 'filter', run: () => { setActiveTab('tasks'); state.filters.owner = o; const s = $('#owner-filter'); if (s) s.value = o; renderTasks(); } }); }
+    }
+    for (const tab in TAB_TITLES) items.push({ icon: '→', label: TAB_TITLES[tab], hint: 'page', run: () => setActiveTab(tab) });
+    items.push({ icon: '⟳', label: 'Reload data', hint: 'action', run: () => refreshAll() });
+    items.push({ icon: '◐', label: 'Toggle theme', hint: 'action', run: () => applyTheme(document.documentElement.classList.contains('dark') ? 'light' : 'dark') });
+    items.push({ icon: '▦', label: 'Tasks: Board view', hint: 'action', run: () => { state.tasksView = 'board'; localStorage.setItem('tasks-view', 'board'); setActiveTab('tasks'); renderTasks(); } });
+    items.push({ icon: '☰', label: 'Tasks: List view', hint: 'action', run: () => { state.tasksView = 'list'; localStorage.setItem('tasks-view', 'list'); setActiveTab('tasks'); renderTasks(); } });
+    (state.tasks || []).forEach(t => items.push({ icon: '•', label: (t.summary || t.title || taskId(t)), hint: (t.state || 'task'), run: () => { setActiveTab('tasks'); state.filters.search = (t.summary || t.title || '').slice(0, 50); const se = $('#task-search'); if (se) se.value = state.filters.search; renderTasks(); } }));
+    ((state.proposals && state.proposals.recent) || []).forEach(p => items.push({ icon: '◇', label: (p.title || p.id), hint: 'proposal', run: () => setActiveTab('proposals') }));
+    if (!ql) return items.slice(0, 50);
+    return items.filter(it => (it.label + ' ' + it.hint).toLowerCase().includes(ql)).slice(0, 50);
+  };
+
+  const renderPalette = () => {
+    const list = $('#palette-list'); if (!list) return;
+    if (!_palette.items.length) { list.innerHTML = '<li class="px-4 py-6 text-center text-sm text-slate-400">No matches</li>'; return; }
+    list.innerHTML = _palette.items.map((it, i) => '<li><button type="button" data-pal-idx="' + i + '" class="w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm ' + (i === _palette.sel ? 'bg-indigo-50 dark:bg-indigo-950/40' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50') + '">' +
+      '<span class="w-5 text-center text-slate-400">' + it.icon + '</span>' +
+      '<span class="flex-1 truncate text-slate-700 dark:text-slate-200">' + escapeHtml(it.label) + '</span>' +
+      '<span class="text-[10px] mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-400 shrink-0">' + escapeHtml(it.hint) + '</span></button></li>').join('');
+    const selEl = list.querySelector('[data-pal-idx="' + _palette.sel + '"]');
+    if (selEl && selEl.scrollIntoView) selEl.scrollIntoView({ block: 'nearest' });
+  };
+
+  const openPalette = () => {
+    _palette.open = true; _palette.sel = 0; _palette.items = buildPaletteItems('');
+    const p = $('#palette'); const inp = $('#palette-input');
+    if (p) p.classList.remove('hidden');
+    if (inp) { inp.value = ''; setTimeout(() => inp.focus(), 0); }
+    renderPalette();
+  };
+  const closePalette = () => { _palette.open = false; const p = $('#palette'); if (p) p.classList.add('hidden'); };
+  const runPaletteSel = () => { const it = _palette.items[_palette.sel]; closePalette(); if (it && it.run) it.run(); };
+
+  (function wirePalette() {
+    const inp = $('#palette-input'); const p = $('#palette'); const list = $('#palette-list');
+    if (inp) inp.addEventListener('input', () => { _palette.items = buildPaletteItems(inp.value); _palette.sel = 0; renderPalette(); });
+    if (p) p.addEventListener('click', (e) => {
+      if (e.target.id === 'palette-backdrop') { closePalette(); return; }
+      const b = e.target.closest('[data-pal-idx]');
+      if (b) { _palette.sel = parseInt(b.dataset.palIdx, 10) || 0; runPaletteSel(); }
+    });
+  })();
 
   initTheme();
   // v2.51.0: SSE push channel state + helpers. EventSource auto-reconnects
@@ -5818,6 +6042,14 @@
                   renderToolBudget();
                 }
               });
+            }
+            // Live cross-surface refresh: when a task/proposal/growth/brief action
+            // happens anywhere (this dashboard, another tab, or Telegram), pull the
+            // affected endpoints so every open surface stays in sync without waiting
+            // for the 30s poll. Debounced to coalesce bursts.
+            if (/^(task-state|task-move|proposal-|growth-|prop-)/.test(auditEvent.action || '')) {
+              clearTimeout(_liveState._refreshT);
+              _liveState._refreshT = setTimeout(() => { refreshAll().catch(() => {}); }, 800);
             }
           }
         } catch (e) { /* malformed event, skip */ }

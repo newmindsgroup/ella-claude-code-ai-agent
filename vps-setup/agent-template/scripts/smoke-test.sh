@@ -272,6 +272,23 @@ if [[ "$code" == "400" ]]; then ok "/api/task/state endpoint wired (rejects bad 
 else fail "/api/task/state endpoint not responding correctly (got $code)"; fi
 
 # ───────────────────────────────────────────────────────────────────────────
+section "15. DASHBOARD UX PASS 2 (briefing AI · growth analytics · Cmd-K)"
+# ───────────────────────────────────────────────────────────────────────────
+if [[ -f "$DASH_HTML" ]]; then
+  grep -q 'id="brief-exec"' "$DASH_HTML" && ok "Briefing executive-summary card present" || fail "exec-summary card missing"
+  grep -q 'id="growth-chart"' "$DASH_HTML" && grep -q 'data-action="growth-apply"' "$DASH_HTML" \
+    && ok "Self-Growth analytics (chart + inline apply/skip) present" || fail "growth analytics missing"
+  grep -q 'id="palette"' "$DASH_HTML" && grep -q 'buildPaletteItems' "$DASH_HTML" \
+    && ok "Cmd-K command palette present" || fail "command palette missing"
+fi
+# daily-brief.json carries the executive_summary block (reused morning-brief LLM).
+if jq -e '.executive_summary' "$API_DIR/daily-brief.json" >/dev/null 2>&1; then
+  ok "daily-brief.json has executive_summary block"
+else
+  fail "daily-brief.json missing executive_summary"
+fi
+
+# ───────────────────────────────────────────────────────────────────────────
 section "FINAL"
 # ───────────────────────────────────────────────────────────────────────────
 echo

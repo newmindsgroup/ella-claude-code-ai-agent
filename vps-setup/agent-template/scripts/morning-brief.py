@@ -676,6 +676,30 @@ def send_telegram(message: str, proposals: list[dict[str, Any]]) -> int:
 
 # ── Main ────────────────────────────────────────────────────────────────────
 
+def persist_llm_summary(llm: dict[str, Any], date_str: str) -> None:
+    """Persist the LLM-composed narrative so the dashboard's Daily Briefing can
+    surface the SAME insight the Telegram brief uses — zero extra LLM cost.
+    Read by dashboard-sync-autonomy.py into daily-brief.json.executive_summary.
+    """
+    try:
+        state_dir = AGENT_HOME / "state"
+        state_dir.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "generated_at": datetime.now(TZ).isoformat(),
+            "date": date_str,
+            "insight": llm.get("insight", ""),
+            "priorities": llm.get("priorities", []) if isinstance(llm.get("priorities"), list) else [],
+            "pipeline_summary": llm.get("pipeline_summary", ""),
+            "calendar_summary": llm.get("calendar_summary", ""),
+            "inbox_summary": llm.get("inbox_summary", ""),
+        }
+        tmp = state_dir / "morning-brief-llm.json.tmp"
+        tmp.write_text(json.dumps(payload, indent=2))
+        tmp.replace(state_dir / "morning-brief-llm.json")
+    except Exception as e:
+        log(f"persist_llm_summary failed: {e}")
+
+
 def main() -> int:
     log("=== morning-brief.py started ===")
     now = datetime.now(TZ)
@@ -693,6 +717,7 @@ def main() -> int:
 
     msg, proposals = compose_message(llm)
     log(f"composed message ({len(msg)} chars, {len(proposals)} proposals)")
+    persist_llm_summary(llm, date_str)
 
     if "--dry-run" in sys.argv:
         sys.stdout.write(msg + "\n")
