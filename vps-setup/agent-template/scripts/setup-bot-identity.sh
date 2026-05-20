@@ -52,6 +52,7 @@ COMMANDS=$(cat <<'JSON'
   {"command":"inbox",         "description":"High-priority inbound"},
   {"command":"drafts",        "description":"Pending drafts ready to ship"},
   {"command":"voice",         "description":"Voice mode — off | reply | always"},
+  {"command":"jobs",         "description":"Background jobs — running + recently finished"},
   {"command":"status",        "description":"Stack health + today's spend + savings"},
   {"command":"diag",          "description":"Diagnostic dump (heavy — use when stuck)"},
   {"command":"goal_add",      "description":"Add a goal — /goal_add <summary> by <date>"},
