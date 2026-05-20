@@ -22,13 +22,15 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel
 
 # ---------------------------------------------------------------------------
@@ -59,11 +61,20 @@ _SCRIPTS_DIR = f"{AGENT_HOME}/scripts"
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 
+# v2.61.0: unified conversation store lives next to this file (dashboard-chat/).
+_THIS_DIR = str(Path(__file__).resolve().parent)
+if _THIS_DIR not in sys.path:
+    sys.path.insert(0, _THIS_DIR)
+try:
+    import _conversation  # noqa: E402
+except Exception:  # pragma: no cover — store is optional during early boot
+    _conversation = None
+
 # ---------------------------------------------------------------------------
 # App
 # ---------------------------------------------------------------------------
 
-app = FastAPI(title=f"{TENANT_ID} dashboard chat", version="2.20.0")
+app = FastAPI(title=f"{TENANT_ID} dashboard chat", version="2.61.0")
 
 # Same-origin in production via nginx; CORS is open for local dev only
 app.add_middleware(
@@ -76,6 +87,8 @@ app.add_middleware(
 
 class ChatRequest(BaseModel):
     message: str
+    source: str = "dashboard"   # dashboard | voice — where the message originated
+    attachments: list = []      # v2.64.0 — [{name, path, url, mime, is_image}, ...]
 
 
 class ChatResponse(BaseModel):
@@ -293,6 +306,163 @@ def invoke_claude(message: str) -> tuple[str, dict, str]:
     return text, usage, (new_sid or sid or "")
 
 
+def invoke_claude_streaming(message: str):
+    """Generator variant of invoke_claude for v2.61.0 streaming chat.
+
+    Yields ('delta', text_chunk) tuples as the agent generates, then a final
+    ('done', {text, usage, session_id}) tuple. Uses --include-partial-messages
+    so the stream-json output carries token-level text deltas, giving the
+    dashboard a ChatGPT-style progressive render.
+    """
+    sid = load_session_id()
+    cmd = [
+        CLAUDE_BIN, "--print", "--output-format", "stream-json", "--verbose",
+        "--include-partial-messages",
+        "--add-dir", AGENT_HOME,
+        "--permission-mode", "acceptEdits",
+    ]
+    if sid:
+        cmd += ["--resume", sid]
+
+    proc = subprocess.Popen(
+        cmd,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        bufsize=1,  # line-buffered
+    )
+    # Feed the prompt then close stdin so claude knows input is complete
+    try:
+        proc.stdin.write(message)
+        proc.stdin.close()
+    except BrokenPipeError:
+        pass
+
+    text_chunks: list[str] = []
+    usage = {"input_tokens": 0, "output_tokens": 0,
+             "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0}
+    new_sid: str | None = None
+
+    for line in proc.stdout:
+        line = line.strip()
+        if not line or not line.startswith("{"):
+            continue
+        try:
+            rec = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+
+        rtype = rec.get("type")
+        if rtype == "system" and rec.get("session_id"):
+            new_sid = rec["session_id"]
+
+        # Partial deltas (the streaming bit)
+        if rtype == "stream_event":
+            ev = rec.get("event") or {}
+            if ev.get("type") == "content_block_delta":
+                delta = ev.get("delta") or {}
+                if delta.get("type") == "text_delta":
+                    chunk = delta.get("text") or ""
+                    if chunk:
+                        text_chunks.append(chunk)
+                        yield ("delta", chunk)
+            continue
+
+        # Final assistant message — capture usage; if we somehow missed deltas,
+        # fall back to the complete text block.
+        msg = rec.get("message") or {}
+        if isinstance(msg, dict):
+            u = msg.get("usage")
+            if isinstance(u, dict):
+                for k in usage:
+                    v = u.get(k)
+                    if isinstance(v, int):
+                        usage[k] += v
+            if not text_chunks:
+                content = msg.get("content")
+                if isinstance(content, list):
+                    for blk in content:
+                        if isinstance(blk, dict) and blk.get("type") == "text":
+                            t = blk.get("text") or ""
+                            if t:
+                                text_chunks.append(t)
+                                yield ("delta", t)
+
+    proc.wait()
+    text = "".join(text_chunks).strip()
+    if not text:
+        err = (proc.stderr.read() if proc.stderr else "") or ""
+        text = f"(no response{(' — ' + err.strip()[:300]) if err.strip() else ''})"
+        yield ("delta", text)
+
+    if usage["input_tokens"] == 0 and usage["output_tokens"] == 0:
+        usage["input_tokens"]  = max(1, len(message) // 4)
+        usage["output_tokens"] = max(1, len(text) // 4)
+
+    if new_sid:
+        save_session_id(new_sid)
+
+    yield ("done", {"text": text, "usage": usage, "session_id": new_sid or sid or ""})
+
+
+def record_message(**kwargs) -> None:
+    """Best-effort append to the unified conversation store + SSE fan-out.
+    Never raises — chat must work even if the store is unavailable."""
+    if _conversation is None:
+        return
+    try:
+        stored = _conversation.append_message(**kwargs)
+        # Fan out to any open dashboard tabs so the thread stays live across
+        # surfaces (and, post Phase B, across Telegram too).
+        _publish_event("chat-message", stored)
+    except Exception as e:  # pragma: no cover
+        logging.getLogger("dashboard_chat.conversation").warning("record_message failed: %s", e)
+
+
+# v2.62.0 — Phase C: mirror dashboard chat to Telegram so the Telegram thread
+# shows messages typed in the dashboard. Gated by env so operators who don't
+# want the mirror can disable it. Passes --no-conversation-log so tg-send.sh
+# does NOT tee these back into the store (they're already recorded here).
+_TG_SEND = f"{AGENT_HOME}/scripts/tg-send.sh"
+_MIRROR_TO_TELEGRAM = os.environ.get("MIRROR_DASHBOARD_TO_TELEGRAM", "1") != "0"
+
+
+def build_agent_prompt(message: str, attachments: list | None) -> str:
+    """v2.64.0: prepend attachment references so the agent can Read uploaded
+    files by path (they live under AGENT_HOME, exposed via --add-dir)."""
+    atts = attachments or []
+    if not atts:
+        return message
+    lines = ["[The user attached the following file(s). Use your Read tool to view them if relevant:]"]
+    for a in atts:
+        if not isinstance(a, dict):
+            continue
+        path = a.get("path") or ""
+        name = a.get("name") or os.path.basename(path)
+        mime = a.get("mime") or ""
+        if path:
+            lines.append(f"  - {name} ({mime}): {path}")
+    lines.append("")
+    return "\n".join(lines) + "\n" + message
+
+
+def mirror_to_telegram(text: str, *, prefix: str = "") -> None:
+    """Fire-and-forget post to Telegram. Best-effort; never blocks chat."""
+    if not _MIRROR_TO_TELEGRAM or not text.strip():
+        return
+    if not os.path.exists(_TG_SEND):
+        return
+    body = (prefix + text)[:3800]  # Telegram hard-caps ~4096; leave headroom
+    try:
+        subprocess.Popen(
+            ["bash", _TG_SEND, "send", "--text", body, "--no-conversation-log"],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
+    except Exception:
+        pass  # mirror is best-effort
+
+
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
@@ -315,9 +485,20 @@ def health():
 
 @app.get("/api/chat/history")
 def history(limit: int = 50):
+    # v2.61.0: prefer the unified conversation store (per-message, source-tagged).
+    # Falls back to the legacy history.jsonl (per round-trip) if the store is
+    # empty or unavailable, so nothing breaks during the migration window.
+    if _conversation is not None:
+        try:
+            msgs = _conversation.recent_messages(limit=limit)
+            if msgs:
+                return {"messages": msgs, "format": "unified"}
+        except Exception:
+            pass
+
     p = Path(HISTORY_PATH)
     if not p.exists():
-        return {"messages": []}
+        return {"messages": [], "format": "legacy"}
     lines = p.read_text(encoding="utf-8", errors="ignore").splitlines()
     out: list[dict] = []
     for line in lines[-limit:]:
@@ -325,9 +506,23 @@ def history(limit: int = 50):
             out.append(json.loads(line))
         except json.JSONDecodeError:
             continue
-    payload = {"messages": out}
+    payload = {"messages": out, "format": "legacy"}
     _validate(payload, "chat-history")
     return payload
+
+
+@app.delete("/api/chat/history")
+def clear_history():
+    """Wipe the unified conversation store (Clear history button)."""
+    removed = 0
+    if _conversation is not None:
+        try:
+            removed = _conversation.clear_all()
+        except Exception:
+            pass
+    _append_audit(AuditEvent(action="chat-history-clear", target="conversation",
+                             details={"removed": removed}, source="dashboard"))
+    return {"removed": removed}
 
 
 @app.post("/api/chat", response_model=ChatResponse)
@@ -343,8 +538,15 @@ def chat(req: ChatRequest):
     started_iso = now_iso()
     tid = create_ledger_task(f"Dashboard chat: {msg[:80]}")
 
+    # v2.61.0: record the user message in the unified store BEFORE invoking the
+    # agent, so it shows up immediately on other open surfaces.
+    src = (req.source if req.source in ("dashboard", "voice") else "dashboard")
+    record_message(role="user", source=src, text=msg, request_id=request_id,
+                   ts=started_iso, attachments=req.attachments or [])
+
     try:
-        text, usage, _sid = invoke_claude(msg)
+        # v2.64.0: include attachment refs so the agent can Read uploaded files.
+        text, usage, _sid = invoke_claude(build_agent_prompt(msg, req.attachments))
     except subprocess.TimeoutExpired:
         complete_ledger_task(tid, "Dashboard chat — timed out")
         raise HTTPException(status_code=504, detail="claude --print timed out")
@@ -371,6 +573,13 @@ def chat(req: ChatRequest):
         "cost_usd": cost,
     }
     append_history(entry)
+    # v2.61.0: record the agent reply in the unified store too.
+    record_message(role="agent", source=src, text=text, request_id=request_id,
+                   tokens=usage, cost_usd=cost, duration_ms=int(duration * 1000),
+                   ts=finished_iso)
+    # v2.62.0 (Phase C): mirror the exchange to Telegram for cross-surface parity.
+    mirror_to_telegram(msg, prefix="💻 (dashboard) ")
+    mirror_to_telegram(text)
     complete_ledger_task(tid, f"Dashboard chat done — {usage['input_tokens']}↓/{usage['output_tokens']}↑ tok, ${cost:.4f}")
 
     resp = ChatResponse(
@@ -385,6 +594,280 @@ def chat(req: ChatRequest):
     )
     _validate(resp.model_dump() if hasattr(resp, "model_dump") else resp.dict(), "chat-response")
     return resp
+
+
+# ============================================================================
+# v2.61.0 — Streaming chat (ChatGPT-style progressive render)
+# ============================================================================
+# POST /api/chat/stream returns a text/event-stream where each chunk is an SSE
+# event: `delta` events carry token text, a final `done` event carries usage +
+# cost. The frontend appends deltas to the live message bubble. Records both the
+# user prompt and the agent reply to the unified conversation store.
+
+@app.post("/api/chat/stream")
+def chat_stream(req: ChatRequest):
+    msg = (req.message or "").strip()
+    if not msg:
+        raise HTTPException(status_code=400, detail="message is required")
+    if len(msg) > 12000:
+        raise HTTPException(status_code=400, detail="message too long (12000 char limit)")
+
+    request_id = uuid.uuid4().hex[:12]
+    started = time.time()
+    started_iso = now_iso()
+    tid = create_ledger_task(f"Dashboard chat: {msg[:80]}")
+    src = (req.source if req.source in ("dashboard", "voice") else "dashboard")
+
+    # Record the user message immediately (visible on other surfaces via SSE).
+    record_message(role="user", source=src, text=msg, request_id=request_id,
+                   ts=started_iso, attachments=req.attachments or [])
+    agent_prompt = build_agent_prompt(msg, req.attachments)
+
+    def gen():
+        # Opening frame so the client can flip to "streaming" state.
+        yield f"event: start\ndata: {json.dumps({'request_id': request_id, 'task_id': tid})}\n\n"
+        final = {"text": "", "usage": {}, "session_id": ""}
+        try:
+            for kind, payload in invoke_claude_streaming(agent_prompt):
+                if kind == "delta":
+                    yield f"event: delta\ndata: {json.dumps({'text': payload})}\n\n"
+                elif kind == "done":
+                    final = payload
+        except Exception as e:
+            yield f"event: error\ndata: {json.dumps({'detail': str(e)})}\n\n"
+            complete_ledger_task(tid, f"Dashboard chat (stream) — error: {e}")
+            return
+
+        duration = round(time.time() - started, 3)
+        finished_iso = now_iso()
+        usage = final.get("usage") or {}
+        text = final.get("text") or ""
+        cost = cost_from_usage(usage)
+
+        # Persist to legacy history.jsonl (round-trip shape) + unified store.
+        append_history({
+            "request_id": request_id, "task_id": tid,
+            "started_at": started_iso, "finished_at": finished_iso,
+            "duration_seconds": duration, "prompt": msg, "response": text,
+            "tokens": usage, "cost_usd": cost,
+        })
+        record_message(role="agent", source=src, text=text, request_id=request_id,
+                       tokens=usage, cost_usd=cost, duration_ms=int(duration * 1000),
+                       ts=finished_iso)
+        # v2.62.0 (Phase C): mirror the exchange to Telegram for parity.
+        mirror_to_telegram(msg, prefix="💻 (dashboard) ")
+        mirror_to_telegram(text)
+        complete_ledger_task(tid, f"Dashboard chat (stream) done — ${cost:.4f}")
+
+        yield ("event: done\ndata: " + json.dumps({
+            "request_id": request_id, "task_id": tid, "response": text,
+            "tokens": usage, "cost_usd": cost, "duration_seconds": duration,
+            "started_at": started_iso, "finished_at": finished_iso,
+        }) + "\n\n")
+
+    return StreamingResponse(
+        gen(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
+
+
+# ============================================================================
+# v2.62.0 — Conversation ingest (Telegram → unified store)
+# ============================================================================
+# The Telegram channel plugin (via patch-channels-plugin.sh PASS 6) and
+# tg-send.sh POST inbound/outbound Telegram messages here so they land in the
+# same conversation.db the dashboard reads. This is the Telegram→Dashboard half
+# of chat parity (Phase B). 127.0.0.1-only; nginx never exposes it externally
+# beyond the existing basic-auth on /api/chat/*.
+
+class IngestMessage(BaseModel):
+    role: str = "user"          # user | agent
+    source: str = "telegram"    # telegram | voice | system
+    text: str = ""
+    request_id: str | None = None
+    cost_usd: float = 0.0
+    duration_ms: int | None = None
+    attachments: list | None = None
+
+
+@app.post("/api/chat/ingest")
+def post_ingest(msg: IngestMessage):
+    """Append a message from another surface (Telegram, voice) to the unified
+    conversation store + broadcast it on SSE so the dashboard updates live."""
+    text = (msg.text or "").strip()
+    if not text and not (msg.attachments or []):
+        raise HTTPException(status_code=400, detail="text or attachments required")
+    if len(text) > 24000:
+        text = text[:24000]
+    record_message(
+        role=msg.role if msg.role in ("user", "agent") else "user",
+        source=msg.source if msg.source in ("telegram", "voice", "system") else "telegram",
+        text=text,
+        request_id=msg.request_id,
+        cost_usd=msg.cost_usd or 0.0,
+        duration_ms=msg.duration_ms,
+        attachments=msg.attachments or [],
+    )
+    return {"ok": True}
+
+
+# ============================================================================
+# v2.63.0 — Voice (Phase D): browser mic → transcribe, agent reply → TTS
+# ============================================================================
+# Reuses the existing whisper.cpp (voice-transcribe.sh) + edge-tts
+# (voice-reply.sh) scripts built for Telegram voice notes. Both run as the
+# tenant user with TENANT_USER_HOME set so whisper/edge-tts resolve their dirs.
+
+USER_HOME = str(Path(AGENT_HOME).parent)  # /opt/<user>/agents → /opt/<user>
+_VOICE_TRANSCRIBE = f"{AGENT_HOME}/scripts/voice-transcribe.sh"
+_VOICE_REPLY = f"{AGENT_HOME}/scripts/voice-reply.sh"
+_VOICE_ENV = {**os.environ, "TENANT_USER_HOME": USER_HOME}
+
+
+@app.post("/api/chat/transcribe")
+async def post_transcribe(audio: UploadFile = File(...), lang: str = "auto"):
+    """Accept a browser-recorded audio blob, transcribe via whisper.cpp.
+    Returns {lang, text}. ffmpeg inside voice-transcribe.sh handles whatever
+    container MediaRecorder produced (webm/ogg/opus/wav)."""
+    if not os.path.exists(_VOICE_TRANSCRIBE):
+        raise HTTPException(status_code=503, detail="voice-transcribe.sh not installed")
+    suffix = os.path.splitext(audio.filename or "")[1] or ".webm"
+    tmp = Path(tempfile.gettempdir()) / f"mc-voice-{uuid.uuid4().hex[:10]}{suffix}"
+    try:
+        data = await audio.read()
+        if not data:
+            raise HTTPException(status_code=400, detail="empty audio upload")
+        if len(data) > 25 * 1024 * 1024:
+            raise HTTPException(status_code=413, detail="audio too large (25MB limit)")
+        tmp.write_bytes(data)
+        lang_flag = lang if lang in ("auto", "en", "es", "fr", "de", "pt", "it") else "auto"
+        proc = subprocess.run(
+            ["bash", _VOICE_TRANSCRIBE, str(tmp), "--lang", lang_flag],
+            capture_output=True, text=True, timeout=120, env=_VOICE_ENV,
+        )
+        if proc.returncode != 0:
+            raise HTTPException(status_code=500,
+                                detail=f"transcription failed: {proc.stderr.strip()[:300]}")
+        out = proc.stdout.strip()
+        # Output shape: "[LANG=xx] transcript text..."
+        detected = lang_flag
+        text = out
+        m = re.match(r"^\[LANG=([a-z]{2})\]\s*(.*)$", out, re.DOTALL)
+        if m:
+            detected, text = m.group(1), m.group(2).strip()
+        return {"lang": detected, "text": text}
+    finally:
+        try:
+            tmp.unlink(missing_ok=True)
+        except Exception:
+            pass
+
+
+class TTSRequest(BaseModel):
+    text: str
+    lang: str = "auto"
+
+
+@app.post("/api/chat/tts")
+def post_tts(req: TTSRequest):
+    """Synthesize text → OGG/Opus via edge-tts (voice-reply.sh). Returns the
+    audio bytes for inline <audio> playback in the dashboard."""
+    if not os.path.exists(_VOICE_REPLY):
+        raise HTTPException(status_code=503, detail="voice-reply.sh not installed")
+    text = (req.text or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="text required")
+    if len(text) > 4000:
+        text = text[:4000]
+    lang_flag = req.lang if req.lang in ("auto", "en", "es") else "auto"
+    out_path = Path(tempfile.gettempdir()) / f"mc-tts-{uuid.uuid4().hex[:10]}.ogg"
+    try:
+        proc = subprocess.run(
+            ["bash", _VOICE_REPLY, "--lang", lang_flag, "--out", str(out_path), text],
+            capture_output=True, text=True, timeout=60, env=_VOICE_ENV,
+        )
+        if proc.returncode != 0 or not out_path.exists():
+            raise HTTPException(status_code=500,
+                                detail=f"TTS failed: {proc.stderr.strip()[:300]}")
+        audio_bytes = out_path.read_bytes()
+        return Response(content=audio_bytes, media_type="audio/ogg",
+                        headers={"Cache-Control": "no-store"})
+    finally:
+        try:
+            out_path.unlink(missing_ok=True)
+        except Exception:
+            pass
+
+
+# ============================================================================
+# v2.64.0 — File + image attachments (Phase E)
+# ============================================================================
+# Uploaded files land under dashboard-chat/uploads/ (inside AGENT_HOME, which
+# `claude --print --add-dir AGENT_HOME` already exposes — so the agent can Read
+# an uploaded image/doc by path). Each chat message carries attachment metadata
+# in the unified store; the dashboard renders images inline and files as links.
+
+UPLOADS_DIR = Path(AGENT_HOME) / "dashboard-chat" / "uploads"
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+
+# Allowlisted extensions → mime. Anything else is rejected (defense in depth:
+# we never want to host arbitrary executables behind basic-auth).
+_UPLOAD_MIME = {
+    ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+    ".gif": "image/gif", ".webp": "image/webp", ".svg": "image/svg+xml",
+    ".pdf": "application/pdf", ".txt": "text/plain", ".md": "text/markdown",
+    ".csv": "text/csv", ".json": "application/json",
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ".webm": "video/webm", ".mp4": "video/mp4", ".mp3": "audio/mpeg", ".ogg": "audio/ogg",
+}
+
+
+@app.post("/api/chat/upload")
+async def post_upload(file: UploadFile = File(...)):
+    """Store an uploaded file; return its metadata. The agent reads it by the
+    returned `path` (inside AGENT_HOME); the dashboard renders it via `url`."""
+    name = os.path.basename(file.filename or "file")
+    ext = os.path.splitext(name)[1].lower()
+    if ext not in _UPLOAD_MIME:
+        raise HTTPException(status_code=415, detail=f"file type {ext or '?'} not allowed")
+    data = await file.read()
+    if not data:
+        raise HTTPException(status_code=400, detail="empty file")
+    if len(data) > 30 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="file too large (30MB limit)")
+    file_id = uuid.uuid4().hex[:16]
+    stored = UPLOADS_DIR / f"{file_id}{ext}"
+    stored.write_bytes(data)
+    return {
+        "id": file_id,
+        "name": name,
+        "mime": _UPLOAD_MIME[ext],
+        "size": len(data),
+        "url": f"/api/chat/upload/{file_id}{ext}",
+        "path": str(stored),
+        "is_image": _UPLOAD_MIME[ext].startswith("image/"),
+    }
+
+
+@app.get("/api/chat/upload/{filename}")
+def get_upload(filename: str):
+    """Serve a previously-uploaded file for inline rendering. Path-traversal
+    safe — only the basename is honored and it must live in UPLOADS_DIR."""
+    safe = os.path.basename(filename)
+    ext = os.path.splitext(safe)[1].lower()
+    if ext not in _UPLOAD_MIME:
+        raise HTTPException(status_code=404, detail="not found")
+    target = UPLOADS_DIR / safe
+    if not target.is_file():
+        raise HTTPException(status_code=404, detail="not found")
+    return Response(content=target.read_bytes(), media_type=_UPLOAD_MIME[ext],
+                    headers={"Cache-Control": "private, max-age=86400"})
 
 
 # ============================================================================
@@ -900,9 +1383,6 @@ async def _sse_stream(request):
         raise
     finally:
         _EVENT_SUBSCRIBERS.discard(q)
-
-
-from fastapi.responses import StreamingResponse  # noqa: E402  (defer import)
 
 
 @app.get("/api/chat/events")

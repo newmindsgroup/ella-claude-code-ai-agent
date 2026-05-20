@@ -43,6 +43,22 @@
   .typing-dot { animation: blink 1.2s infinite; display: inline-block; width: 4px; height: 4px; border-radius: 9999px; background: currentColor; margin: 0 1px; }
   .typing-dot:nth-child(2) { animation-delay: 0.2s; }
   .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+  /* v2.61.0 — streaming chat caret + markdown bubble styling */
+  .chat-caret { animation: blink 1s step-start infinite; color: #6366f1; font-weight: 700; margin-left: 1px; }
+  .chat-md > :first-child { margin-top: 0; }
+  .chat-md > :last-child { margin-bottom: 0; }
+  .chat-md p { margin: 0.5em 0; }
+  .chat-md h1, .chat-md h2, .chat-md h3 { font-weight: 600; margin: 0.7em 0 0.3em; line-height: 1.3; }
+  .chat-md h1 { font-size: 1.15em; } .chat-md h2 { font-size: 1.08em; } .chat-md h3 { font-size: 1em; }
+  .chat-md ul, .chat-md ol { margin: 0.4em 0; padding-left: 1.4em; }
+  .chat-md li { margin: 0.2em 0; }
+  .chat-md code { font-family: ui-monospace, monospace; font-size: 0.85em; background: rgba(99,102,241,0.12); padding: 0.1em 0.35em; border-radius: 4px; }
+  .chat-md pre { background: rgba(15,23,42,0.06); border-radius: 8px; padding: 0.7em 0.9em; overflow-x: auto; margin: 0.5em 0; }
+  .dark .chat-md pre { background: rgba(255,255,255,0.05); }
+  .chat-md pre code { background: none; padding: 0; font-size: 0.82em; }
+  .chat-md blockquote { border-left: 3px solid rgba(99,102,241,0.4); padding-left: 0.8em; margin: 0.5em 0; color: inherit; opacity: 0.85; }
+  .chat-md a { color: #6366f1; text-decoration: underline; }
+  .chat-md strong { font-weight: 600; }
   .nav-active { box-shadow: inset 3px 0 0 0 #6366f1; }
   .dark .card-shadow { box-shadow: none; }
   .card-shadow { box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.04), 0 1px 3px 0 rgba(15, 23, 42, 0.06); }
@@ -1113,18 +1129,41 @@
             <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
               <div>
                 <div class="text-sm font-semibold">Conversation with agent</div>
-                <div class="text-xs text-slate-500">Each message you send creates a task in the ledger and tracks its own telemetry.</div>
+                <div class="text-xs text-slate-500">Unified thread — messages from this dashboard and Telegram appear together, in sync.</div>
               </div>
-              <button data-action="clear-chat" class="text-xs text-slate-500 hover:text-rose-600 px-2 py-1 rounded">Clear history</button>
+              <div class="flex items-center gap-2">
+                <span id="chat-stream-badge" class="hidden text-[10px] mono px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">streaming</span>
+                <button id="chat-autoplay-btn" data-action="toggle-autoplay" title="Auto-play agent replies as voice" class="text-xs text-slate-500 hover:text-indigo-600 px-2 py-1 rounded flex items-center gap-1">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10v4h4l5 5V5L7 10H3z"/></svg>
+                  <span id="chat-autoplay-label">auto-voice: off</span>
+                </button>
+                <button data-action="clear-chat" class="text-xs text-slate-500 hover:text-rose-600 px-2 py-1 rounded">Clear history</button>
+              </div>
             </div>
             <div id="chat-messages" class="flex-1 overflow-y-auto scroll-soft px-5 py-6 space-y-5"></div>
             <div class="px-5 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40">
+              <div id="chat-attachments" class="hidden flex flex-wrap gap-2 mb-2"></div>
+              <input id="chat-file-input" type="file" multiple class="hidden" accept=".png,.jpg,.jpeg,.gif,.webp,.svg,.pdf,.txt,.md,.csv,.json,.docx,.xlsx,.mp4,.webm,.mp3,.ogg" />
               <div class="flex gap-3 items-end">
-                <textarea id="chat-input" rows="2" placeholder="Message your agent…" class="flex-1 resize-none rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 px-3 py-2 outline-none focus:border-indigo-500 dark:focus:border-indigo-500 text-sm"></textarea>
-                <button data-action="send-chat" class="h-10 px-4 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 flex items-center gap-1.5">
+                <button id="chat-attach-btn" data-action="attach-file" title="Attach a file or image" class="h-10 w-10 shrink-0 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                </button>
+                <button id="chat-mic-btn" data-action="toggle-mic" title="Record a voice message" class="h-10 w-10 shrink-0 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
+                </button>
+                <textarea id="chat-input" rows="2" placeholder="Message your agent…  (Shift+Enter for newline, ⌘/Ctrl+Enter to send)" class="flex-1 resize-none rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 px-3 py-2 outline-none focus:border-indigo-500 dark:focus:border-indigo-500 text-sm"></textarea>
+                <button id="chat-send-btn" data-action="send-chat" class="h-10 px-4 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 flex items-center gap-1.5">
                   Send
                   <span class="hidden md:inline text-[10px] opacity-70 mono">⌘↵</span>
                 </button>
+                <button id="chat-stop-btn" data-action="stop-chat" class="hidden h-10 px-4 rounded-lg bg-rose-600 text-white text-sm font-medium hover:bg-rose-700 flex items-center gap-1.5">
+                  Stop
+                  <span class="w-2.5 h-2.5 rounded-sm bg-white"></span>
+                </button>
+              </div>
+              <div id="chat-mic-status" class="hidden mt-2 text-xs text-rose-600 dark:text-rose-400 flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-rose-500 live-dot"></span>
+                <span id="chat-mic-status-text">Recording… click the mic again to stop</span>
               </div>
             </div>
           </div>
@@ -1235,7 +1274,12 @@
     lastPoll: null,
     stale: false,
     filters: { state: 'all', owner: '', search: '', memoryType: 'all', memorySearch: '', draftPlatform: 'all', draftSearch: '', topTasksSort: 'value', skillsCategory: 'all', skillsSearch: '', auditSearch: '' },
-    chatTyping: false
+    chatTyping: false,
+    chatStreaming: false,   // v2.61.0 — an agent reply is currently streaming in
+    chatStreamText: '',     // accumulated text of the in-flight reply
+    chatAbort: null,        // AbortController for the Stop button
+    chatAutoplay: false,    // v2.63.0 — auto-play agent replies as voice
+    chatAttachments: []     // v2.64.0 — pending uploads for the next message
   };
 
   const $ = (sel, root = document) => root.querySelector(sel);
@@ -1925,9 +1969,25 @@
     const out = [];
     let inList = false;
     let inPara = false;
+    let inCode = false;       // v2.61.0 — fenced ``` code block
+    let codeBuf = [];
     const flushPara = () => { if (inPara) { out.push('</p>'); inPara = false; } };
     const flushList = () => { if (inList) { out.push('</ul>'); inList = false; } };
+    const flushCode = () => {
+      if (inCode) {
+        out.push('<pre><code>' + escapeHtmlBlock(codeBuf.join('\n')) + '</code></pre>');
+        codeBuf = []; inCode = false;
+      }
+    };
     for (let raw of lines) {
+      // Fenced code block toggle — capture raw lines verbatim while inside.
+      const fence = raw.trimStart().match(/^```/);
+      if (fence) {
+        if (inCode) { flushCode(); }
+        else { flushList(); flushPara(); inCode = true; }
+        continue;
+      }
+      if (inCode) { codeBuf.push(raw); continue; }
       const line = raw.trimEnd();
       if (!line) { flushList(); flushPara(); continue; }
       // Inline emphasis: **bold**, *italic*, `code`
@@ -1963,7 +2023,7 @@
         out.push(inline(line));
       }
     }
-    flushList(); flushPara();
+    flushList(); flushPara(); flushCode();
     return out.join('');
   };
 
@@ -4017,26 +4077,38 @@
 
   const loadChatHistory = () => {
     try { const raw = localStorage.getItem('dashboard-chat-history'); state.chat = raw ? JSON.parse(raw) : []; } catch(e) { state.chat = []; }
+    // v2.63.0: restore auto-voice preference
+    state.chatAutoplay = localStorage.getItem('dashboard-chat-autoplay') === '1';
+    const lbl = $('#chat-autoplay-label');
+    if (lbl) lbl.textContent = 'auto-voice: ' + (state.chatAutoplay ? 'on' : 'off');
+    const ab = $('#chat-autoplay-btn');
+    if (ab) ab.classList.toggle('text-indigo-600', state.chatAutoplay);
   };
   const saveChatHistory = () => {
     const trimmed = state.chat.slice(-50);
     localStorage.setItem('dashboard-chat-history', JSON.stringify(trimmed));
   };
 
+  // v2.61.0: source badge for each message (📱 Telegram / 💻 Dashboard / 🎙 Voice)
+  const chatSourceBadge = (src) => {
+    if (src === 'telegram') return '<span class="text-[10px] mono px-1.5 py-0.5 rounded bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300" title="Sent from Telegram">📱 Telegram</span>';
+    if (src === 'voice')    return '<span class="text-[10px] mono px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300" title="Voice message">🎙 Voice</span>';
+    return ''; // dashboard is the default surface — no badge needed
+  };
+
   const renderChat = () => {
     const root = $('#chat-messages');
     if (!root) return;
-    if (!state.chat.length && !state.chatTyping) {
-      root.innerHTML = '<div class="text-center text-sm text-slate-500 py-12">Start a conversation. The agent has full access to your memory, task ledger, and tools — same as in Telegram.</div>';
+    if (!state.chat.length && !state.chatTyping && !state.chatStreaming) {
+      root.innerHTML = '<div class="text-center text-sm text-slate-500 py-12">Start a conversation. The agent has full access to your memory, task ledger, and tools — same as in Telegram. Messages stay in sync across both surfaces.</div>';
       return;
     }
     const initial = (!!TENANT.name) ? TENANT.name[0].toUpperCase() : 'D';
-    let html = state.chat.map(m => {
+    let html = state.chat.map((m, idx) => {
       const isUser = m.role === 'user';
       const avatar = isUser
         ? ('<div class="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-semibold shrink-0">' + initial + '</div>')
         : '<div class="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-center shrink-0"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6v6c0 5 3.4 9.4 8 10 4.6-.6 8-5 8-10V6l-8-4Z"/></svg></div>';
-      // tokens is the API shape {input_tokens, output_tokens, cache_*}; sum input+output for display.
       const tokenTotal = (() => {
         const t = m.tokens;
         if (t == null) return null;
@@ -4044,67 +4116,332 @@
         return (t.input_tokens || t.input || 0) + (t.output_tokens || t.output || 0);
       })();
       const meta = (tokenTotal != null || m.cost_usd || m.duration_ms)
-        ? ('<div class="mt-1.5 text-[10px] mono text-slate-400">' + (tokenTotal != null ? (fmtInt.format(tokenTotal) + ' tok') : '') + (m.cost_usd ? (' · ' + fmtMoneySmall.format(m.cost_usd)) : '') + (m.duration_ms ? (' · ' + fmtDuration(m.duration_ms)) : '') + '</div>')
+        ? ('<span>' + (tokenTotal != null ? (fmtInt.format(tokenTotal) + ' tok') : '') + (m.cost_usd ? (' · ' + fmtMoneySmall.format(m.cost_usd)) : '') + (m.duration_ms ? (' · ' + fmtDuration(m.duration_ms)) : '') + '</span>')
         : '';
       const senderName = isUser ? ('You') : 'Agent';
+      // v2.61.0: render agent messages as markdown, user messages as plain text
+      const bodyHtml = isUser
+        ? ('<div class="text-sm leading-relaxed text-slate-800 dark:text-slate-100 whitespace-pre-wrap">' + escapeHtml(m.body || '') + '</div>')
+        : ('<div class="chat-md text-sm leading-relaxed text-slate-800 dark:text-slate-100">' + tinyMarkdown(m.body || '') + '</div>');
+      // v2.64.0: render attachments (images inline, files as links)
+      const attHtml = (m.attachments && m.attachments.length)
+        ? ('<div class="mt-2 flex flex-wrap gap-2">' + m.attachments.map(a => {
+            if (a.is_image && a.url) {
+              return '<a href="' + escapeHtml(a.url) + '" target="_blank" rel="noopener"><img src="' + escapeHtml(a.url) + '" alt="' + escapeHtml(a.name || '') + '" class="max-h-48 rounded-lg border border-slate-200 dark:border-slate-700" /></a>';
+            }
+            return '<a href="' + escapeHtml(a.url || '#') + '" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300">📎 ' + escapeHtml(a.name || 'file') + '</a>';
+          }).join('') + '</div>')
+        : '';
+      // Per-message action row (copy always; regenerate on the last agent msg)
+      const isLastAgent = !isUser && idx === state.chat.length - 1;
+      const actions = '<div class="mt-1.5 flex items-center gap-3 text-[10px] mono text-slate-400">' +
+        (chatSourceBadge(m.source) ? (chatSourceBadge(m.source) + '<span class="opacity-40">·</span>') : '') +
+        '<button data-chat-action="copy" data-chat-idx="' + idx + '" class="hover:text-slate-600 dark:hover:text-slate-200">copy</button>' +
+        (!isUser ? '<button data-chat-action="speak" data-chat-idx="' + idx + '" class="hover:text-indigo-600 dark:hover:text-indigo-400" title="Play as voice">🔊 speak</button>' : '') +
+        (isLastAgent ? '<button data-chat-action="regenerate" class="hover:text-slate-600 dark:hover:text-slate-200">regenerate</button>' : '') +
+        (meta ? ('<span class="opacity-40">·</span>' + meta) : '') +
+        '</div>';
       return '<div class="flex gap-3 fade-in">' + avatar +
         '<div class="flex-1 min-w-0">' +
         '<div class="flex items-center gap-2 mb-1"><span class="text-sm font-semibold">' + senderName + '</span><span class="text-[10px] mono text-slate-400">' + fmtTimeMono(m.ts) + '</span></div>' +
-        '<div class="text-sm leading-relaxed text-slate-800 dark:text-slate-100 whitespace-pre-wrap">' + escapeHtml(m.body || '') + '</div>' +
-        meta + '</div></div>';
+        bodyHtml + attHtml + actions + '</div></div>';
     }).join('');
-    if (state.chatTyping) {
+    // Live streaming bubble (current in-flight agent reply)
+    if (state.chatStreaming) {
       html += '<div class="flex gap-3 fade-in">' +
         '<div class="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-center shrink-0"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6v6c0 5 3.4 9.4 8 10 4.6-.6 8-5 8-10V6l-8-4Z"/></svg></div>' +
-        '<div class="flex-1"><div class="text-sm font-semibold mb-1">Agent</div><div class="text-slate-400 text-sm"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div></div>' +
-        '</div>';
+        '<div class="flex-1 min-w-0"><div class="text-sm font-semibold mb-1">Agent</div>' +
+        (state.chatStreamText
+          ? '<div class="chat-md text-sm leading-relaxed text-slate-800 dark:text-slate-100">' + tinyMarkdown(state.chatStreamText) + '<span class="chat-caret">▋</span></div>'
+          : '<div class="text-slate-400 text-sm"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>') +
+        '</div></div>';
     }
     root.innerHTML = html;
     setTimeout(scrollChatToBottom, 0);
   };
   const scrollChatToBottom = () => { const r = $('#chat-messages'); if (r) r.scrollTop = r.scrollHeight; };
 
-  const sendChat = async () => {
-    const ta = $('#chat-input');
-    const msg = (ta.value || '').trim();
-    if (!msg) return;
-    ta.value = '';
-    state.chat.push({ role:'user', body: msg, ts: new Date().toISOString() });
-    state.chatTyping = true;
-    saveChatHistory();
-    renderChat();
-    try {
-      const res = await fetch('/api/chat', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ message: msg }) });
-      const data = res.ok ? await res.json() : null;
-      state.chatTyping = false;
-      // server returns {response, tokens, cost_usd, duration_seconds, finished_at, ...}
-      if (data && data.response) {
-        const dms = typeof data.duration_seconds === 'number' ? data.duration_seconds * 1000 : (data.duration_ms || null);
-        state.chat.push({ role:'agent', body: data.response, ts: data.finished_at || data.ts || new Date().toISOString(), tokens: data.tokens, cost_usd: data.cost_usd, duration_ms: dms });
-      } else {
-        state.chat.push({ role:'agent', body: '(Agent did not respond. Check that /api/chat is wired up.)', ts: new Date().toISOString() });
-      }
-    } catch (e) {
-      state.chatTyping = false;
-      state.chat.push({ role:'agent', body: '(Network error: ' + e.message + ')', ts: new Date().toISOString() });
-    }
-    saveChatHistory();
-    renderChat();
+  const setChatBusy = (busy) => {
+    const sendBtn = $('#chat-send-btn');
+    const stopBtn = $('#chat-stop-btn');
+    const badge = $('#chat-stream-badge');
+    if (sendBtn) sendBtn.classList.toggle('hidden', busy);
+    if (stopBtn) stopBtn.classList.toggle('hidden', !busy);
+    if (badge) badge.classList.toggle('hidden', !busy);
   };
 
-  // Each server-side history entry is one {prompt,response} round-trip.
-  // Render it as TWO chat bubbles: one user (prompt) + one agent (response).
+  // v2.61.0: streaming send via POST /api/chat/stream (SSE chunks). Falls back
+  // to the non-streaming /api/chat if the stream endpoint errors.
+  const sendChat = async (overrideMsg, skipUserPush) => {
+    const ta = $('#chat-input');
+    const msg = (overrideMsg != null ? overrideMsg : (ta.value || '')).trim();
+    // v2.64.0: allow sending with attachments even if the text is empty.
+    const pending = state.chatAttachments.filter(a => !a.uploading);
+    if ((!msg && !pending.length) || state.chatStreaming) return;
+    if (overrideMsg == null) ta.value = '';
+
+    // Snapshot + clear pending attachments for this send.
+    const attachments = pending.slice();
+    state.chatAttachments = [];
+    renderPendingAttachments();
+
+    if (!skipUserPush) {
+      state.chat.push({ role:'user', body: msg, source:'dashboard', ts: new Date().toISOString(), attachments: attachments });
+    }
+    state.chatStreaming = true;
+    state.chatStreamText = '';
+    saveChatHistory();
+    renderChat();
+    setChatBusy(true);
+
+    const controller = new AbortController();
+    state.chatAbort = controller;
+    let finalData = null;
+
+    try {
+      const res = await fetch('/api/chat/stream', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ message: msg, source: 'dashboard', attachments: attachments }),
+        signal: controller.signal,
+      });
+      if (!res.ok || !res.body) throw new Error('stream unavailable (' + res.status + ')');
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        // Parse complete SSE frames (separated by blank line)
+        let sep;
+        while ((sep = buf.indexOf('\n\n')) !== -1) {
+          const frame = buf.slice(0, sep); buf = buf.slice(sep + 2);
+          let ev = 'message', data = '';
+          for (const ln of frame.split('\n')) {
+            if (ln.startsWith('event:')) ev = ln.slice(6).trim();
+            else if (ln.startsWith('data:')) data += ln.slice(5).trim();
+          }
+          if (!data) continue;
+          let parsed; try { parsed = JSON.parse(data); } catch(e) { continue; }
+          if (ev === 'delta' && parsed.text) {
+            state.chatStreamText += parsed.text;
+            renderChat();
+          } else if (ev === 'done') {
+            finalData = parsed;
+          } else if (ev === 'error') {
+            throw new Error(parsed.detail || 'stream error');
+          }
+        }
+      }
+    } catch (e) {
+      if (e.name === 'AbortError') {
+        // user pressed Stop — keep whatever streamed so far
+        finalData = { response: state.chatStreamText, stopped: true };
+      } else {
+        // fall back to non-streaming endpoint
+        try {
+          const res2 = await fetch('/api/chat', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ message: msg, attachments: attachments }) });
+          const d = res2.ok ? await res2.json() : null;
+          if (d && d.response) finalData = d;
+        } catch (e2) { /* ignore — handled below */ }
+        if (!finalData) finalData = { response: '(Network error: ' + e.message + ')' };
+      }
+    }
+
+    // Commit the final agent message
+    const text = (finalData && (finalData.response != null ? finalData.response : state.chatStreamText)) || state.chatStreamText || '(no response)';
+    const dms = finalData && typeof finalData.duration_seconds === 'number' ? finalData.duration_seconds * 1000 : null;
+    state.chat.push({
+      role:'agent', body: text, source:'dashboard',
+      ts: (finalData && finalData.finished_at) || new Date().toISOString(),
+      tokens: finalData && finalData.tokens, cost_usd: finalData && finalData.cost_usd, duration_ms: dms,
+    });
+    state.chatStreaming = false;
+    state.chatStreamText = '';
+    state.chatAbort = null;
+    setChatBusy(false);
+    saveChatHistory();
+    renderChat();
+    // v2.63.0: auto-voice — speak the agent reply if the toggle is on.
+    if (state.chatAutoplay && text && !(finalData && finalData.stopped)) {
+      speakText(text, null);
+    }
+  };
+
+  const stopChat = () => {
+    if (state.chatAbort) { try { state.chatAbort.abort(); } catch(e){} }
+  };
+
+  // v2.63.0 — Voice (Phase D): mic record → transcribe → auto-send,
+  // + TTS playback of agent replies.
+  const _voice = { recorder: null, chunks: [], stream: null, recording: false, audioEl: null };
+
+  const setMicState = (recording) => {
+    _voice.recording = recording;
+    const btn = $('#chat-mic-btn');
+    const status = $('#chat-mic-status');
+    if (btn) {
+      btn.classList.toggle('bg-rose-600', recording);
+      btn.classList.toggle('text-white', recording);
+      btn.classList.toggle('bg-slate-100', !recording);
+    }
+    if (status) status.classList.toggle('hidden', !recording);
+  };
+
+  const toggleMic = async () => {
+    if (_voice.recording) { stopMic(); return; }
+    if (!navigator.mediaDevices || !window.MediaRecorder) {
+      alert('Voice recording is not supported in this browser.');
+      return;
+    }
+    try {
+      _voice.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (e) {
+      alert('Microphone access denied. Enable it in your browser settings.');
+      return;
+    }
+    _voice.chunks = [];
+    // Prefer ogg/opus; fall back to webm. whisper-side ffmpeg handles both.
+    let mime = 'audio/ogg;codecs=opus';
+    if (!MediaRecorder.isTypeSupported(mime)) mime = 'audio/webm;codecs=opus';
+    if (!MediaRecorder.isTypeSupported(mime)) mime = '';
+    _voice.recorder = new MediaRecorder(_voice.stream, mime ? { mimeType: mime } : undefined);
+    _voice.recorder.ondataavailable = (ev) => { if (ev.data && ev.data.size) _voice.chunks.push(ev.data); };
+    _voice.recorder.onstop = () => onMicStop(mime);
+    _voice.recorder.start();
+    setMicState(true);
+  };
+
+  const stopMic = () => {
+    try { if (_voice.recorder && _voice.recorder.state !== 'inactive') _voice.recorder.stop(); } catch(e){}
+    try { if (_voice.stream) _voice.stream.getTracks().forEach(t => t.stop()); } catch(e){}
+    setMicState(false);
+  };
+
+  const onMicStop = async (mime) => {
+    const status = $('#chat-mic-status-text');
+    if (!_voice.chunks.length) return;
+    const ext = (mime && mime.indexOf('ogg') !== -1) ? 'ogg' : 'webm';
+    const blob = new Blob(_voice.chunks, { type: mime || 'audio/webm' });
+    _voice.chunks = [];
+    if (status) { $('#chat-mic-status').classList.remove('hidden'); status.textContent = 'Transcribing…'; }
+    try {
+      const fd = new FormData();
+      fd.append('audio', blob, 'voice.' + ext);
+      const res = await fetch('/api/chat/transcribe', { method: 'POST', body: fd });
+      const data = res.ok ? await res.json() : null;
+      $('#chat-mic-status').classList.add('hidden');
+      const text = data && (data.text || '').trim();
+      if (text) {
+        // Telegram-like: send the transcribed message straight through.
+        sendChat(text);
+      } else {
+        alert('Could not transcribe audio. Try again or type your message.');
+      }
+    } catch (e) {
+      $('#chat-mic-status').classList.add('hidden');
+      alert('Transcription failed: ' + e.message);
+    }
+  };
+
+  const speakText = async (text, btn) => {
+    if (!text) return;
+    const origLabel = btn ? btn.textContent : null;
+    if (btn) btn.textContent = '⏳ …';
+    try {
+      const res = await fetch('/api/chat/tts', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: text, lang: 'auto' }),
+      });
+      if (!res.ok) throw new Error('tts ' + res.status);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      if (_voice.audioEl) { try { _voice.audioEl.pause(); } catch(e){} }
+      _voice.audioEl = new Audio(url);
+      _voice.audioEl.onended = () => URL.revokeObjectURL(url);
+      await _voice.audioEl.play();
+    } catch (e) {
+      console.warn('TTS failed:', e);
+    } finally {
+      if (btn && origLabel) btn.textContent = origLabel;
+    }
+  };
+
+  const toggleAutoplay = () => {
+    state.chatAutoplay = !state.chatAutoplay;
+    localStorage.setItem('dashboard-chat-autoplay', state.chatAutoplay ? '1' : '0');
+    const lbl = $('#chat-autoplay-label');
+    if (lbl) lbl.textContent = 'auto-voice: ' + (state.chatAutoplay ? 'on' : 'off');
+    const btn = $('#chat-autoplay-btn');
+    if (btn) btn.classList.toggle('text-indigo-600', state.chatAutoplay);
+  };
+
+  // v2.64.0 — File + image attachments (Phase E)
+  const renderPendingAttachments = () => {
+    const wrap = $('#chat-attachments');
+    if (!wrap) return;
+    const atts = state.chatAttachments;
+    if (!atts.length) { wrap.classList.add('hidden'); wrap.innerHTML = ''; return; }
+    wrap.classList.remove('hidden');
+    wrap.innerHTML = atts.map((a, i) => {
+      const inner = a.uploading
+        ? '<span class="text-slate-400">⏳ ' + escapeHtml(a.name) + '</span>'
+        : (a.is_image
+            ? '<img src="' + escapeHtml(a.url) + '" class="h-8 w-8 object-cover rounded" alt="" /><span class="truncate max-w-[120px]">' + escapeHtml(a.name) + '</span>'
+            : '<span>📎 ' + escapeHtml(a.name) + '</span>');
+      return '<div class="flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">' +
+        inner +
+        '<button data-attach-remove="' + i + '" class="ml-1 text-slate-400 hover:text-rose-600">✕</button>' +
+        '</div>';
+    }).join('');
+  };
+
+  const uploadFiles = async (fileList) => {
+    const files = Array.from(fileList || []);
+    for (const f of files) {
+      const placeholder = { name: f.name, uploading: true };
+      state.chatAttachments.push(placeholder);
+      renderPendingAttachments();
+      try {
+        const fd = new FormData();
+        fd.append('file', f, f.name);
+        const res = await fetch('/api/chat/upload', { method: 'POST', body: fd });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || ('upload ' + res.status));
+        }
+        const meta = await res.json();
+        const idx = state.chatAttachments.indexOf(placeholder);
+        if (idx !== -1) state.chatAttachments[idx] = meta;
+      } catch (e) {
+        const idx = state.chatAttachments.indexOf(placeholder);
+        if (idx !== -1) state.chatAttachments.splice(idx, 1);
+        alert('Upload failed for ' + f.name + ': ' + e.message);
+      }
+      renderPendingAttachments();
+    }
+  };
+
+  // Each unified-store message is already one bubble. Legacy round-trip
+  // entries ({prompt,response}) get flattened to two bubbles.
   const flattenHistoryEntry = (e) => {
+    if (e.role) {
+      // unified format — already per-message
+      return [{ role: e.role, body: e.text || '', source: e.source || 'dashboard',
+                ts: e.ts || null, tokens: e.tokens, cost_usd: e.cost_usd,
+                duration_ms: e.duration_ms }];
+    }
     const dms = typeof e.duration_seconds === 'number' ? e.duration_seconds * 1000 : (e.duration_ms || null);
     return [
-      { role: 'user',  body: e.prompt   || '', ts: e.started_at  || e.finished_at || null },
-      { role: 'agent', body: e.response || '', ts: e.finished_at || e.started_at  || null,
+      { role: 'user',  body: e.prompt   || '', source: 'dashboard', ts: e.started_at  || e.finished_at || null },
+      { role: 'agent', body: e.response || '', source: 'dashboard', ts: e.finished_at || e.started_at  || null,
         tokens: e.tokens, cost_usd: e.cost_usd, duration_ms: dms },
     ];
   };
 
   const hydrateChatFromServer = async () => {
-    const data = await safeFetch('/api/chat/history?limit=50');
+    const data = await safeFetch('/api/chat/history?limit=100');
     if (data && Array.isArray(data.messages) && data.messages.length) {
       state.chat = data.messages.flatMap(flattenHistoryEntry);
       saveChatHistory();
@@ -4144,6 +4481,45 @@
   };
 
   document.addEventListener('click', async (e) => {
+    // v2.64.0: remove a pending attachment chip (handle before data-action guard)
+    const rmBtn = e.target.closest('[data-attach-remove]');
+    if (rmBtn) {
+      const i = parseInt(rmBtn.dataset.attachRemove, 10);
+      if (!isNaN(i)) { state.chatAttachments.splice(i, 1); renderPendingAttachments(); }
+      return;
+    }
+    // v2.61.0: per-message chat actions use data-chat-action (no data-action),
+    // so handle them BEFORE the data-action guard below.
+    const chatBtn = e.target.closest('[data-chat-action]');
+    if (chatBtn) {
+      const act = chatBtn.dataset.chatAction;
+      if (act === 'copy') {
+        const idx = parseInt(chatBtn.dataset.chatIdx, 10);
+        const m = state.chat[idx];
+        if (m && navigator.clipboard) {
+          navigator.clipboard.writeText(m.body || '').then(() => {
+            const orig = chatBtn.textContent; chatBtn.textContent = 'copied';
+            setTimeout(() => { chatBtn.textContent = orig; }, 1200);
+          });
+        }
+      } else if (act === 'speak') {
+        const idx = parseInt(chatBtn.dataset.chatIdx, 10);
+        const m = state.chat[idx];
+        if (m) speakText(m.body || '', chatBtn);
+      } else if (act === 'regenerate') {
+        let lastUser = null;
+        for (let i = state.chat.length - 1; i >= 0; i--) {
+          if (state.chat[i].role === 'user') { lastUser = state.chat[i].body; break; }
+        }
+        if (lastUser) {
+          if (state.chat.length && state.chat[state.chat.length - 1].role === 'agent') state.chat.pop();
+          renderChat();
+          sendChat(lastUser, true);
+        }
+      }
+      return;
+    }
+
     const target = e.target.closest('[data-action]');
     if (!target) return;
     const action = target.dataset.action;
@@ -4189,8 +4565,15 @@
       return;
     }
     if (action === 'send-chat') { sendChat(); return; }
+    if (action === 'stop-chat') { stopChat(); return; }
+    if (action === 'toggle-mic') { toggleMic(); return; }
+    if (action === 'toggle-autoplay') { toggleAutoplay(); return; }
+    if (action === 'attach-file') { const fi = $('#chat-file-input'); if (fi) fi.click(); return; }
     if (action === 'clear-chat') {
-      if (confirm('Clear chat history?')) { state.chat = []; saveChatHistory(); renderChat(); }
+      if (confirm('Clear chat history? This wipes the unified conversation store (dashboard + Telegram mirror).')) {
+        fetch('/api/chat/history', { method: 'DELETE' }).catch(()=>{});
+        state.chat = []; saveChatHistory(); renderChat();
+      }
       return;
     }
   });
@@ -4209,6 +4592,21 @@
   });
   document.addEventListener('change', (e) => {
     if (e.target.id === 'owner-filter') { state.filters.owner = e.target.value; renderTasks(); }
+    // v2.64.0: file picker → upload
+    if (e.target.id === 'chat-file-input') {
+      if (e.target.files && e.target.files.length) uploadFiles(e.target.files);
+      e.target.value = ''; // allow re-selecting the same file
+    }
+  });
+
+  // v2.64.0: paste an image directly into the chat input → upload it
+  document.addEventListener('paste', (e) => {
+    const ae = document.activeElement;
+    if (!ae || ae.id !== 'chat-input') return;
+    const items = (e.clipboardData && e.clipboardData.items) || [];
+    const files = [];
+    for (const it of items) { if (it.kind === 'file') { const f = it.getAsFile(); if (f) files.push(f); } }
+    if (files.length) { e.preventDefault(); uploadFiles(files); }
   });
 
   document.addEventListener('keydown', (e) => {
@@ -4290,6 +4688,33 @@
             }
           }
         } catch (e) { /* malformed event, skip */ }
+      });
+
+      // v2.61.0: chat-message events — a message landed in the unified store
+      // from ANOTHER surface (Telegram, post Phase B) or another open tab.
+      // Append it live so the thread stays in sync without a poll. We skip
+      // messages we just sent ourselves (matched by request_id already in view)
+      // to avoid double-rendering during streaming.
+      es.addEventListener('chat-message', (ev) => {
+        _liveState.lastEventMs = Date.now();
+        try {
+          const data = JSON.parse(ev.data);
+          const m = data.payload;
+          if (!m || !m.role) return;
+          // De-dupe: if we're mid-stream on the dashboard, our own messages are
+          // already rendered. Only append messages from non-dashboard sources,
+          // or dashboard messages that aren't already the last bubble.
+          const last = state.chat[state.chat.length - 1];
+          const dupe = last && last.role === m.role && (last.body || '') === (m.text || '');
+          if (m.source === 'dashboard' && (state.chatStreaming || dupe)) return;
+          state.chat.push({
+            role: m.role, body: m.text || '', source: m.source || 'dashboard',
+            ts: m.ts || new Date().toISOString(),
+            tokens: m.tokens, cost_usd: m.cost_usd, duration_ms: m.duration_ms,
+          });
+          saveChatHistory();
+          renderChat();
+        } catch (e) { /* malformed, skip */ }
       });
 
       es.onmessage = () => { _liveState.lastEventMs = Date.now(); };

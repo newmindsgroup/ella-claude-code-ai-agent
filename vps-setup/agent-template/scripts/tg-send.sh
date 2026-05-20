@@ -44,12 +44,14 @@ EOF
 cmd="${1:-help}"; shift || true
 chat="$DEFAULT_CHAT"; text=""; md=""; reply_to=""; buttons=""; cb_buttons=""; wa_buttons=""; file=""
 caption=""; message=""; emoji=""; commands_json=""; data=""; method=""
+no_log=""   # v2.62.0: --no-conversation-log skips the unified-store tee
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --chat) chat="$2"; shift 2 ;;
     --text) text="$2"; shift 2 ;;
     --md) md="MarkdownV2"; shift ;;
+    --no-conversation-log) no_log="1"; shift ;;
     --reply-to) reply_to="$2"; shift 2 ;;
     --buttons) buttons="$2"; shift 2 ;;
     --callback-buttons) cb_buttons="$2"; shift 2 ;;
@@ -121,6 +123,15 @@ case "$cmd" in
     response=$(curl -sS -X POST "$API/sendMessage" -H 'Content-Type: application/json' -d "$payload")
     if echo "$response" | jq -e '.ok' >/dev/null 2>&1; then
       echo "$response" | jq -r '.result.message_id'
+      # v2.62.0: tee outbound Telegram messages into the unified conversation
+      # store so they appear in the Mission Control dashboard chat (parity).
+      # Fire-and-forget; the dashboard's own mirror passes --no-conversation-log
+      # to avoid double-logging.
+      if [[ -z "$no_log" ]]; then
+        ingest_body=$(jq -nc --arg t "$text" '{role:"agent", source:"telegram", text:$t}')
+        curl -sS -m 3 -X POST "http://127.0.0.1:8001/api/chat/ingest" \
+          -H 'Content-Type: application/json' -d "$ingest_body" >/dev/null 2>&1 || true
+      fi
     else
       echo "$response" | jq -r '.description // .' >&2; exit 1
     fi

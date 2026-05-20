@@ -361,11 +361,57 @@ PY
 fi
 
 # -----------------------------------------------------------------------------
+# PASS 6 — v2.62.0 chat parity: tee inbound Telegram messages → unified store
+# -----------------------------------------------------------------------------
+# Captures each inbound Telegram user message and fires it (fire-and-forget) at
+# the dashboard-chat FastAPI /api/chat/ingest endpoint, which appends it to the
+# shared conversation.db. Telegram→Dashboard half of chat parity. Reuses PASS
+# 4's proven handleInbound meta-block anchor + the same side-effecting-IIFE
+# shape (returns {} — adds no field, fires the capture as a side effect).
+SENTINEL_PARITY="v2.62.0: chat parity ingest tee"
+
+if grep -q "$SENTINEL_PARITY" "$PLUGIN"; then
+  echo "  pass 6 (parity) already applied — no-op"
+else
+  cp "$PLUGIN" "$PLUGIN.bak-pass6-$(date -u +%Y%m%dT%H%M%SZ)"
+  PLUGIN_TARGET="$PLUGIN" SENTINEL_TARGET="$SENTINEL_PARITY" python3 <<'PY'
+import os
+PLUGIN = os.environ["PLUGIN_TARGET"]
+SENTINEL = os.environ["SENTINEL_TARGET"]
+src = open(PLUGIN).read()
+needle = "        ts: new Date((ctx.message?.date ?? 0) * 1000).toISOString(),"
+new = f"""        ts: new Date((ctx.message?.date ?? 0) * 1000).toISOString(),
+        // {SENTINEL} — mirror inbound Telegram text into the dashboard's
+        // unified conversation store so the Mission Control chat shows it.
+        ...((() => {{
+          try {{
+            const t = ((ctx.message as any)?.text ?? '').trim()
+            if (t) {{
+              fetch('http://127.0.0.1:8001/api/chat/ingest', {{
+                method: 'POST',
+                headers: {{ 'Content-Type': 'application/json' }},
+                body: JSON.stringify({{ role: 'user', source: 'telegram', text: t }}),
+              }}).catch(() => {{}})
+            }}
+          }} catch (e) {{ /* never block delivery on a logging hiccup */ }}
+          return {{}}
+        }})()),"""
+if needle not in src:
+    print(f"FATAL: pass-6 anchor not found in {PLUGIN}"); raise SystemExit(2)
+patched = src.replace(needle, new, 1)
+if patched == src:
+    print(f"FATAL: pass-6 replacement was a no-op"); raise SystemExit(2)
+open(PLUGIN, "w").write(patched)
+print(f"  pass 6 (parity) applied ({len(patched)-len(src)} bytes added)")
+PY
+fi
+
+# -----------------------------------------------------------------------------
 # Verify all expected handlers + ts compiles
 # -----------------------------------------------------------------------------
 echo ""
 echo "=== verify ==="
-for s in "$SENTINEL_DEPLOY" "$SENTINEL_DRAFT" "$SENTINEL_PROP" "$SENTINEL_FWD" "$SENTINEL_EMAIL"; do
+for s in "$SENTINEL_DEPLOY" "$SENTINEL_DRAFT" "$SENTINEL_PROP" "$SENTINEL_FWD" "$SENTINEL_EMAIL" "$SENTINEL_PARITY"; do
   if grep -q "$s" "$PLUGIN"; then
     echo "  ✓ $s"
   else

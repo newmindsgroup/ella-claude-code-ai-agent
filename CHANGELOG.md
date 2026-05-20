@@ -2,6 +2,44 @@
 
 All notable changes to this repo. Format roughly follows [Keep a Changelog](https://keepachangelog.com/). This is a multi-tenant template, so versions reflect what's available to clone for a new tenant — not what's running at any one customer's deployment.
 
+## [v0.8.0] — 2026-05-20
+
+### Added — Telegram ↔ Mission Control chat parity + voice + attachments
+
+Ports the upstream Daniel Gonell tenant's chat suite (v2.61–v2.64) into the template. The dashboard chat now matches a ChatGPT/Claude experience AND stays in sync with Telegram, so a tenant can use either surface interchangeably. **Purely additive — Telegram keeps working exactly as before; the two surfaces just mirror each other.**
+
+**Unified conversation store (v2.61):**
+- **`dashboard-chat/_conversation.py`** — SQLite store (`conversation.db`) that is the single source of truth for the chat thread. Per-message rows tagged by source (dashboard/telegram/voice), with role, tokens, cost, attachments. Both surfaces read + write it.
+
+**Streaming rich-text chat (v2.61):**
+- `POST /api/chat/stream` — SSE token-delta streaming (`--include-partial-messages`) for a progressive render.
+- `GET /api/chat/history` reads the unified store (per-message, source-tagged); `DELETE` clears it.
+- Frontend: streaming with blinking caret + Stop button, markdown rendering (incl. fenced code blocks), per-message copy + regenerate, source badges, live SSE updates.
+
+**Telegram ↔ dashboard sync (v2.62):**
+- `POST /api/chat/ingest` — receives a message from another surface, stores + broadcasts via SSE.
+- `tg-send.sh` tee — outbound Telegram messages (briefs, watchers, proactive replies) also appear in the dashboard. `--no-conversation-log` opts out.
+- Dashboard chat exchanges mirror to Telegram (`MIRROR_DASHBOARD_TO_TELEGRAM`, default on, loop-safe).
+- **`patch-channels-plugin.sh` PASS 6** — captures inbound Telegram user messages → `/api/chat/ingest`. Reuses PASS 4's proven `handleInbound` anchor + side-effecting-IIFE shape; fire-and-forget so a down backend never blocks delivery. Applies on the next claude-agent restart via ExecStartPre.
+
+**Voice (v2.63):**
+- `POST /api/chat/transcribe` — browser mic upload → whisper.cpp (`voice-transcribe.sh`) → text.
+- `POST /api/chat/tts` — agent reply → edge-tts (`voice-reply.sh`) → OGG audio.
+- Frontend: mic record button (click-to-toggle, auto-send transcript), 🔊 speak button per agent message, auto-voice toggle (persisted). `requirements.txt` gains `python-multipart`.
+
+**Files + images (v2.64):**
+- `POST /api/chat/upload` (allowlist + 30MB cap, path-traversal-safe serve) → files land under AGENT_HOME so the agent can Read them; `build_agent_prompt()` tells it where.
+- Frontend: paperclip attach + paste-image, pending-preview strip, inline rendering (images as `<img>`, files as chips).
+
+### Verified
+- `render-tenant.sh EXAMPLE_TENANT.yml` → 169 clean files, no placeholder leaks.
+- `pytest tests/` → all green (adds `test_conversation.py`).
+
+### Deploy note
+Needs a `dashboard-chat.service` restart + `pip install -r dashboard-chat/requirements.txt`. PASS 6 (Telegram inbound capture) applies on the next `claude-agent` restart. Known follow-up: the Telegram plugin's *native* agent replies (not sent via tg-send.sh) aren't captured yet — needs a PASS 7 anchor in the plugin's send path.
+
+---
+
 ## [v0.7.1] — 2026-05-19
 
 ### Added — Deployment polish (autonomous local-agent driven deploys)
