@@ -119,6 +119,14 @@
   .kanban-card.dragging { opacity: 0.5; }
   .kanban-card:focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; }
   .seg-toggle { transition: background 120ms ease, color 120ms ease; }
+
+  /* ── Table cells: short labels never wrap mid-token (e.g. "inbound-triage"). ──
+     Every Mission Control table sits in an overflow-x-auto wrapper, so keeping
+     cells single-line widens the column and lets the table scroll horizontally
+     instead of breaking a label onto two rows. Prose (descriptions) opts back
+     into normal wrapping with .cell-wrap. */
+  table td, table th { white-space: nowrap; }
+  .cell-wrap, .cell-wrap * { white-space: normal; }
 </style>
 </head>
 <body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen">
@@ -3090,7 +3098,7 @@
         'title="Fire this unit now via systemctl restart">Run now</button>';
       return '<tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40" data-skill-row="' + escapeHtml(serviceUnit) + '">' +
         '<td class="px-4 py-3"><div class="text-sm font-medium mono">' + escapeHtml(shortName) + '</div>' +
-          (desc ? '<div class="text-[11px] text-slate-500 mt-0.5">' + escapeHtml(desc) + '</div>' : '') +
+          (desc ? '<div class="text-[11px] text-slate-500 mt-0.5 cell-wrap">' + escapeHtml(desc) + '</div>' : '') +
         '</td>' +
         '<td class="px-4 py-3">' + catBadge(s.category) + '</td>' +
         '<td class="px-4 py-3 text-xs mono text-slate-600 dark:text-slate-400 max-w-xs truncate" title="' + escapeHtml(schedule) + '">' + escapeHtml(schedule) + '</td>' +
@@ -3314,7 +3322,7 @@
       return '<tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40">' +
         '<td class="px-4 py-3">' +
           '<div class="text-sm font-medium mono">' + escapeHtml(r.name || '—') + '</div>' +
-          (r.description ? '<div class="text-[11px] text-slate-500 mt-0.5">' + escapeHtml(r.description) + '</div>' : '') +
+          (r.description ? '<div class="text-[11px] text-slate-500 mt-0.5 cell-wrap">' + escapeHtml(r.description) + '</div>' : '') +
           '<div class="text-[10px] text-slate-400 mono mt-1">' + escapeHtml(r.filename || '') + '</div>' +
         '</td>' +
         '<td class="px-4 py-3">' + stateBadge(r) + '</td>' +
@@ -4815,7 +4823,7 @@
           : '<span class="text-xs text-slate-400">—</span>') + '</td>' +
         '</tr>' +
         '<tr class="task-detail hidden" data-task-detail="' + escapeHtml(id) + '">' +
-        '<td colspan="9" class="px-6 py-4 bg-slate-50 dark:bg-slate-900/60">' +
+        '<td colspan="9" class="px-6 py-4 bg-slate-50 dark:bg-slate-900/60 cell-wrap">' +
         '<div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">' +
         '<div><div class="font-semibold mb-1 text-slate-700 dark:text-slate-200">Lifecycle</div>' +
         '<ol class="space-y-1">' + (lifecycle.length ? lifecycle.map(e => '<li class="flex gap-2"><span class="mono text-slate-400 w-12">' + fmtTimeMono(e.at) + '</span>' + statePill(e.state) + '</li>').join('') : '<li class="text-slate-400">no events</li>') + '</ol></div>' +
