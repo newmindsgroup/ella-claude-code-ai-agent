@@ -1,31 +1,38 @@
-# v2.57.0: Hard cost guardrails.
+# v2.69.0: Runaway-only hard backstop.
 #
-# When today's API cost crosses a threshold, trip the circuit breaker so
-# autonomous skills refuse to run for the rest of the day. This is the
-# difference between an alert ("cost is high") and a *guardrail* ("nothing
-# new fires until you investigate").
+# This is now a TRUE-RUNAWAY backstop, NOT a daily budget. On a flat-rate Max
+# subscription the dollar figure is notional, and normal heavy days legitimately
+# run $100+ (with ~99.95% cache hit ratio — verified 2026-05-20). A low fixed
+# cap (the old $5/$20) just false-tripped frugal mode and paused useful work for
+# no real reason.
 #
-# Manual override: /api/chat/budget DELETE clears blocks; on Telegram the
-# /budget command shows current state.
-name: cost-spike-circuit-breaker
-description: Trip the global circuit breaker if today's API cost exceeds $5.
+# So: the hard circuit breaker only fires at a level that genuinely means
+# "something is wrong" (a loop, a misconfigured batch). Day-to-day spike
+# detection is handled by cost-report.py, which ALERTS (does not block) when
+# today's spend is ~3x your rolling baseline — see scripts/cost-report.py.
+#
+# Manual override: /api/chat/budget DELETE __global__ clears the block.
+name: cost-runaway-backstop
+description: Hard circuit breaker — only for genuine runaways (>= $300/day notional).
 enabled: true
 when:
   - path: telemetry.rollup.today.api_cost_usd
     op: ">="
-    value: 5.0
+    value: 300.0
     as: today_cost_usd
 then:
   - action: telegram
     text: |
-      🛑 Cost ceiling breached
-      Today's API spend: ${{today_cost_usd}} — exceeds $5 daily cap.
-      Global circuit breaker engaged for 12h. No autonomous skills will run.
+      🛑 Runaway cost backstop tripped
+      Today's notional spend: ${{today_cost_usd}} — past the $300 runaway
+      backstop. This is unusually high even for a heavy day. Global circuit
+      breaker engaged for 12h while you investigate (check the dashboard
+      Activity tab + cost-report for the driver).
       → /api/chat/budget DELETE __global__  to clear early.
   - action: audit
-    action_name: rule-fired-cost-ceiling
+    action_name: rule-fired-cost-runaway
   - action: circuit_breaker
     skill: __global__
-    reason: "daily cap $5 breached at {{today_cost_usd}}"
+    reason: "runaway backstop: ${{today_cost_usd}} today"
     duration_hours: 12
 throttle_minutes: 720
