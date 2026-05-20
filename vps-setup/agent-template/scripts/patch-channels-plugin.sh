@@ -13,6 +13,8 @@
 #   v2.27.2 — prop:   callback_data routing (Run/Skip on morning-brief proposed moves)
 #   v2.27.3 — forward: surface forward_origin metadata so agent detects forwards
 #   v2.27.4 — email:  callback_data routing (Reply/Archive/Snooze on /inbox triage)
+#   v2.62.0 — parity: tee INBOUND Telegram user text into the dashboard chat
+#   v2.78.0 — reply:  tee OUTBOUND agent replies into the dashboard chat
 #
 # WHY THIS EXISTS:
 #   The upstream channels plugin's bot.on('callback_query:data', ...) handler
@@ -407,11 +409,66 @@ PY
 fi
 
 # -----------------------------------------------------------------------------
+# PASS 7 — v2.78.0 outbound reply ingest tee
+#   Mirror the agent's OUTBOUND Telegram replies (the `reply` MCP tool) into
+#   the dashboard's unified conversation store, completing 100% bidirectional
+#   Telegram <-> Mission Control parity. PASS 6 handles inbound (user) text;
+#   PASS 7 handles outbound (agent) text.
+#
+#   No loop with PASS 6 (which tees role=user from ctx.message) and no dupe
+#   with the dashboard-chat path (which returns over SSE and never calls the
+#   `reply` tool — it runs claude with the _DASHBOARD_CHAT_GUARD). Only the
+#   conversational `reply` is captured; progress edit_message edits are not.
+# -----------------------------------------------------------------------------
+SENTINEL_REPLY="v2.78.0: outbound reply ingest tee"
+
+if grep -q "$SENTINEL_REPLY" "$PLUGIN"; then
+  echo "  pass 7 (reply tee) already applied — no-op"
+else
+  cp "$PLUGIN" "$PLUGIN.bak-pass7-$(date -u +%Y%m%dT%H%M%SZ)"
+  PLUGIN_TARGET="$PLUGIN" SENTINEL_TARGET="$SENTINEL_REPLY" python3 <<'PY'
+import os
+PLUGIN = os.environ["PLUGIN_TARGET"]
+SENTINEL = os.environ["SENTINEL_TARGET"]
+src = open(PLUGIN).read()
+# Anchor on the first two statements of the `reply` tool handler. `text` is
+# already in scope after the second line; we inject the tee right after it.
+needle = (
+    "        const chat_id = args.chat_id as string\n"
+    "        const text = args.text as string\n"
+)
+new = (
+    "        const chat_id = args.chat_id as string\n"
+    "        const text = args.text as string\n"
+    f"        // {SENTINEL} — mirror outbound agent reply into the dashboard's\n"
+    "        // unified conversation store so the Mission Control chat shows it.\n"
+    "        try {\n"
+    "          const __rt = (text ?? '').toString().trim()\n"
+    "          if (__rt) {\n"
+    "            fetch('http://127.0.0.1:8001/api/chat/ingest', {\n"
+    "              method: 'POST',\n"
+    "              headers: { 'Content-Type': 'application/json' },\n"
+    "              body: JSON.stringify({ role: 'agent', source: 'telegram', text: __rt }),\n"
+    "            }).catch(() => {})\n"
+    "          }\n"
+    "        } catch (e) { /* never block delivery on a logging hiccup */ }\n"
+)
+if needle not in src:
+    print(f"FATAL: pass-7 anchor not found in {PLUGIN}"); raise SystemExit(2)
+patched = src.replace(needle, new, 1)
+if patched == src:
+    print(f"FATAL: pass-7 replacement was a no-op"); raise SystemExit(2)
+open(PLUGIN, "w").write(patched)
+print(f"  pass 7 (reply tee) applied ({len(patched)-len(src)} bytes added)")
+PY
+fi
+
+# -----------------------------------------------------------------------------
 # Verify all expected handlers + ts compiles
 # -----------------------------------------------------------------------------
 echo ""
 echo "=== verify ==="
-for s in "$SENTINEL_DEPLOY" "$SENTINEL_DRAFT" "$SENTINEL_PROP" "$SENTINEL_FWD" "$SENTINEL_EMAIL" "$SENTINEL_PARITY"; do
+for s in "$SENTINEL_DEPLOY" "$SENTINEL_DRAFT" "$SENTINEL_PROP" "$SENTINEL_FWD" "$SENTINEL_EMAIL" "$SENTINEL_PARITY" "$SENTINEL_REPLY"; do
   if grep -q "$s" "$PLUGIN"; then
     echo "  ✓ $s"
   else
