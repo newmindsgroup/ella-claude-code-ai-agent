@@ -428,23 +428,45 @@ _TG_SEND = f"{AGENT_HOME}/scripts/tg-send.sh"
 _MIRROR_TO_TELEGRAM = os.environ.get("MIRROR_DASHBOARD_TO_TELEGRAM", "1") != "0"
 
 
-def build_agent_prompt(message: str, attachments: list | None) -> str:
+# v2.65.0: framing directive prepended to every dashboard/voice chat message.
+# The dashboard chat is an INTERACTIVE surface — the agent must answer inline,
+# not treat each message as dispatchable "work". Without this, the delegation-
+# first operating model (background-job dispatch + loud ledger-task pings) fires
+# on casual questions, creating "🔧 Working on it … Tracking it" noise in
+# Telegram for a simple "what are you up to?". The backend already logs a SILENT
+# task for telemetry; the agent should not log another or dispatch a job.
+_DASHBOARD_CHAT_GUARD = (
+    "[Interactive dashboard chat — reply directly and conversationally, right here. "
+    "Do NOT create a ledger task, do NOT dispatch a background job, and do NOT send "
+    "separate Telegram messages for this; the backend already logged a silent task "
+    "and your reply is mirrored automatically. Only dispatch background work if I "
+    "EXPLICITLY ask for something heavy or long-running (research, a build, a swarm). "
+    "For questions, status checks, and chit-chat: just answer.]\n\n"
+)
+
+
+def build_agent_prompt(message: str, attachments: list | None, source: str = "dashboard") -> str:
     """v2.64.0: prepend attachment references so the agent can Read uploaded
-    files by path (they live under AGENT_HOME, exposed via --add-dir)."""
+    files by path (they live under AGENT_HOME, exposed via --add-dir).
+    v2.65.0: also prepend the interactive-chat framing guard for dashboard/voice
+    so the agent answers inline instead of dispatching/logging loudly."""
+    parts: list[str] = []
+    if source in ("dashboard", "voice"):
+        parts.append(_DASHBOARD_CHAT_GUARD)
     atts = attachments or []
-    if not atts:
-        return message
-    lines = ["[The user attached the following file(s). Use your Read tool to view them if relevant:]"]
-    for a in atts:
-        if not isinstance(a, dict):
-            continue
-        path = a.get("path") or ""
-        name = a.get("name") or os.path.basename(path)
-        mime = a.get("mime") or ""
-        if path:
-            lines.append(f"  - {name} ({mime}): {path}")
-    lines.append("")
-    return "\n".join(lines) + "\n" + message
+    if atts:
+        lines = ["[The user attached the following file(s). Use your Read tool to view them if relevant:]"]
+        for a in atts:
+            if not isinstance(a, dict):
+                continue
+            path = a.get("path") or ""
+            name = a.get("name") or os.path.basename(path)
+            mime = a.get("mime") or ""
+            if path:
+                lines.append(f"  - {name} ({mime}): {path}")
+        lines.append("")
+        parts.append("\n".join(lines) + "\n")
+    return "".join(parts) + message
 
 
 def mirror_to_telegram(text: str, *, prefix: str = "") -> None:
@@ -546,7 +568,7 @@ def chat(req: ChatRequest):
 
     try:
         # v2.64.0: include attachment refs so the agent can Read uploaded files.
-        text, usage, _sid = invoke_claude(build_agent_prompt(msg, req.attachments))
+        text, usage, _sid = invoke_claude(build_agent_prompt(msg, req.attachments, src))
     except subprocess.TimeoutExpired:
         complete_ledger_task(tid, "Dashboard chat — timed out")
         raise HTTPException(status_code=504, detail="claude --print timed out")
@@ -621,7 +643,7 @@ def chat_stream(req: ChatRequest):
     # Record the user message immediately (visible on other surfaces via SSE).
     record_message(role="user", source=src, text=msg, request_id=request_id,
                    ts=started_iso, attachments=req.attachments or [])
-    agent_prompt = build_agent_prompt(msg, req.attachments)
+    agent_prompt = build_agent_prompt(msg, req.attachments, src)
 
     def gen():
         # Opening frame so the client can flip to "streaming" state.
@@ -874,7 +896,7 @@ def get_upload(filename: str):
 # v2.46.0 — Audit log endpoint
 # ============================================================================
 # Append-only JSONL log of dashboard user actions (tab switches, snooze clicks,
-# manual refreshes, etc.). Enables "what did {{TENANT_PERSON_FIRST_NAME}} do at 3pm last Tuesday"
+# manual refreshes, etc.). Enables "what did Daniel do at 3pm last Tuesday"
 # auditability + future behavioral pattern analysis.
 #
 # Storage: state/audit.jsonl (one event per line).

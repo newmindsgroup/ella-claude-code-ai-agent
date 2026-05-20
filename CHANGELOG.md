@@ -2,6 +2,16 @@
 
 All notable changes to this repo. Format roughly follows [Keep a Changelog](https://keepachangelog.com/). This is a multi-tenant template, so versions reflect what's available to clone for a new tenant — not what's running at any one customer's deployment.
 
+## [v0.8.2] — 2026-05-20
+
+### Fixed — dashboard chat no longer fires loud Telegram task-pings
+
+A casual dashboard-chat message (e.g. "what are you up to?") produced a `🔧 Working on it … Tracking it. t-…` ping in Telegram — cross-surface noise. The chat itself worked; the issue was that the agent, running the delegation-first operating model (background-job dispatch + ledger logging from v0.6's delegation work), treated every interactive dashboard message as dispatchable/loggable "work" and fired a loud ledger ping.
+
+**Fix:** `dashboard-chat/server.py` `build_agent_prompt()` now prepends an interactive-chat framing guard for `dashboard`/`voice` sources — reply inline, do NOT create a ledger task, do NOT dispatch a background job, do NOT post separate Telegram messages; only dispatch if the user explicitly asks for heavy/long-running work. The backend already logs a silent task and the reply is mirrored automatically, so delegation-first behavior is preserved for genuine Telegram work requests. Picked up by a `dashboard-chat.service` restart (no claude-agent restart needed).
+
+---
+
 ## [v0.8.1] — 2026-05-20
 
 ### Changed — Authorship attribution + post-v0.8 leak re-scrub
