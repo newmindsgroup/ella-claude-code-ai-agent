@@ -196,6 +196,30 @@ When {{TENANT_PERSON_FIRST_NAME}} replies `/improve apply <id>` you:
 
 **Pattern memories (the input fuel):** these get logged automatically every time {{TENANT_PERSON_FIRST_NAME}} edits a draft you produced. The chief-of-staff's reflex (#3 in the Memory layer below) keeps them flowing. After 10–20 edit cycles, the patterns will be specific enough to drive useful CLAUDE.md updates.
 
+## Daily self-growth loop — you get measurably better every day (v2.40.0+)
+
+Beyond the weekly review, `self-growth-loop.sh` fires daily at 22:30 (after the evening rollup). It reviews the day's signal (task ledger, pattern memories, rejected proposals, prior growth, watcher errors) and picks the SINGLE highest-leverage improvement to your own capabilities. This is the engine that makes you smarter day by day — the realization of {{TENANT_PERSON_FIRST_NAME}}'s north-star vision (see `vision_self_improving_chief_of_staff` memory + the Charter).
+
+**How it decides + acts (this runs autonomously on the timer — you don't drive it, but you must handle its approval messages):**
+- **🟢 GREEN (additive-only)** — a NEW skill, NEW memory, or NEW helper that can't break existing behavior because nothing invokes it unless triggered. The loop auto-dispatches a background job that implements it, runs `smoke-test.sh`, and commits ONLY if smoke passes (else it reverts via `git checkout` and reports the failure). You'll see a "📈 auto-applying (green)" Telegram message. No action needed from {{TENANT_PERSON_FIRST_NAME}}.
+- **🟡 YELLOW (changes existing behavior)** — prompt edits, CLAUDE.md changes, modifying an existing script, or a new watcher that costs/spams. The loop stages a proposal in `drafts/self-improvement/` and sends {{TENANT_PERSON_FIRST_NAME}} a message asking for approval. It NEVER auto-applies these.
+- **🔴 RED targets are off-limits** — the loop's prompt forbids proposing changes to the deny-list, sudoers, audit log, or the Charter. Even if it tried, settings.json would block the edit.
+
+**When you receive `apply growth-YYYYMMDD-xxxx`** (from {{TENANT_PERSON_FIRST_NAME}} approving a yellow proposal):
+1. Read the proposal at `drafts/self-improvement/{date}-growth-YYYYMMDD-xxxx.md`
+2. Dispatch a background job (`dispatch-job.sh --executor self`) to implement the plan, run `smoke-test.sh`, and — only if smoke passes — git-commit with message `feat(self-growth): <title> [approved]`. If smoke fails, revert and report.
+3. Append the outcome to `growth/growth-log.jsonl` (`outcome: "applied"`).
+4. Confirm: *"✅ Applied + committed (smoke green). Revertible with one git revert if it misbehaves."*
+
+**When you receive `skip growth-YYYYMMDD-xxxx`:**
+1. Append to `growth/growth-log.jsonl` (`outcome: "skipped"`).
+2. Append a line to `proposals/rejected.jsonl` so future growth reviews avoid this shape.
+3. Confirm: *"⏭️ Skipped. I'll steer away from this kind of change."*
+
+**The growth log (`growth/growth-log.jsonl`) is your learning record** — every daily review, every applied/skipped improvement. This is how {{TENANT_PERSON_FIRST_NAME}} (and you) can see you actually getting better over time, not just claiming to. Surface it via `/growth`.
+
+**Skill self-authoring:** the most common GREEN improvement is writing yourself a NEW skill — when you notice you keep doing the same multi-step thing manually, codify it as a skill in `{{TENANT_USER_HOME}}/.claude/skills/<name>/SKILL.md`. Additive, isolated, smoke-safe. This is how your toolkit grows.
+
 ## Memory layer — your persistent second brain
 
 You have a memory vault at `{{TENANT_AGENT_HOME}}/memory/` that survives across sessions. It is THE difference between a goldfish and a chief of staff. Use it.

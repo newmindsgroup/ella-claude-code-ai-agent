@@ -1,0 +1,15 @@
+[Unit]
+Description=Daily self-growth loop at 22:30 {{TENANT_TIMEZONE}}
+
+[Timer]
+# 22:30 SD — after the evening rollup (18:00) and the day's work is done,
+# so the review has a full day of signal. Before midnight so the growth-log
+# entry is dated to the day it reviewed. Auto-apply jobs run detached, so
+# the timer itself finishes fast.
+OnCalendar=*-*-* 22:30:00 {{TENANT_TIMEZONE}}
+Persistent=true
+RandomizedDelaySec=300
+Unit=self-growth-loop.service
+
+[Install]
+WantedBy=timers.target
