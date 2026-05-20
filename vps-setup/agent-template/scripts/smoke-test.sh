@@ -128,13 +128,13 @@ if [[ "$ack" == "👀" ]]; then ok "ackReaction = 👀"; else warn "ackReaction 
 } || warn "preferences.json missing (will be created on first /voice command)"
 
 # Tenant timezone consistency check
-tz_yaml=$(grep '^timezone:' {{TENANT_AGENT_HOME}}/daniel-personal-brand/vps-setup/tenants/{{TENANT_LINUX_USER}}.yml | awk -F'"' '{print $2}')
-if [[ "$tz_yaml" == "{{TENANT_TIMEZONE}}" ]]; then ok "tenant.yml timezone = <tenant-city>"
+tz_yaml=$(grep '^timezone:' {{TENANT_AGENT_HOME}}/{{TENANT_BRAND_REPO_NAME}}/vps-setup/tenants/{{TENANT_LINUX_USER}}.yml | awk -F'"' '{print $2}')
+if [[ "$tz_yaml" == "{{TENANT_TIMEZONE}}" ]]; then ok "tenant.yml timezone = {{TENANT_WEATHER_LABEL}}"
 else fail "tenant.yml timezone = $tz_yaml (expected {{TENANT_TIMEZONE}})"; fi
 
-# All timer files should reference <tenant-city>
+# All timer files should reference {{TENANT_WEATHER_LABEL}}
 hf_count=$(grep -l '{{TENANT_TIMEZONE}}' /etc/systemd/system/*.timer /etc/systemd/system/*.service 2>/dev/null | wc -l)
-if [[ "$hf_count" -eq 0 ]]; then ok "No <tenant-city> references in /etc/systemd/system/"
+if [[ "$hf_count" -eq 0 ]]; then ok "No {{TENANT_WEATHER_LABEL}} references in /etc/systemd/system/"
 else fail "$hf_count units still reference {{TENANT_TIMEZONE}}"; fi
 
 # ───────────────────────────────────────────────────────────────────────────
@@ -167,7 +167,7 @@ section "9. MORNING BRIEF DATA SOURCES"
 # ───────────────────────────────────────────────────────────────────────────
 # Verify external data sources are reachable (Open-Meteo, bible-api)
 if curl -s --max-time 5 'https://api.open-meteo.com/v1/forecast?latitude={{TENANT_WEATHER_LAT}}&longitude={{TENANT_WEATHER_LON}}&current=temperature_2m' | jq -e .current >/dev/null 2>&1; then
-  ok "Open-Meteo (<tenant-city> weather) reachable"
+  ok "Open-Meteo ({{TENANT_WEATHER_LABEL}} weather) reachable"
 else fail "Open-Meteo unreachable"; fi
 if curl -s --max-time 5 'https://bible-api.com/proverbs+16:3' | jq -e .text >/dev/null 2>&1; then
   ok "bible-api.com reachable"
@@ -212,7 +212,7 @@ GRAPHIFY_BIN={{TENANT_USER_HOME}}/.local/bin/graphify
 
 [[ -f {{TENANT_USER_HOME}}/.claude/skills/graphify/SKILL.md ]] && ok "graphify skill installed" || fail "graphify skill missing"
 
-PROJECT_GRAPH={{TENANT_AGENT_HOME}}/daniel-personal-brand/graphify-out/graph.json
+PROJECT_GRAPH={{TENANT_AGENT_HOME}}/{{TENANT_BRAND_REPO_NAME}}/graphify-out/graph.json
 if [[ -f "$PROJECT_GRAPH" ]]; then
   nodes=$(jq '.nodes | length' "$PROJECT_GRAPH" 2>/dev/null || echo 0)
   links=$(jq '.links | length' "$PROJECT_GRAPH" 2>/dev/null || echo 0)
