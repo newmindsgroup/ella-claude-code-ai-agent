@@ -120,6 +120,61 @@ sudo -u "$LINUX_USER" cp "$RENDERED_DIR"/scripts/*.sh "$RENDERED_DIR"/scripts/*.
 sudo -u "$LINUX_USER" chmod +x "$AGENT_HOME"/scripts/*.sh
 [[ -f "$AGENT_HOME/tasks/README.md" ]] || sudo -u "$LINUX_USER" cp "$RENDERED_DIR/tasks/README.md" "$AGENT_HOME/tasks/README.md"
 
+# ---- step 6b: ACTIVATE self-service ops (sudoers + root-owned wrappers + SSH key) ----
+# This is what turns the inert ops/ templates into a working capability. The
+# agent gets passwordless sudo to ONLY the wrapper scripts in scripts/ops/,
+# which must be root-owned (so the agent can't edit a script it runs as root).
+echo
+echo "[6b/8] Activating self-service ops…"
+if [[ -d "$RENDERED_DIR/scripts/ops" ]]; then
+  # Wrappers live root:root 755 — CRITICAL: if the agent (LINUX_USER) owned
+  # these, it could rewrite a script that sudo then runs as root = full
+  # privilege escalation. Root ownership is the security boundary.
+  mkdir -p "$AGENT_HOME/scripts/ops"
+  cp "$RENDERED_DIR"/scripts/ops/*.sh "$AGENT_HOME/scripts/ops/"
+  chown root:root "$AGENT_HOME"/scripts/ops/*.sh
+  chmod 755 "$AGENT_HOME"/scripts/ops/*.sh
+  echo "  ✓ $(ls "$AGENT_HOME"/scripts/ops/*.sh | wc -l | tr -d ' ') ops wrappers installed (root:root 755)"
+
+  # Install sudoers entry — validate with visudo -c BEFORE moving into place.
+  if [[ -f "$RENDERED_DIR/sudoers/agent-ops.sudoers" ]]; then
+    SUDOERS_DST="/etc/sudoers.d/${LINUX_USER}-agent-ops"
+    cp "$RENDERED_DIR/sudoers/agent-ops.sudoers" "/tmp/agent-ops.sudoers.staging"
+    chmod 440 "/tmp/agent-ops.sudoers.staging"
+    chown root:root "/tmp/agent-ops.sudoers.staging"
+    if visudo -c -f "/tmp/agent-ops.sudoers.staging" >/dev/null 2>&1; then
+      mv "/tmp/agent-ops.sudoers.staging" "$SUDOERS_DST"
+      echo "  ✓ sudoers installed + validated → $SUDOERS_DST"
+    else
+      rm -f "/tmp/agent-ops.sudoers.staging"
+      echo "  ✗ sudoers FAILED visudo validation — NOT installed. Self-service ops disabled."
+    fi
+  else
+    echo "  - no sudoers/agent-ops.sudoers in render — skipping (ops will need a password)"
+  fi
+
+  # Audit log for every privileged op
+  touch "/var/log/${LINUX_USER}-agent-ops.log"
+  chmod 644 "/var/log/${LINUX_USER}-agent-ops.log"
+else
+  echo "  - no scripts/ops/ in render — skipping self-service ops activation"
+fi
+
+# SSH key for the agent (self-update, self-ssh for PTY tools, future external SSH).
+# Idempotent — only generates if missing.
+SSH_DIR="$USER_HOME/.ssh"
+if [[ ! -f "$SSH_DIR/id_ed25519" ]]; then
+  sudo -u "$LINUX_USER" mkdir -p "$SSH_DIR"
+  sudo -u "$LINUX_USER" chmod 700 "$SSH_DIR"
+  sudo -u "$LINUX_USER" ssh-keygen -t ed25519 -f "$SSH_DIR/id_ed25519" -N '' -C "${LINUX_USER}-agent@$(hostname)"
+  # Self-authorize so the agent can `ssh LINUX_USER@localhost` for PTY tools
+  sudo -u "$LINUX_USER" cp "$SSH_DIR/id_ed25519.pub" "$SSH_DIR/authorized_keys"
+  sudo -u "$LINUX_USER" chmod 600 "$SSH_DIR/authorized_keys" "$SSH_DIR/id_ed25519"
+  echo "  ✓ ed25519 keypair generated + self-authorized"
+else
+  echo "  - SSH key already exists — skipping"
+fi
+
 # ---- step 7: install systemd units ----
 echo
 echo "[7/8] Installing systemd units…"

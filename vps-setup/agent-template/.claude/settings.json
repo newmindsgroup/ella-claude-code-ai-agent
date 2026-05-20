@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash",
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep",
+      "WebFetch",
+      "WebSearch",
+      "TodoWrite",
+      "Task",
+      "NotebookEdit",
+      "mcp__*"
+    ],
+    "deny": [
+      "Bash(rm -rf /:*)",
+      "Bash(rm -rf /*)",
+      "Bash(rm -rf ~:*)",
+      "Bash(rm -rf $HOME*)",
+      "Bash(reboot:*)",
+      "Bash(shutdown:*)",
+      "Bash(passwd:*)",
+      "Bash(useradd:*)",
+      "Bash(userdel:*)",
+      "Bash(chown:*)",
+      "Bash(chmod 777:*)",
+      "Edit(/etc/**)",
+      "Write(/etc/**)",
+      "Edit(/var/www/**)",
+      "Write(/var/www/**)",
+      "Edit(~/.ssh/**)",
+      "Write(~/.ssh/**)",
+      "Edit(~/.claude.json)",
+      "Edit({{TENANT_USER_HOME}}/.claude.json)"
+    ]
+  }
+}
