@@ -69,6 +69,10 @@ fi
 # ── 2. Diff + copy rendered files into the live agent home ─────────────────
 # We sync scripts/ and dashboard-chat/ (the surfaces that drift). We do NOT
 # touch tasks/, state/, logs/, notifications/, deploys/ — those are live data.
+# We also SKIP scripts/ops/ — those wrappers are root-owned + sudoers-gated by
+# design (the agent must not be able to rewrite its own privileged wrappers).
+# Pending ops/ changes are reported at the end with the exact privileged
+# command, never silently attempted (that just errors on root-owned files).
 CHANGED=0
 sync_dir() {
   local sub="$1"
@@ -76,7 +80,7 @@ sync_dir() {
   local dst="$AGENT_HOME/$sub"
   [[ ! -d "$src" ]] && { say "  ($sub not in rendered output — skip)"; return; }
   mkdir -p "$dst"
-  # Copy each file; report which changed.
+  # Copy each file; report which changed. Exclude ops/ (privileged, see below).
   while IFS= read -r -d '' f; do
     local rel="${f#$src/}"
     local target="$dst/$rel"
@@ -88,13 +92,26 @@ sync_dir() {
         cp "$f" "$target"
       fi
     fi
-  done < <(find "$src" -type f -print0)
+  done < <(find "$src" -type f -not -path "*/ops/*" -print0)
 }
 
-say "syncing scripts/ + dashboard-chat/"
+say "syncing scripts/ + dashboard-chat/ (excluding privileged ops/ wrappers)"
 sync_dir "scripts"
 sync_dir "dashboard-chat"
 say "  $CHANGED file(s) changed"
+
+# ── 2b. Detect pending ops/ wrapper changes (privileged — report, don't copy) ─
+OPS_SRC="$RENDERED/scripts/ops"
+OPS_DST="$AGENT_HOME/scripts/ops"
+OPS_PENDING=()
+if [[ -d "$OPS_SRC" ]]; then
+  while IFS= read -r -d '' f; do
+    rel="${f#$OPS_SRC/}"
+    if [[ ! -f "$OPS_DST/$rel" ]] || ! cmp -s "$f" "$OPS_DST/$rel"; then
+      OPS_PENDING+=("$rel")
+    fi
+  done < <(find "$OPS_SRC" -type f -print0)
+fi
 
 # ── 3. Python deps for the FastAPI backend ─────────────────────────────────
 REQ="$AGENT_HOME/dashboard-chat/requirements.txt"
@@ -125,4 +142,17 @@ else
   say "claude-agent NOT restarted (pass --with-agent if you changed CLAUDE.md or the channel plugin)"
 fi
 
-say "done. $CHANGED file(s) synced."
+# ── 6. Report pending privileged ops/ updates (operator runs these as root) ─
+if [[ ${#OPS_PENDING[@]} -gt 0 ]]; then
+  say ""
+  say "⚠ ${#OPS_PENDING[@]} privileged ops/ wrapper(s) have pending changes (root-owned, not auto-synced):"
+  for rel in "${OPS_PENDING[@]}"; do
+    say "    scripts/ops/$rel"
+  done
+  say "  These are sudoers-gated by design. To apply, run as root (or with your sudo password):"
+  for rel in "${OPS_PENDING[@]}"; do
+    say "    sudo cp '$OPS_SRC/$rel' '$OPS_DST/$rel'"
+  done
+fi
+
+say "done. $CHANGED file(s) synced.$([ ${#OPS_PENDING[@]} -gt 0 ] && echo " ${#OPS_PENDING[@]} ops wrapper(s) pending (see above).")"
