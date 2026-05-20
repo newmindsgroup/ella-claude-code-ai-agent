@@ -7,12 +7,40 @@ Surfaces what we know about a person, company, or topic.
 import json
 import os
 import re
+import shutil
+import subprocess
 import sys
 
 
+def agent_home():
+    return os.environ.get("TENANT_AGENT_HOME", "/opt/{{TENANT_LINUX_USER}}/agents")
+
+
 def vault_path():
-    home = os.environ.get("TENANT_AGENT_HOME", "/opt/{{TENANT_LINUX_USER}}/agents")
-    return os.path.join(home, "memory", "index", "recent.json")
+    return os.path.join(agent_home(), "memory", "index", "recent.json")
+
+
+def query_graph_nodes(needle, limit=6):
+    """Traverse the unified Graphify knowledge graph for nodes related to the
+    needle — bridges the memory-vault /who view with the code+concept graph."""
+    merged = os.path.join(agent_home(), "graphify-out", "merged-graph.json")
+    if not os.path.isfile(merged):
+        return []
+    graphify = shutil.which("graphify") or os.path.expanduser("~/.local/bin/graphify")
+    try:
+        out = subprocess.run([graphify, "query", needle, "--graph", merged, "--budget", "500"],
+                             capture_output=True, text=True, timeout=30).stdout
+    except Exception:
+        return []
+    seen, nodes = set(), []
+    for ln in out.splitlines():
+        m = re.match(r"^NODE\s+(.*?)\s*\[src=(.*?)\s+loc=", ln.strip())
+        if m and m.group(1) not in seen:
+            seen.add(m.group(1))
+            nodes.append((m.group(1), m.group(2)))
+        if len(nodes) >= limit:
+            break
+    return nodes
 
 
 ESC_CHARS = r'_*()~`>#+=|{}.!-\[\]\\'
@@ -45,15 +73,17 @@ def query_who(needle):
                 matches[t].append(m)
 
     total = sum(len(v) for v in matches.values())
+    gnodes = query_graph_nodes(needle)  # unified Graphify graph traversal
 
     lines = [f"*Knowledge graph — {esc(needle)}*", ""]
-    if total == 0:
-        lines.append(f"_Nothing in memory about_ `{esc(needle)}`_\\. As I learn things, this view fills out\\._")
+    if total == 0 and not gnodes:
+        lines.append(f"_Nothing in memory or the graph about_ `{esc(needle)}`_\\. As I learn things, this view fills out\\._")
         print("\n".join(lines))
         return
 
-    lines.append(f"Found {total} memories\\.")
-    lines.append("")
+    if total:
+        lines.append(f"Found {total} memories\\.")
+        lines.append("")
 
     section_emoji = {
         "relationship": "👤",
@@ -87,6 +117,12 @@ def query_who(needle):
             mid = esc(m.get("id", ""))
             ts = esc((m.get("created_at") or "")[:10])
             lines.append(f"  • {esc(text)} _\\({ts}\\)_ `{mid}`")
+        lines.append("")
+
+    if gnodes:
+        lines.append("🕸️ *Graph connections*")
+        for label, src in gnodes:
+            lines.append(f"  • {esc(label)} _\\({esc(src)}\\)_")
         lines.append("")
 
     print("\n".join(lines))

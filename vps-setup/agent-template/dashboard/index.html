@@ -4502,7 +4502,7 @@
     setBind('graphCommunities', sum.communities || 0); setBind('graphCount', fmtInt.format(sum.nodes || 0));
     const hubs = Array.isArray(g.top_hubs) ? g.top_hubs : [];
     setBind('graphTopHub', hubs.length ? hubs[0].label : '—'); setBind('graphTopHubDeg', hubs.length ? hubs[0].degree : 0);
-    setBind('graphAge', (g.source_age_days != null ? g.source_age_days : '—') + 'd');
+    setBind('graphAge', (g.source_age_days != null ? g.source_age_days : '—') + 'd' + ((g.source_age_days || 0) > 30 ? ' · /graph-rebuild for a semantic refresh' : ''));
 
     const searchEl = $('#graph-search');
     if (searchEl && !searchEl.dataset.init) { searchEl.dataset.init = '1'; searchEl.addEventListener('input', () => { state.filters.graphSearch = searchEl.value; renderGraph(); }); }

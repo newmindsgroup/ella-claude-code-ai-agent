@@ -84,4 +84,18 @@ elif [[ ${#GRAPHS[@]} -eq 1 ]]; then
   cp "${GRAPHS[0]}" "$MERGED" && log "single graph → merged"
 fi
 
+# Semantic-staleness nudge: this timer is AST-only (free). The memory/scripts
+# sub-graphs gain richer INFERRED edges only from the LLM /graph-rebuild. If the
+# oldest sub-graph is >30 days old, nudge {{TENANT_PERSON_FIRST_NAME}} to run one.
+OLDEST_DAYS=0
+for g in "${GRAPHS[@]:-}"; do
+  [[ -f "$g" ]] || continue
+  age=$(( ( $(date +%s) - $(stat -c %Y "$g") ) / 86400 ))
+  [[ "$age" -gt "$OLDEST_DAYS" ]] && OLDEST_DAYS=$age
+done
+if [[ "$OLDEST_DAYS" -gt 30 ]]; then
+  "$TG_SEND" send --text "💡 Knowledge graph: a sub-graph is ${OLDEST_DAYS}d old. Reply /graph-rebuild for a semantic refresh (richer concept edges)." 2>/dev/null || true
+  log "semantic-staleness nudge sent (oldest sub-graph ${OLDEST_DAYS}d)"
+fi
+
 log "=== done ==="
