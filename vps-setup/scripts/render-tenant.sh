@@ -108,6 +108,7 @@ RT = {
     "TENANT_TELEGRAM_BOT_USERNAME":       d("telegram_bot_username", ""),
     "TENANT_DAILY_SPEND_CEILING_USD":     str(d("daily_spend_ceiling_usd", 20)),
     "TENANT_VPS_MONTHLY_COST_USD":        str(d("vps_monthly_cost_usd", 0)),
+    "TENANT_CLIENT_REPO_URL":             d("client_repo_url", ""),
     "TENANT_MORNING_BRIEF_TIME":          d("morning_brief_time", "09:00:00"),
     "TENANT_EVENING_ROLLUP_TIME":         d("evening_rollup_time", "18:00:00"),
     "TENANT_STALE_WATCHER_HOURS":         d("stale_watcher_hours", "9..21"),

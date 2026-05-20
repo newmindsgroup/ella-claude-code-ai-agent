@@ -139,6 +139,10 @@ daily_spend_ceiling_usd: 20
 # Monthly cost of the VPS this agent runs on (USD). Surfaced on the dashboard
 # System page. Estimate is fine — there's no billing API. 0 = "not set".
 vps_monthly_cost_usd: 0
+# Optional: a client codebase to fold into the unified Graphify knowledge graph
+# for cross-repo /graph + /who traversal. Empty = none. When set, bootstrap
+# clones + graphs + merges it on a fresh deploy.
+client_repo_url: ""
 morning_brief_time: "09:00:00"                # REQUIRED.
 evening_rollup_time: "18:00:00"               # REQUIRED.
 stale_watcher_hours: "9..21"                  # OPTIONAL. systemd OnCalendar hour-range.

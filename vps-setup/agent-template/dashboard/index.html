@@ -888,9 +888,17 @@
                   <input id="graph-add-url" type="url" placeholder="https://…" class="flex-1 text-sm rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent px-3 py-2 outline-none" />
                   <button data-action="graph-add" class="px-3 py-2 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-sm shrink-0">Add</button>
                 </div>
-                <a id="graph-d3-link" href="#" target="_blank" rel="noopener" class="mt-3 inline-flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Open full interactive graph ↗</a>
+                <div class="mt-3 flex items-center gap-3">
+                  <button data-action="graph-embed-toggle" id="graph-embed-btn" class="hidden text-xs text-indigo-600 dark:text-indigo-400 hover:underline">▸ Show full interactive graph</button>
+                  <a id="graph-d3-link" href="#" target="_blank" rel="noopener" class="hidden inline-flex items-center gap-1 text-xs text-slate-400 hover:text-indigo-500">open in tab ↗</a>
+                </div>
               </div>
             </div>
+          </div>
+
+          <!-- Inline full D3 graph (lazy-loaded on expand) -->
+          <div id="graph-embed-wrap" class="hidden mt-6 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 card-shadow overflow-hidden">
+            <iframe id="graph-embed-frame" title="Full interactive knowledge graph" class="w-full" style="height:600px;border:0;background:transparent"></iframe>
           </div>
         </section>
 
@@ -4614,6 +4622,7 @@
     const q2 = $('#graph-q2'); if (q2) q2.classList.toggle('hidden', (state.graphAskMode || 'query') !== 'path');
     // D3 full-graph link (published to /graph-full.html by the sync when available)
     const d3 = $('#graph-d3-link'); if (d3) { d3.href = '/graph-full.html'; d3.classList.toggle('hidden', !g.has_d3); }
+    const eb = $('#graph-embed-btn'); if (eb) eb.classList.toggle('hidden', !g.has_d3);
 
     if (state.activeTab === 'graph') setTimeout(drawGraph, 0);
   };
@@ -6364,6 +6373,21 @@
     }
     if (action === 'graph-ask') { e.preventDefault(); doGraphAsk(); return; }
     if (action === 'graph-add') { e.preventDefault(); doGraphAdd(); return; }
+    if (action === 'graph-embed-toggle') {
+      e.preventDefault();
+      const wrap = $('#graph-embed-wrap'); const frame = $('#graph-embed-frame'); const btn = $('#graph-embed-btn');
+      if (!wrap) return;
+      if (wrap.classList.contains('hidden')) {
+        if (frame && !frame.getAttribute('src')) frame.setAttribute('src', '/graph-full.html'); // lazy-load the 3MB graph
+        wrap.classList.remove('hidden');
+        if (btn) btn.textContent = '▾ Hide full interactive graph';
+        wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } else {
+        wrap.classList.add('hidden');
+        if (btn) btn.textContent = '▸ Show full interactive graph';
+      }
+      return;
+    }
     if (action === 'graph-explain-node') {
       e.preventDefault();
       const node = target.dataset.node || '';

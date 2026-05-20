@@ -1,0 +1,13 @@
+[Unit]
+Description=Monthly Graphify semantic refresh (opt-in via state/semantic-rebuild-enabled)
+
+[Timer]
+# 1st of the month, 04:00 {{TENANT_TIMEZONE}}. The script self-skips unless
+# opted in AND not in frugal mode, so this is a safe no-op until enabled.
+OnCalendar=*-*-01 04:00:00 {{TENANT_TIMEZONE}}
+Persistent=true
+RandomizedDelaySec=900
+Unit=graphify-semantic.service
+
+[Install]
+WantedBy=timers.target

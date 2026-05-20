@@ -1,0 +1,8 @@
+[Unit]
+Description=Monthly Graphify semantic graph refresh (opt-in, frugal-gated)
+
+[Service]
+Type=oneshot
+User={{TENANT_LINUX_USER}}
+Environment=TENANT_AGENT_HOME={{TENANT_AGENT_HOME}}
+ExecStart=/usr/bin/env bash {{TENANT_AGENT_HOME}}/scripts/graphify-semantic.sh

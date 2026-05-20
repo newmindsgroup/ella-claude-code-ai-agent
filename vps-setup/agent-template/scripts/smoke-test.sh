@@ -39,6 +39,7 @@ expected_timers=(
   "hot-lead-inbox-watcher.timer"
   "calendar-conflict-watcher.timer"
   "graphify-rebuild.timer"
+  "graphify-semantic.timer"
   "agent-skill@brand-drift-scanner.timer"
   "telegram-poller-watchdog.timer"
 )

@@ -41,6 +41,7 @@ AGENT_HOME=$(read_yaml agent_home); AGENT_HOME="${AGENT_HOME:-$USER_HOME/agents}
 BRAND_REPO_URL=$(read_yaml brand_repo_url)
 BRAND_REPO_BRANCH=$(read_yaml brand_repo_branch); BRAND_REPO_BRANCH="${BRAND_REPO_BRANCH:-main}"
 BRAND_REPO_NAME=$(read_yaml brand_repo_name);     BRAND_REPO_NAME="${BRAND_REPO_NAME:-$TENANT_ID}"
+CLIENT_REPO_URL=$(read_yaml client_repo_url)   # optional: a client codebase to fold into the knowledge graph
 PERSON_FULL_NAME=$(read_yaml person_full_name)
 TELEGRAM_BOT_USERNAME=$(read_yaml telegram_bot_username)
 
@@ -190,6 +191,21 @@ TIMERS=(claude-agent.service)
 [[ -f "/etc/systemd/system/evening-rollup.timer" ]]  && TIMERS+=(evening-rollup.timer)
 [[ -f "/etc/systemd/system/stale-watcher.timer" ]]   && TIMERS+=(stale-watcher.timer)
 systemctl enable "${TIMERS[@]}"
+
+# ---- step 7c: fold the client's codebase into the knowledge graph ----
+# Optional cross-repo traversal: if client_repo_url is set, clone it and add it
+# to the unified Graphify graph so /graph + /who span the client's code too.
+if [[ -n "$CLIENT_REPO_URL" ]]; then
+  echo "[7c/8] Graphing client repo: $CLIENT_REPO_URL"
+  GRAPHIFY_BIN="$(sudo -u "$LINUX_USER" -H bash -lc 'command -v graphify || echo "$HOME/.local/bin/graphify"')"
+  sudo -u "$LINUX_USER" -H bash -lc "
+    set -e
+    CDIR=\$('$GRAPHIFY_BIN' clone '$CLIENT_REPO_URL' 2>/dev/null | tail -1)
+    [[ -d \"\$CDIR\" ]] && '$GRAPHIFY_BIN' update \"\$CDIR\" >/dev/null 2>&1 || true
+    mapfile -t G < <(find '$AGENT_HOME' -name graph.json -path '*graphify-out*' | grep -v merged-graph.json)
+    [[ \${#G[@]} -ge 2 ]] && '$GRAPHIFY_BIN' merge-graphs \"\${G[@]}\" --out '$AGENT_HOME/graphify-out/merged-graph.json' >/dev/null 2>&1 || true
+  " && echo "      client repo folded into merged graph" || echo "      (client repo graphing skipped/failed — non-fatal)"
+fi
 
 # ---- step 8: print remaining manual steps ----
 echo
