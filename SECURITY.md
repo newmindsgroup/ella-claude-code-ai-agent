@@ -16,8 +16,8 @@ than opening a public issue.
 **Preferred:** GitHub Security Advisories
 ([draft a new advisory](https://github.com/newmindsgroup/ella-claude-code-ai-agent/security/advisories/new)).
 
-**Alternative:** email `info@newmindsgroup.com` with subject
-`[SECURITY] ella-claude-code-ai-agent`. Please include:
+**Alternative:** reach out via [danielgonell.com](https://danielgonell.com) with
+subject `[SECURITY] ella-claude-code-ai-agent`. Please include:
 
 - A clear description of the issue
 - Steps to reproduce (or the offending file path + line numbers)

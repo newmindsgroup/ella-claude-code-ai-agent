@@ -874,7 +874,7 @@ def get_upload(filename: str):
 # v2.46.0 — Audit log endpoint
 # ============================================================================
 # Append-only JSONL log of dashboard user actions (tab switches, snooze clicks,
-# manual refreshes, etc.). Enables "what did Daniel do at 3pm last Tuesday"
+# manual refreshes, etc.). Enables "what did {{TENANT_PERSON_FIRST_NAME}} do at 3pm last Tuesday"
 # auditability + future behavioral pattern analysis.
 #
 # Storage: state/audit.jsonl (one event per line).

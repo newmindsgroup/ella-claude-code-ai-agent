@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+title: "Ella — Claude Code AI Agent for Any Business"
+message: "If you use this software or its architecture patterns, please cite it."
+type: software
+authors:
+  - given-names: Daniel
+    family-names: Gonell
+    website: "https://danielgonell.com"
+repository-code: "https://github.com/newmindsgroup/ella-claude-code-ai-agent"
+url: "https://danielgonell.com"
+abstract: >-
+  Ella is an autonomous, single-tenant AI chief-of-staff agent built on
+  Claude Code. It runs always-on on a small VPS, reachable via Telegram and a
+  Mission Control dashboard, with a multi-tenant template that takes a fresh
+  business from a blank server to a working agent in under an hour. Features a
+  SQLite + vector memory layer, three-tier sub-agent delegation (Agent tool /
+  domain swarms / OpenSwarm), proactive watchers, an observability stack, and a
+  voice-capable chat surface synced across Telegram and web.
+keywords:
+  - claude-code
+  - ai-agent
+  - autonomous-agent
+  - chief-of-staff
+  - multi-agent
+  - mcp
+  - telegram-bot
+  - openswarm
+license: MIT

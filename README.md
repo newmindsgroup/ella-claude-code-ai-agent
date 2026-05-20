@@ -6,6 +6,8 @@
 [![Claude Code](https://img.shields.io/badge/Built_on-Claude_Code-orange)](https://claude.com/claude-code)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
+> Designed and built by **[Daniel Gonell](https://danielgonell.com)** — brand, UX & AI systems consultant.
+
 ---
 
 ## What this is
@@ -335,9 +337,16 @@ The cherry-picked sub-agents from `msitarzewski/agency-agents` are also MIT. Eac
 
 ---
 
-## Credits
+## Author
 
-Architecture patterns, install scripts, and the agent-stack baseline were extracted from a production single-tenant deployment for an independent brand consultant. The chief-of-staff template, task ledger, proposed-moves system, voice round-trip, and Mission Control dashboard were battle-tested across the v2.0–v2.27 release cycle.
+**Ella is designed and built by [Daniel Gonell](https://danielgonell.com)** — a brand, UX, and AI-systems consultant who builds autonomous tools that let small teams operate like large ones.
+
+The architecture, install scripts, and agent-stack baseline were distilled from a production single-tenant agent Daniel runs for his own consulting practice. The chief-of-staff template, task ledger, proposed-moves system, voice round-trip, memory layer, and Mission Control dashboard were battle-tested across a long live release cycle before being generalized into this multi-tenant template.
+
+- Website / portfolio: **[danielgonell.com](https://danielgonell.com)**
+- Questions, ideas, or "I deployed this and here's what happened" → open a [GitHub issue](https://github.com/newmindsgroup/ella-claude-code-ai-agent/issues)
+
+## Acknowledgements
 
 Built on top of work by:
 - Anthropic (Claude Code, MCP spec, official MCP servers)
@@ -355,6 +364,8 @@ If your work is in here and you'd like better attribution or want it removed, op
 
 ## Status
 
-**v0.6.0** — feature-complete for autonomous multi-tier delegation. Memory layer v2 + Discord command center + Obsidian mirror + 3-tier sub-agent system + OpenSwarm integration all available, all opt-in via tenant.yml feature flags. Battle-tested in a production single-tenant deployment; multi-tenant orchestrator (NEW-CLIENT-CLAUDE.md + DEPLOY-NEW-CLIENT.md) closes the gap that lingered between v0.4 and v0.5.
+**v0.8.0** — feature-complete for autonomous multi-tier delegation + full observability. Memory layer v2, Discord command center, Obsidian mirror, 3-tier sub-agent system, OpenSwarm integration, Mission Control observability stack (rules engine + anomaly detection + ROI/cost tracking), and Telegram ↔ dashboard chat parity (streaming, voice, attachments) — all available, all opt-in via tenant.yml feature flags. Battle-tested in a production single-tenant deployment; the multi-tenant orchestrator (NEW-CLIENT-CLAUDE.md + INTERVIEW.md + DEPLOY-NEW-CLIENT.md) takes a fresh client from blank VPS to a verified green deploy.
+
+See [CHANGELOG.md](CHANGELOG.md) for the full release history.
 
 Issues, PRs, and "I deployed this for company X and here's what broke" reports are all welcome.

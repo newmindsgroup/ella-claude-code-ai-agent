@@ -23,7 +23,7 @@ Transition graph (from deploy.sh header + actual code paths):
   smoke_passed ──► ready_to_ship
   ready_to_ship ──► shipped
   ANY ──► failed   (preflight fail, git push fail, etc.)
-  ANY ──► cancelled (Daniel taps Cancel button or /deploy cancel)
+  ANY ──► cancelled ({{TENANT_PERSON_FIRST_NAME}} taps Cancel button or /deploy cancel)
 
 Terminal states: shipped, failed, cancelled
 """

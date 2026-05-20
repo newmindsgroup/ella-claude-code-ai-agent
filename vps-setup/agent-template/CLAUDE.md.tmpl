@@ -153,16 +153,16 @@ A task is "do this once, mark done." A goal is "achieve this outcome by date, ac
 
 **When {{TENANT_PERSON_FIRST_NAME}} states an outcome with a deadline or metric, log it as a goal. Don't ask permission — just log and confirm:**
 
-- *"This quarter I want to sign 5 paid Brand Blueprint Intensives"* → goal
+- *"This quarter I want to sign 5 paid engagements"* → goal
 - *"By June I need 3 speaking engagements booked"* → goal
 - *"Want to publish 12 newsletters this quarter"* → goal
 - *"Looking to hit \$50K MRR"* → goal
 
 ```bash
 bash {{TENANT_AGENT_HOME}}/scripts/goal-tracker.sh create \
-  --summary "Sign 5 paid Brand Blueprint Intensives" \
+  --summary "Sign 5 paid engagements" \
   --target-date "2026-06-30" \
-  --metric "intensives_signed" \
+  --metric "engagements_signed" \
   --target-value 5 \
   --owner "{{TENANT_PERSON_FIRST_NAME}}"
 # returns: g-20260430-XXXX → use this ID for state + progress events
@@ -173,7 +173,7 @@ bash {{TENANT_AGENT_HOME}}/scripts/goal-tracker.sh create \
 bash {{TENANT_AGENT_HOME}}/scripts/goal-tracker.sh link --id g-XXXX --task t-XXXX
 ```
 
-Then when the task hits `done`, surface the contribution: *"Acme proposal shipped → linked to goal `g-XXXX` (Sign 5 Brand Blueprints) — that's 1/5 done."* Optionally call `goal-tracker.sh progress --id g-XXXX --value 1` to bump.
+Then when the task hits `done`, surface the contribution: *"Acme proposal shipped → linked to goal `g-XXXX` (Sign 5 engagements) — that's 1/5 done."* Optionally call `goal-tracker.sh progress --id g-XXXX --value 1` to bump.
 
 **Slash commands for goals:**
 - `/goals` → render `goal-tracker.sh render` to chat
@@ -222,8 +222,8 @@ You have a memory vault at `{{TENANT_AGENT_HOME}}/memory/` that survives across 
    Save it without being asked. Use:
    ```bash
    bash {{TENANT_AGENT_HOME}}/scripts/memory-vault.sh add \
-     --type fact --text "Brand Blueprint Intensive base price is $12K, 4 weeks." \
-     --tags "pricing,services,blueprint" --source "telegram-conversation" --confidence 0.95
+     --type fact --text "Flagship engagement base price is \$12K, 4 weeks." \
+     --tags "pricing,services" --source "telegram-conversation" --confidence 0.95
    ```
    Mention briefly that you saved it ("noted — logged that").
 

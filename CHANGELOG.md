@@ -2,6 +2,31 @@
 
 All notable changes to this repo. Format roughly follows [Keep a Changelog](https://keepachangelog.com/). This is a multi-tenant template, so versions reflect what's available to clone for a new tenant — not what's running at any one customer's deployment.
 
+## [v0.8.1] — 2026-05-20
+
+### Changed — Authorship attribution + post-v0.8 leak re-scrub
+
+Establishes clear authorship for the project and re-runs the public-readiness scrub against content added in v0.7.0 → v0.8.0 (which landed after the v0.6.1 scrub and reintroduced a few single-tenant references).
+
+**Authorship:**
+- **`LICENSE`** + **`NOTICE`** — copyright holder is now **Daniel Gonell** (was "New Minds Group"). NOTICE adds a "Created by Daniel Gonell — https://danielgonell.com" line.
+- **`README.md`** — subtle byline under the badges, a dedicated **Author** section linking to [danielgonell.com](https://danielgonell.com), and the old "Credits" section split into Author + Acknowledgements. Status bumped to v0.8.0.
+- **`CITATION.cff`** (new) — enables GitHub's "Cite this repository" sidebar button, crediting Daniel Gonell as author. A subtle, standard portfolio/credit surface.
+- **`SECURITY.md`** — security contact routed through [danielgonell.com](https://danielgonell.com) instead of an org email, consistent with solo authorship.
+
+**Leak re-scrub (v0.7/v0.8 content):**
+- **`dashboard/index.html`** — the v0.8 chat work reverted the `<title>` back to a hardcoded name; restored to `{{TENANT_PERSON_FULL_NAME}}`.
+- **`dashboard-chat/server.py`**, **`scripts/_deploy_states.py`**, **`scripts/rules-engine.py`** — bare author name in comments → `{{TENANT_PERSON_FIRST_NAME}}`.
+- **`tests/conftest.py`** — "the upstream Daniel Gonell tenant" comment → "the upstream production tenant" (tests aren't rendered, so no placeholder).
+- **`CLAUDE.md.tmpl`** — illustrative examples used a real service name + price ("Brand Blueprint Intensive", "$12K"). Genericized to "engagements" / "flagship engagement" so the public template isn't tied to one consultant's offer. (These predated v0.6.1 and were missed by the first scrub.)
+
+### Result
+
+- 0 unintended single-tenant references in the template or rendered output.
+- The only remaining "Daniel Gonell" references are intentional: the `LICENSE`/`NOTICE` copyright holder, the `README`/`CITATION.cff` author credit, and `CHANGELOG.md` historical attribution.
+
+---
+
 ## [v0.8.0] — 2026-05-20
 
 ### Added — Telegram ↔ Mission Control chat parity + voice + attachments
@@ -428,6 +453,10 @@ Initial public release. Sanitized fork from a production single-tenant agent sta
 - Sub-agent skills directory pattern.
 - Tool-leverage heuristics + combo-pattern table in CLAUDE.md template.
 
+[v0.8.1]: https://github.com/newmindsgroup/ella-claude-code-ai-agent/releases/tag/v0.8.1
+[v0.8.0]: https://github.com/newmindsgroup/ella-claude-code-ai-agent/releases/tag/v0.8.0
+[v0.7.1]: https://github.com/newmindsgroup/ella-claude-code-ai-agent/releases/tag/v0.7.1
+[v0.7.0]: https://github.com/newmindsgroup/ella-claude-code-ai-agent/releases/tag/v0.7.0
 [v0.6.1]: https://github.com/newmindsgroup/ella-claude-code-ai-agent/releases/tag/v0.6.1
 [v0.6.0]: https://github.com/newmindsgroup/ella-claude-code-ai-agent/releases/tag/v0.6.0
 [v0.5.0]: https://github.com/newmindsgroup/ella-claude-code-ai-agent/releases/tag/v0.5.0

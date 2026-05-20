@@ -193,7 +193,7 @@ def render_template(text: str, context: dict) -> str:
 def action_telegram(args: dict, context: dict, rule_name: str) -> bool:
     raw_text = args.get("text", "(empty rule message)")
     text = render_template(raw_text, context)
-    # Wrap with a clear "rules engine" prefix so Daniel sees they're automated
+    # Wrap with a clear "rules engine" prefix so {{TENANT_PERSON_FIRST_NAME}} sees they're automated
     wrapped = f"🤖 [rules engine · {rule_name}]\n\n{text}"
     try:
         # tg-send.sh handles MarkdownV2 escapes when --md isn't passed; use plain

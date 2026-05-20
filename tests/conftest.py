@@ -8,7 +8,7 @@ safe to run in CI or on a fresh template clone before any tenant is rendered.
 
 Once you stand up a real tenant, you'll typically extend this conftest with
 fixtures that talk to your live VPS (auth, base_url, schema validation, etc.)
-— the upstream Daniel Gonell tenant has a fuller example in its conftest.py
+— the upstream production tenant has a fuller example in its conftest.py
 that's worth referencing when you're ready to add integration tests.
 
 Run:
