@@ -28,6 +28,13 @@
 # IMPLEMENTS (so the heavy work runs detached, not on this timer).
 set -euo pipefail
 
+# ── frugal-mode guard (Phase 4): skip the LLM call when the daily spend
+# ceiling has been breached (spend-guard.sh sets the flag; clears at reset).
+if [[ -f "{{TENANT_AGENT_HOME}}/state/frugal-mode" ]]; then
+  echo "[$(date -u +%FT%TZ)] [frugal] skipping LLM call — daily spend ceiling reached" >&2
+  exit 0
+fi
+
 AGENT_HOME="${TENANT_AGENT_HOME:-{{TENANT_AGENT_HOME}}}"
 cd "$AGENT_HOME" 2>/dev/null || cd /tmp
 
@@ -138,10 +145,15 @@ Files to create: $(echo "$json" | jq -c '.files_created')
 
 RULES:
 1. ADDITIVE ONLY. Create new files. Do NOT edit any existing script, CLAUDE.md, settings.json, sudoers, or the Charter. If the plan requires editing an existing file, STOP and report "requires-edit, escalating to yellow" instead.
-2. After creating the files, run: bash $AGENT_HOME/scripts/smoke-test.sh
-3. If smoke test shows "Failed: 0", git add the new files in $REPO_DIR (if they belong in the repo template) AND/OR leave runtime-only files in place, then commit with message "feat(self-growth): $TITLE [auto-applied green-tier]".
-4. If smoke test shows any failure, DELETE the files you created (revert) and report "smoke-failed, reverted".
-5. Report in 2 sentences what you did + the smoke result.
+2. PLACEMENT — create new files in the VERSION-CONTROLLED repo so they're committable + portable, NOT in loose runtime dirs:
+   - New skill → $REPO_DIR/agent-skills/<name>/SKILL.md
+   - New helper script → $REPO_DIR/vps-setup/agent-template/scripts/<name>
+   - New memory → write via memory-vault.sh (already version-tracked)
+   Then if it's a template file, run the tenant render so the runtime copy exists: bash $REPO_DIR/vps-setup/scripts/render-tenant.sh $REPO_DIR/vps-setup/tenants/*.yml
+3. After creating the files, run: bash $AGENT_HOME/scripts/smoke-test.sh
+4. If smoke test shows "Failed: 0": cd $REPO_DIR, git add the new files, commit with message "feat(self-growth): $TITLE [auto-applied green-tier]". (Do NOT push — Daniel's deploy flow handles pushes.)
+5. If smoke test shows any failure, DELETE the files you created (git checkout / rm to revert) and report "smoke-failed, reverted".
+6. Report in 2 sentences what you did + the smoke result + the commit hash (or "reverted").
 IMPL
 )
   bash "$DISPATCH" --title "Self-growth: $TITLE" --executor self --prompt "$IMPL_PROMPT" >/dev/null 2>&1 || {

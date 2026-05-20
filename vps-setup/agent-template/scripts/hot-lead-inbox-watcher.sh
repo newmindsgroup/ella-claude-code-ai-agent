@@ -26,6 +26,13 @@
 #   HOT_LEAD_TIMEOUT_SEC — claude --print timeout (default 240)
 set -euo pipefail
 
+# ── frugal-mode guard (Phase 4): skip the LLM call when the daily spend
+# ceiling has been breached (spend-guard.sh sets the flag; clears at reset).
+if [[ -f "{{TENANT_AGENT_HOME}}/state/frugal-mode" ]]; then
+  echo "[$(date -u +%FT%TZ)] [frugal] skipping LLM call — daily spend ceiling reached" >&2
+  exit 0
+fi
+
 TENANT_AGENT_HOME="${TENANT_AGENT_HOME:-{{TENANT_AGENT_HOME}}}"
 NUDGE_LOG="$TENANT_AGENT_HOME/notifications/hot-lead-nudges.jsonl"
 TG_SEND="$TENANT_AGENT_HOME/scripts/tg-send.sh"

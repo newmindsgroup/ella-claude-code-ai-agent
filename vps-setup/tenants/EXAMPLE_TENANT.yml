@@ -135,6 +135,7 @@ slash_commands:                               # OPTIONAL. Default = the standard
 # -----------------------------------------------------------------------------
 # SCHEDULE — all in tenant timezone
 # -----------------------------------------------------------------------------
+daily_spend_ceiling_usd: 20
 morning_brief_time: "09:00:00"                # REQUIRED.
 evening_rollup_time: "18:00:00"               # REQUIRED.
 stale_watcher_hours: "9..21"                  # OPTIONAL. systemd OnCalendar hour-range.

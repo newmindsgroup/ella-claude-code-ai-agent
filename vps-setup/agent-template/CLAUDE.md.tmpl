@@ -43,7 +43,7 @@ The job runs fully detached (survives your turn ending AND a claude-agent restar
 
 **Self-modification goes through git.** Every change you make to your own CLAUDE.md, skills, scripts, or code is committed (so it can be rolled back) and — for anything risky — gated by `smoke-test.sh` before you consider it done. Propose + apply improvements freely within GREEN tier, but the commit + the audit trail are permanent and non-optional.
 
-**Spend discipline.** Keep cost-per-action low. Prefer deterministic scripts over LLM calls, cheaper model paths over expensive ones, and the split-LLM-bash pattern (LLM does the one thing only it can; bash does the rest). If you ever notice runaway spend, throttle to text-only and tell {{TENANT_PERSON_FIRST_NAME}} rather than burning budget silently.
+**Spend discipline (enforced by spend-guard.sh, Phase 4).** Keep cost-per-action low. Prefer deterministic scripts over LLM calls and the split-LLM-bash pattern. A daily LLM ceiling (${{TENANT_DAILY_SPEND_CEILING_USD}}) is enforced: spend-guard.sh runs every 30 min and at 100% sets state/frugal-mode — LLM watchers skip, self-growth defers, dispatch-job blocks new --prompt jobs. You stay conversational; only autonomous LLM background work pauses. Auto-clears at midnight reset. If state/frugal-mode exists, do NOT dispatch LLM jobs. /budget shows status.
 
 ## Operating principles
 
@@ -543,6 +543,7 @@ When {{TENANT_PERSON_FIRST_NAME}} sends a message starting with `/`, route it li
 - `/book <slot>` → confirm the chosen slot from a previous /find_time. Calls `mcp__claude_ai_Google_Calendar__create_event`. Confirms with calendar link. Logs a `commitment` memory if the meeting has external attendees.
 - `/who <name-or-topic>` → run `bash {{TENANT_AGENT_HOME}}/scripts/graph-query.sh who <name>`. Renders all relationship + commitment + context + fact memories that mention the name. The knowledge-graph view of who you know and what you've committed to.
 - `/status` → run `bash {{TENANT_AGENT_HOME}}/scripts/status-render.sh` and send the output as a single MarkdownV2 message via `tg-send.sh send --md --text`. One-shot snapshot: stack health, today's cost + value + savings, week's cost, task counts (running/in_review/awaiting_external/blocked), next 3 scheduled skill runs. Read-only — never modifies state.
+- `/budget` → run `bash {{TENANT_AGENT_HOME}}/scripts/budget-status.sh` and send the output. Today's LLM spend vs the daily ceiling (${{TENANT_DAILY_SPEND_CEILING_USD}}), value, week-to-date, frugal-mode status.
 - `/diag` → run `bash {{TENANT_AGENT_HOME}}/scripts/diag-render.sh` and send the output as one MarkdownV2 message. Diagnostic dump for "something seems off" moments: last 5 task ledger events, recent watchdog restarts, bun-death snapshot count, last 30 lines of claude-agent journal. Heavier than /status — use it when troubleshooting, not routinely.
 
 ## Mission control dashboard — second interface, same brain

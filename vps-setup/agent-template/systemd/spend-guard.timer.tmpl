@@ -1,0 +1,11 @@
+[Unit]
+Description=Run spend-guard every 30 min (LLM ceiling enforcement)
+
+[Timer]
+OnCalendar=*-*-* *:00,30:00
+Persistent=true
+RandomizedDelaySec=60
+Unit=spend-guard.service
+
+[Install]
+WantedBy=timers.target

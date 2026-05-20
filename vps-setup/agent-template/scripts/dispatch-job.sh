@@ -56,6 +56,13 @@ done
 [[ -z "$TITLE" ]] && { echo "ERROR: --title required" >&2; exit 1; }
 [[ -z "$PROMPT" && -z "$CMD" ]] && { echo "ERROR: need --prompt or --cmd" >&2; exit 1; }
 
+# Phase 4 frugal-mode guard: block new LLM (--prompt) jobs when the daily
+# spend ceiling has been breached. Deterministic --cmd jobs still allowed.
+if [[ -n "$PROMPT" && -f "$AGENT_HOME/state/frugal-mode" ]]; then
+  echo "ERROR: frugal mode on (daily LLM ceiling reached) — refusing new --prompt job." >&2
+  echo "FRUGAL"; exit 3
+fi
+
 # ── Concurrency guard ───────────────────────────────────────────────────────
 running=$(find "$ACTIVE_DIR" -name '*.json' 2>/dev/null | wc -l | tr -d ' ')
 if [[ "$running" -ge "$MAX_JOBS" ]]; then

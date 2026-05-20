@@ -683,7 +683,10 @@ def main() -> int:
     date_str = now.strftime("%Y-%m-%d")
 
     llm: dict[str, Any] = {}
-    if "--no-llm" not in sys.argv:
+    frugal = (AGENT_HOME / "state" / "frugal-mode").exists()
+    if frugal:
+        log("frugal mode ON — skipping LLM section of the brief")
+    if "--no-llm" not in sys.argv and not frugal:
         log("invoking claude --print for priorities + insight")
         llm = call_claude_for_priorities(day, date_str)
         log(f"claude returned: keys={list(llm.keys())}")
