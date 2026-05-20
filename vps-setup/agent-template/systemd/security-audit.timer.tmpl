@@ -1,0 +1,13 @@
+[Unit]
+Description=Weekly security self-audit (Sunday 08:00 {{TENANT_TIMEZONE}})
+
+[Timer]
+# Sunday 08:00 SD — before the Sunday self-improvement review (17:00),
+# so the week opens with a clean security read.
+OnCalendar=Sun *-*-* 08:00:00 {{TENANT_TIMEZONE}}
+Persistent=true
+RandomizedDelaySec=120
+Unit=security-audit.service
+
+[Install]
+WantedBy=timers.target
