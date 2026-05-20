@@ -24,6 +24,8 @@ AGENT_HOME = Path(os.environ.get("TENANT_AGENT_HOME", "{{TENANT_AGENT_HOME}}"))
 DST = Path(os.environ.get("DASHBOARD_API_DIR", "/var/www/{{TENANT_DASHBOARD_HOSTNAME}}/api"))
 TELEMETRY = DST / "telemetry.json"
 CEILING = float(os.environ.get("DAILY_SPEND_CEILING_USD", "{{TENANT_DAILY_SPEND_CEILING_USD}}") or 20)
+VPS_MONTHLY_COST = float(os.environ.get("VPS_MONTHLY_COST_USD", "{{TENANT_VPS_MONTHLY_COST_USD}}") or 0)
+LINUX_USER = os.environ.get("TENANT_LINUX_USER", "{{TENANT_LINUX_USER}}")
 
 def write(name: str, obj) -> None:
     try:
@@ -274,7 +276,215 @@ def sync_daily_brief():
         "for_approval": [p for p in todays_props if p.get("state") == "proposed"],
     })
 
-for fn in (sync_jobs, sync_growth, sync_proposals, sync_security, sync_watchers, sync_daily_brief):
+# ── system.json (VPS resources) ──────────────────────────────────────────────
+def _fresh(name: str, max_age_s: int) -> bool:
+    """True if DST/name.json exists and is younger than max_age_s (skip refresh)."""
+    p = DST / f"{name}.json"
+    try:
+        return p.is_file() and (now.timestamp() - p.stat().st_mtime) < max_age_s
+    except Exception:
+        return False
+
+def _run(cmd, timeout=20):
+    try:
+        return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout).stdout
+    except Exception:
+        return ""
+
+def sync_system():
+    # Heavy scan (du/find) — throttle to every 5 min; the per-minute sync stays light.
+    if _fresh("system", 300):
+        return
+    import shutil as _sh
+    disk = {}
+    try:
+        du = _sh.disk_usage("/")
+        disk = {"used": du.used, "total": du.total, "free": du.free,
+                "pct": round(100 * du.used / du.total) if du.total else 0}
+    except Exception:
+        pass
+    mem = {}
+    try:
+        info = {}
+        for ln in Path("/proc/meminfo").read_text().splitlines():
+            k, _, v = ln.partition(":")
+            info[k.strip()] = int(v.strip().split()[0]) * 1024  # kB → bytes
+        total = info.get("MemTotal", 0); avail = info.get("MemAvailable", 0)
+        mem = {"total": total, "used": total - avail, "pct": round(100 * (total - avail) / total) if total else 0}
+    except Exception:
+        pass
+    load = []
+    try:
+        load = [float(x) for x in Path("/proc/loadavg").read_text().split()[:3]]
+    except Exception:
+        pass
+    uptime_s = 0
+    try:
+        uptime_s = int(float(Path("/proc/uptime").read_text().split()[0]))
+    except Exception:
+        pass
+    # du -sb on the key trees the agent owns/uses
+    user_home = AGENT_HOME.parent
+    dash_root = DST.parent
+    targets = {
+        "agent home": str(AGENT_HOME),
+        "dashboard web": str(dash_root),
+        "agent logs": "/var/log",
+        "user home": str(user_home),
+    }
+    top_dirs = []
+    for label, path in targets.items():
+        if not os.path.isdir(path):
+            continue
+        out = _run(["du", "-sb", path], timeout=25).strip()
+        if out:
+            try:
+                top_dirs.append({"label": label, "path": path, "bytes": int(out.split()[0])})
+            except Exception:
+                pass
+    top_dirs.sort(key=lambda x: x["bytes"], reverse=True)
+    # largest individual files under the agent + web trees
+    top_files = []
+    scan_dirs = [str(AGENT_HOME), str(dash_root)]
+    out = _run(["bash", "-c",
+                "find " + " ".join(scan_dirs) + r" -type f -printf '%s\t%p\n' 2>/dev/null | sort -rn | head -15"],
+               timeout=30)
+    for ln in out.splitlines():
+        try:
+            sz, _, p = ln.partition("\t")
+            top_files.append({"bytes": int(sz), "path": p})
+        except Exception:
+            pass
+    # core services
+    services = []
+    for svc in ("claude-agent.service", "dashboard-chat.service", "nginx",
+                "telegram-poller-watchdog.timer", "dashboard-sync.timer"):
+        st = _run(["systemctl", "is-active", svc], timeout=10).strip()
+        services.append({"name": svc, "active": st == "active", "state": st or "unknown"})
+    vps = {"monthly": VPS_MONTHLY_COST, "daily": round(VPS_MONTHLY_COST / 30.0, 2) if VPS_MONTHLY_COST else 0}
+    write("system", {
+        "disk": disk, "mem": mem, "load": load, "cpu_count": os.cpu_count() or 0,
+        "uptime_seconds": uptime_s, "top_dirs": top_dirs, "top_files": top_files,
+        "services": services, "vps_cost": vps, "updated_at": now.isoformat(),
+    })
+
+# ── agents.json (sub-agent registry + usage) ─────────────────────────────────
+def _parse_agent_md(p: Path):
+    try:
+        txt = p.read_text(errors="ignore")
+    except Exception:
+        return None
+    name, desc = p.stem, ""
+    # frontmatter between the first pair of --- lines
+    if txt.startswith("---"):
+        end = txt.find("\n---", 3)
+        fm = txt[3:end] if end > 0 else txt[3:]
+        for ln in fm.splitlines():
+            s = ln.strip()
+            if s.startswith("name:"):
+                name = s[5:].strip().strip('"').strip("'") or name
+            elif s.startswith("description:"):
+                desc = s[12:].strip().strip('"').strip("'")
+    # trim the description to the lead sentence for the card
+    short = desc.split(". Use PROACTIVELY")[0].split(". Trigger on:")[0].strip()
+    return {"name": name, "description": short[:240], "trigger": ("Trigger on:" + desc.split("Trigger on:", 1)[1][:160]) if "Trigger on:" in desc else ""}
+
+def sync_agents():
+    user_home = AGENT_HOME.parent
+    seen = {}
+    for scope, d in (("user", user_home / ".claude" / "agents"),
+                     ("project", AGENT_HOME / ".claude" / "agents")):
+        if not d.is_dir():
+            continue
+        for f in sorted(d.glob("*.md")):
+            a = _parse_agent_md(f)
+            if a and a["name"] not in seen:
+                a["scope"] = scope
+                seen[a["name"]] = a
+    agents = sorted(seen.values(), key=lambda x: x["name"])
+    # usage: executor dispatch counts + recent history from jobs/done
+    done_dir = AGENT_HOME / "jobs" / "done"
+    usage = {}
+    recent = []
+    if done_dir.is_dir():
+        files = sorted(done_dir.glob("*.json"), key=lambda x: x.stat().st_mtime, reverse=True)
+        for f in files:
+            d = read_json(f)
+            ex = d.get("executor") or "self"
+            usage[ex] = usage.get(ex, 0) + 1
+        for f in files[:15]:
+            d = read_json(f)
+            recent.append({"title": d.get("title"), "executor": d.get("executor") or "self",
+                           "status": d.get("status"), "finished_at": d.get("finished_at")})
+    usage_list = sorted(({"executor": k, "count": v} for k, v in usage.items()), key=lambda x: x["count"], reverse=True)
+    write("agents", {
+        "agents": agents, "count": len(agents),
+        "usage": usage_list, "recent_dispatches": recent,
+        "updated_at": now.isoformat(),
+    })
+
+# ── graph.json (Graphify knowledge graph summary + sample) ────────────────────
+def sync_graph():
+    if _fresh("graph", 3600):  # graph rebuilds weekly; recompute hourly at most
+        return
+    srcs = list(AGENT_HOME.glob("*/graphify-out/graph.json")) + list(AGENT_HOME.glob("graphify-out/graph.json"))
+    if not srcs:
+        return
+    # Multiple graphs may exist (project repo, memory, etc.) — use the richest one.
+    src = None; g = {}
+    for s in srcs:
+        gg = read_json(s, {})
+        if len(gg.get("nodes", []) or []) > len(g.get("nodes", []) or []):
+            src, g = s, gg
+    if src is None:
+        return
+    nodes = g.get("nodes", []) or []
+    links = g.get("links", []) or []
+    if not nodes:
+        return
+    # degree per node id
+    deg = {}
+    def _eid(v):
+        return v.get("id") if isinstance(v, dict) else v
+    for l in links:
+        s = _eid(l.get("source")); t = _eid(l.get("target"))
+        if s is not None: deg[s] = deg.get(s, 0) + 1
+        if t is not None: deg[t] = deg.get(t, 0) + 1
+    # file-type + community breakdowns
+    ftypes, comms = {}, {}
+    for n in nodes:
+        ft = n.get("file_type", "other"); ftypes[ft] = ftypes.get(ft, 0) + 1
+        c = n.get("community", -1); comms[c] = comms.get(c, 0) + 1
+    top_hubs = sorted(({"label": n.get("label", n.get("id")), "id": n.get("id"),
+                        "degree": deg.get(n.get("id"), 0), "community": n.get("community"),
+                        "file_type": n.get("file_type")} for n in nodes),
+                      key=lambda x: x["degree"], reverse=True)[:30]
+    community_sizes = sorted(({"community": k, "size": v} for k, v in comms.items() if k != -1),
+                             key=lambda x: x["size"], reverse=True)[:15]
+    file_types = sorted(({"type": k, "count": v} for k, v in ftypes.items()), key=lambda x: x["count"], reverse=True)
+    # sample subgraph: top ~90 nodes by degree + the links among them (for the canvas viz)
+    keep_ids = set(h["id"] for h in top_hubs)
+    for n in sorted(nodes, key=lambda x: deg.get(x.get("id"), 0), reverse=True)[:90]:
+        keep_ids.add(n.get("id"))
+    by_id = {n.get("id"): n for n in nodes}
+    sample_nodes = [{"id": i, "label": by_id[i].get("label", i)[:40], "community": by_id[i].get("community"),
+                     "degree": deg.get(i, 0), "file_type": by_id[i].get("file_type")}
+                    for i in keep_ids if i in by_id]
+    sample_links = []
+    for l in links:
+        s = _eid(l.get("source")); t = _eid(l.get("target"))
+        if s in keep_ids and t in keep_ids:
+            sample_links.append({"source": s, "target": t})
+    write("graph", {
+        "summary": {"nodes": len(nodes), "links": len(links), "communities": len([c for c in comms if c != -1])},
+        "file_types": file_types, "top_hubs": top_hubs, "community_sizes": community_sizes,
+        "sample": {"nodes": sample_nodes, "links": sample_links[:400]},
+        "source_age_days": int((now.timestamp() - src.stat().st_mtime) // 86400),
+        "updated_at": now.isoformat(),
+    })
+
+for fn in (sync_jobs, sync_growth, sync_proposals, sync_security, sync_watchers, sync_daily_brief,
+           sync_system, sync_agents, sync_graph):
     try:
         fn()
     except Exception as e:

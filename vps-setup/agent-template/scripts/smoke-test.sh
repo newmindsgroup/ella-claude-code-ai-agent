@@ -289,6 +289,27 @@ else
 fi
 
 # ───────────────────────────────────────────────────────────────────────────
+section "16. AGENT + VPS OBSERVABILITY (system · sub-agents · graph)"
+# ───────────────────────────────────────────────────────────────────────────
+for ep in system agents graph; do
+  f="$API_DIR/$ep.json"
+  if [[ -f "$f" ]] && jq -e . "$f" >/dev/null 2>&1; then ok "/api/$ep.json present + valid JSON"
+  else fail "/api/$ep.json missing or invalid"; fi
+done
+# Sanity: system has disk, agents has the registry, graph picked the rich graph.
+jq -e '.disk.total > 0' "$API_DIR/system.json" >/dev/null 2>&1 && ok "system.json reports disk usage" || fail "system.json disk missing"
+agc=$(jq -r '.count // 0' "$API_DIR/agents.json" 2>/dev/null)
+[[ "$agc" -ge 1 ]] && ok "agents.json registry ($agc agents)" || fail "agents.json registry empty"
+gn=$(jq -r '.summary.nodes // 0' "$API_DIR/graph.json" 2>/dev/null)
+[[ "$gn" -ge 1 ]] && ok "graph.json summary ($gn nodes)" || fail "graph.json summary empty"
+if [[ -f "$DASH_HTML" ]]; then
+  miss=""
+  for tab in agents graph system; do grep -q "data-tab-content=\"$tab\"" "$DASH_HTML" || miss="$miss $tab"; done
+  [[ -z "$miss" ]] && ok "dashboard has agents/graph/system tabs" || fail "dashboard missing tabs:$miss"
+  grep -q 'id="graph-canvas"' "$DASH_HTML" && ok "knowledge-graph canvas present" || fail "graph canvas missing"
+fi
+
+# ───────────────────────────────────────────────────────────────────────────
 section "FINAL"
 # ───────────────────────────────────────────────────────────────────────────
 echo

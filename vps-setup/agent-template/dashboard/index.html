@@ -171,6 +171,18 @@
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/><path d="M3 12a9 9 0 0 1 9-9"/></svg>
         Automation <span data-bind="automationCount" class="ml-auto text-[11px] mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">0</span>
       </a>
+      <a href="#" data-action="nav" data-tab="agents" class="nav-link group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/70 transition-colors whitespace-nowrap">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="3"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><circle cx="17" cy="9" r="2"/><path d="M21 21v-1a3 3 0 0 0-2.5-2.96"/></svg>
+        Sub-Agents <span data-bind="agentsCount" class="ml-auto text-[11px] mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">0</span>
+      </a>
+      <a href="#" data-action="nav" data-tab="graph" class="nav-link group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/70 transition-colors whitespace-nowrap">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="7" r="2"/><circle cx="12" cy="17" r="2"/><path d="M6.7 7.2l4 7.6M17.5 8.5l-4 6.5M7 6.3l10 .6"/></svg>
+        Knowledge Graph <span data-bind="graphCount" class="ml-auto text-[11px] mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">0</span>
+      </a>
+      <a href="#" data-action="nav" data-tab="system" class="nav-link group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/70 transition-colors whitespace-nowrap">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M6 7h.01M6 11h.01"/></svg>
+        System <span data-bind="systemBadge" class="ml-auto text-[11px] mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">—</span>
+      </a>
       <a href="#" data-action="nav" data-tab="tasks" class="nav-link group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/70 transition-colors whitespace-nowrap">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h12M9 12h12M9 18h12"/><circle cx="4" cy="6" r="1.5"/><circle cx="4" cy="12" r="1.5"/><circle cx="4" cy="18" r="1.5"/></svg>
         Tasks <span data-bind="taskCount" class="ml-auto text-[11px] mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">0</span>
@@ -747,6 +759,137 @@
           <h3 class="text-sm font-semibold tracking-tight mb-3">Scheduled timers <span data-bind="automationCount2" class="text-[11px] mono text-slate-400">(0)</span></h3>
           <div id="automation-feed" class="space-y-2"></div>
           <div id="automation-empty" class="hidden p-6 text-center text-sm text-slate-500 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">No timers found.</div>
+        </section>
+
+        <section data-tab-content="agents" class="tab-section hidden">
+          <div class="flex items-center justify-between mb-6">
+            <p class="text-sm text-slate-500">Your delegation bench — the specialist sub-agents the chief-of-staff can dispatch to (so it stays free to talk), plus how often each has been used and the most recent dispatches.</p>
+            <span class="text-xs text-slate-400 mono shrink-0 ml-4">updated <span data-bind="agentsAsOf">—</span></span>
+          </div>
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500 whitespace-nowrap">Available agents</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum text-indigo-600 dark:text-indigo-400" data-bind="agentsTotal">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">on the bench</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500 whitespace-nowrap">User-level</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="agentsUser">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">~/.claude/agents</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500 whitespace-nowrap">Project</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="agentsProject">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">hand-built</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500 whitespace-nowrap">Dispatches</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="agentsDispatches">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">jobs run</div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <div class="lg:col-span-1 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow self-start">
+              <h3 class="text-sm font-semibold tracking-tight mb-3">Most dispatched</h3>
+              <div id="agents-usage" class="space-y-2.5"></div>
+              <div id="agents-usage-empty" class="hidden text-xs text-slate-400 py-2">No dispatches yet.</div>
+              <h3 class="text-sm font-semibold tracking-tight mt-5 mb-3">Recent dispatches</h3>
+              <div id="agents-recent" class="space-y-2"></div>
+            </div>
+            <div class="lg:col-span-2">
+              <input id="agents-search" type="search" placeholder="Search agents…" class="w-full mb-3 text-sm rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent px-3 py-2 outline-none" />
+              <div id="agents-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+            </div>
+          </div>
+        </section>
+
+        <section data-tab-content="graph" class="tab-section hidden">
+          <div class="flex items-center justify-between mb-6">
+            <p class="text-sm text-slate-500">The Graphify knowledge graph the agent builds from the codebase + memory — entities, files, and concepts and how they connect. Hubs are the most-connected nodes.</p>
+            <span class="text-xs text-slate-400 mono shrink-0 ml-4">graph age <span data-bind="graphAge">—</span></span>
+          </div>
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500 whitespace-nowrap">Nodes</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum text-indigo-600 dark:text-indigo-400" data-bind="graphNodes">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">entities + files</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500 whitespace-nowrap">Links</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="graphLinks">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">connections</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500 whitespace-nowrap">Communities</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="graphCommunities">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">clusters</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500 whitespace-nowrap">Top hub</div>
+              <div class="mt-2 text-base font-semibold truncate" data-bind="graphTopHub">—</div>
+              <div class="mt-1 text-xs text-slate-400 mono"><span data-bind="graphTopHubDeg">0</span> links</div>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 card-shadow">
+              <div class="flex items-center gap-1 mb-2 px-1"><h3 class="text-sm font-semibold tracking-tight">Map (top-connected sample)</h3>
+                <span class="mc-tip"><button type="button" class="mc-tip-dot" aria-label="More info" tabindex="0">i</button><span class="mc-tip-pop" role="tooltip">A clustered view of the most-connected nodes, colored by community. The full graph has thousands of nodes; this samples the hubs for legibility.</span></span>
+              </div>
+              <canvas id="graph-canvas" class="w-full rounded-lg" style="height:420px"></canvas>
+            </div>
+            <div class="lg:col-span-1">
+              <input id="graph-search" type="search" placeholder="Search hubs…" class="w-full mb-3 text-sm rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent px-3 py-2 outline-none" />
+              <h3 class="text-xs uppercase tracking-wider text-slate-500 mb-2">Top hubs</h3>
+              <div id="graph-hubs" class="space-y-1.5 max-h-[420px] overflow-y-auto scroll-soft"></div>
+            </div>
+          </div>
+        </section>
+
+        <section data-tab-content="system" class="tab-section hidden">
+          <div class="flex items-center justify-between mb-6">
+            <p class="text-sm text-slate-500">The VPS this agent lives on — disk, memory, load, cost, and what's taking up the most space. Heavy scan refreshes every ~5 minutes.</p>
+            <span class="text-xs text-slate-400 mono shrink-0 ml-4">as of <span data-bind="systemAsOf">—</span></span>
+          </div>
+          <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500 whitespace-nowrap">Disk used</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="sysDiskPct">0%</div>
+              <div class="mt-1 text-xs text-slate-400 mono"><span data-bind="sysDiskUsed">0</span> / <span data-bind="sysDiskTotal">0</span></div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500 whitespace-nowrap">Memory</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="sysMemPct">0%</div>
+              <div class="mt-1 text-xs text-slate-400 mono"><span data-bind="sysMemUsed">0</span> used</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500 whitespace-nowrap">Load (1m)</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="sysLoad">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono"><span data-bind="sysCpu">0</span> cores</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500 whitespace-nowrap">Uptime</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="sysUptime">—</div>
+              <div class="mt-1 text-xs text-slate-400 mono">since boot</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500 whitespace-nowrap">VPS cost</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="sysVpsMonthly">$0</div>
+              <div class="mt-1 text-xs text-slate-400 mono"><span data-bind="sysVpsDaily">$0</span>/day</div>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <h3 class="text-sm font-semibold tracking-tight mb-3">Disk by area</h3>
+              <div id="sys-dirs" class="space-y-3"></div>
+              <h3 class="text-sm font-semibold tracking-tight mt-5 mb-3">Services</h3>
+              <div id="sys-services" class="flex flex-wrap gap-2"></div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <h3 class="text-sm font-semibold tracking-tight mb-3">Largest files</h3>
+              <div id="sys-files" class="space-y-1.5"></div>
+            </div>
+          </div>
         </section>
 
         <section data-tab-content="tasks" class="tab-section hidden">
@@ -1683,6 +1826,9 @@
     jobs: { running: [], recent: [], running_count: 0, updated_at: null },
     security: { controls: {}, controls_ok: 0, controls_total: 0, injection_attempts: [], injection_count: 0, frugal_mode: false, spend: {}, updated_at: null },
     watchers: { timers: [], count: 0, updated_at: null },
+    system: { disk: {}, mem: {}, load: [], cpu_count: 0, uptime_seconds: 0, top_dirs: [], top_files: [], services: [], vps_cost: {}, updated_at: null },
+    agents: { agents: [], count: 0, usage: [], recent_dispatches: [], updated_at: null },
+    graph: { summary: {}, file_types: [], top_hubs: [], community_sizes: [], sample: { nodes: [], links: [] }, source_age_days: 0, updated_at: null },
     tasks: [], goals: [], memory: [], drafts: [],
     triage: { runs: [], totals: {} },
     improvements: { reviews: [], totals: {} },
@@ -1710,7 +1856,7 @@
     lastPoll: null,
     stale: false,
     tasksView: (localStorage.getItem('tasks-view') || 'list'),
-    filters: { state: 'all', owner: '', search: '', memoryType: 'all', memorySearch: '', draftPlatform: 'all', draftSearch: '', topTasksSort: 'value', skillsCategory: 'all', skillsSearch: '', auditSearch: '', growthFilter: 'all' },
+    filters: { state: 'all', owner: '', search: '', memoryType: 'all', memorySearch: '', draftPlatform: 'all', draftSearch: '', topTasksSort: 'value', skillsCategory: 'all', skillsSearch: '', auditSearch: '', growthFilter: 'all', agentsSearch: '', graphSearch: '' },
     chatTyping: false,
     chatStreaming: false,   // v2.61.0 — an agent reply is currently streaming in
     chatStreamText: '',     // accumulated text of the in-flight reply
@@ -1943,7 +2089,8 @@
 
   const TAB_TITLES = {
     overview: 'Overview', briefing: 'Daily Briefing', proposals: 'Proposed Moves', growth: 'Self-Growth', jobs: 'Background Jobs',
-    budget: 'Budget & Cost', security: 'Security Posture', automation: 'Automation', tasks: 'Tasks', goals: 'Goals', memory: 'Memory',
+    budget: 'Budget & Cost', security: 'Security Posture', automation: 'Automation',
+    agents: 'Sub-Agents', graph: 'Knowledge Graph', system: 'System / VPS', tasks: 'Tasks', goals: 'Goals', memory: 'Memory',
     drafts: 'Drafts', inbound: 'Inbound', improvements: 'Improvements',
     insights: 'Insights', skills: 'Skills', audit: 'Audit', rules: 'Rules', deploys: 'Deploys',
     drift: 'Drift', competitive: 'Competitive',
@@ -1982,6 +2129,7 @@
     $('#sidebar').classList.add('sidebar-hidden');
     $('#sidebar-backdrop').classList.add('hidden');
     if (tab === 'chat') setTimeout(scrollChatToBottom, 0);
+    if (tab === 'graph') setTimeout(() => { try { drawGraph(); } catch (e) {} }, 0);
     // v2.46.0: log tab switches to audit (skip initial load to avoid noise)
     if (prevTab && prevTab !== tab) postAudit('tab-switch', tab, { from: prevTab });
   };
@@ -2032,9 +2180,12 @@
       safeFetch('/api/security.json'),
       safeFetch('/api/watchers.json'),
       safeFetch('/api/roi-digest.json'),
-      safeFetch('/api/cost-today.json')
+      safeFetch('/api/cost-today.json'),
+      safeFetch('/api/system.json'),
+      safeFetch('/api/agents.json'),
+      safeFetch('/api/graph.json')
     ]);
-    const [tasks, goals, queue, memory, telemetry, health, draftsData, triageData, improvementsData, driftData, competitiveData, sessionsData, llmInsightData, skillsData, auditData, , rulesData, anomaliesData, deploysData, spansData, roiData, budgetData, briefData, proposalsData, growthData, jobsData, securityData, watchersData, roiDigestData, costTodayData] = results;
+    const [tasks, goals, queue, memory, telemetry, health, draftsData, triageData, improvementsData, driftData, competitiveData, sessionsData, llmInsightData, skillsData, auditData, , rulesData, anomaliesData, deploysData, spansData, roiData, budgetData, briefData, proposalsData, growthData, jobsData, securityData, watchersData, roiDigestData, costTodayData, systemData, agentsData, graphData] = results;
     // tasks.json may be: an array, {tasks:[...]} envelope, or a dict-by-id (telemetry-calc.py shape).
     if (tasks) {
       state.tasks = Array.isArray(tasks) ? tasks
@@ -2242,6 +2393,27 @@
         updated_at: watchersData.updated_at || null,
       };
     }
+    if (systemData) state.system = systemData;
+    if (agentsData) {
+      state.agents = {
+        agents: Array.isArray(agentsData.agents) ? agentsData.agents : [],
+        count: agentsData.count || 0,
+        usage: Array.isArray(agentsData.usage) ? agentsData.usage : [],
+        recent_dispatches: Array.isArray(agentsData.recent_dispatches) ? agentsData.recent_dispatches : [],
+        updated_at: agentsData.updated_at || null,
+      };
+    }
+    if (graphData) {
+      state.graph = {
+        summary: graphData.summary || {},
+        file_types: Array.isArray(graphData.file_types) ? graphData.file_types : [],
+        top_hubs: Array.isArray(graphData.top_hubs) ? graphData.top_hubs : [],
+        community_sizes: Array.isArray(graphData.community_sizes) ? graphData.community_sizes : [],
+        sample: graphData.sample || { nodes: [], links: [] },
+        source_age_days: graphData.source_age_days || 0,
+        updated_at: graphData.updated_at || null,
+      };
+    }
     state.lastPoll = new Date();
     state.stale = !tasks && !goals && !queue && !memory && !telemetry;
     render();
@@ -2256,6 +2428,9 @@
     renderBudgetPage();
     renderSecurity();
     renderAutomation();
+    renderAgents();
+    renderGraph();
+    renderSystem();
     renderOverview();
     renderTasks();
     renderGoals();
@@ -4146,6 +4321,143 @@
       }).join('');
       if (empty) empty.classList.toggle('hidden', timers.length > 0);
     }
+  };
+
+  const fmtBytes = (b) => {
+    b = Number(b) || 0;
+    if (b < 1024) return b + ' B';
+    const u = ['KB', 'MB', 'GB', 'TB']; let i = -1;
+    do { b /= 1024; i++; } while (b >= 1024 && i < u.length - 1);
+    return b.toFixed(b < 10 ? 1 : 0) + ' ' + u[i];
+  };
+  const fmtUptime = (s) => {
+    s = Number(s) || 0; const d = Math.floor(s / 86400); const h = Math.floor((s % 86400) / 3600);
+    return d > 0 ? d + 'd ' + h + 'h' : h + 'h';
+  };
+
+  const renderSystem = () => {
+    const s = state.system || {}; const d = s.disk || {}; const m = s.mem || {}; const vps = s.vps_cost || {};
+    const setBind = (k, v) => $$('[data-bind="' + k + '"]').forEach(el => el.textContent = v);
+    setBind('sysDiskPct', (d.pct != null ? d.pct : 0) + '%');
+    setBind('sysDiskUsed', fmtBytes(d.used)); setBind('sysDiskTotal', fmtBytes(d.total));
+    setBind('sysMemPct', (m.pct != null ? m.pct : 0) + '%'); setBind('sysMemUsed', fmtBytes(m.used));
+    setBind('sysLoad', (Array.isArray(s.load) && s.load.length ? s.load[0].toFixed(2) : '—'));
+    setBind('sysCpu', s.cpu_count || 0);
+    setBind('sysUptime', fmtUptime(s.uptime_seconds));
+    setBind('sysVpsMonthly', vps.monthly ? fmtMoney.format(vps.monthly) : '—');
+    setBind('sysVpsDaily', vps.daily ? fmtMoney.format(vps.daily) : '$0');
+    setBind('systemAsOf', s.updated_at ? relTime(s.updated_at) : '—');
+    setBind('systemBadge', (d.pct != null ? d.pct : 0) + '%');
+
+    const dirs = Array.isArray(s.top_dirs) ? s.top_dirs : [];
+    const maxDir = Math.max(1, ...dirs.map(x => x.bytes || 0));
+    const de = $('#sys-dirs');
+    if (de) de.innerHTML = dirs.map(x => {
+      const pct = Math.round(100 * (x.bytes || 0) / maxDir);
+      return '<div><div class="flex items-center justify-between text-xs mb-1"><span class="text-slate-600 dark:text-slate-300">' + escapeHtml(x.label || x.path) + '</span><span class="mono text-slate-400">' + fmtBytes(x.bytes) + '</span></div>' +
+        '<div class="h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden"><div class="h-full bg-indigo-500" style="width:' + pct + '%"></div></div></div>';
+    }).join('');
+
+    const svcs = Array.isArray(s.services) ? s.services : [];
+    const se = $('#sys-services');
+    if (se) se.innerHTML = svcs.map(x => '<span class="text-[11px] mono px-2 py-1 rounded-lg ' + (x.active ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300' : 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300') + '">' + (x.active ? '●' : '○') + ' ' + escapeHtml((x.name || '').replace('.service', '').replace('.timer', '⏱')) + '</span>').join('');
+
+    const files = Array.isArray(s.top_files) ? s.top_files : [];
+    const fe = $('#sys-files');
+    if (fe) fe.innerHTML = files.map(x => {
+      const p = (x.path || '').replace(/^\/opt\/[^/]+\//, '…/').replace(/^\/var\/www\/[^/]+\//, '…/www/');
+      return '<div class="flex items-center gap-2 text-xs py-1"><span class="mono text-slate-400 w-16 shrink-0 text-right">' + fmtBytes(x.bytes) + '</span><span class="text-slate-600 dark:text-slate-300 truncate" title="' + escapeHtml(x.path || '') + '">' + escapeHtml(p) + '</span></div>';
+    }).join('');
+  };
+
+  const renderAgents = () => {
+    const a = state.agents || {};
+    const agents = Array.isArray(a.agents) ? a.agents : [];
+    const setBind = (k, v) => $$('[data-bind="' + k + '"]').forEach(el => el.textContent = v);
+    const userN = agents.filter(x => x.scope === 'user').length;
+    const projN = agents.filter(x => x.scope === 'project').length;
+    const disp = (a.usage || []).reduce((n, u) => n + (u.count || 0), 0);
+    setBind('agentsTotal', a.count || agents.length); setBind('agentsUser', userN); setBind('agentsProject', projN);
+    setBind('agentsDispatches', disp); setBind('agentsCount', a.count || agents.length);
+    setBind('agentsAsOf', a.updated_at ? relTime(a.updated_at) : '—');
+
+    const usage = Array.isArray(a.usage) ? a.usage : [];
+    const maxU = Math.max(1, ...usage.map(x => x.count || 0));
+    const ue = $('#agents-usage'); const uempty = $('#agents-usage-empty');
+    if (ue) ue.innerHTML = usage.map(x => '<div><div class="flex items-center justify-between text-xs mb-1"><span class="mono px-1.5 py-0.5 rounded ' + EXEC_COLOR(x.executor) + '">' + escapeHtml(x.executor) + '</span><span class="mono text-slate-400">' + (x.count || 0) + '</span></div>' +
+      '<div class="h-1.5 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden"><div class="h-full bg-indigo-500" style="width:' + Math.round(100 * (x.count || 0) / maxU) + '%"></div></div></div>').join('');
+    if (uempty) uempty.classList.toggle('hidden', usage.length > 0);
+
+    const re = $('#agents-recent');
+    if (re) re.innerHTML = (a.recent_dispatches || []).map(x => {
+      const ok = (x.status || '').toLowerCase() === 'done';
+      return '<div class="flex items-center gap-2 text-xs"><span class="w-1.5 h-1.5 rounded-full ' + (ok ? 'bg-emerald-500' : 'bg-amber-500') + ' shrink-0"></span><span class="text-slate-600 dark:text-slate-300 truncate">' + escapeHtml(x.title || x.executor || 'job') + '</span><span class="ml-auto mono text-slate-400 shrink-0">' + relTime(x.finished_at) + '</span></div>';
+    }).join('');
+
+    const grid = $('#agents-grid'); const searchEl = $('#agents-search');
+    if (searchEl && !searchEl.dataset.init) { searchEl.dataset.init = '1'; searchEl.addEventListener('input', () => { state.filters.agentsSearch = searchEl.value; renderAgents(); }); }
+    const q = (state.filters.agentsSearch || '').toLowerCase();
+    const shown = agents.filter(x => !q || (x.name + ' ' + (x.description || '')).toLowerCase().includes(q));
+    if (grid) grid.innerHTML = shown.map(x => '<div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3.5">' +
+      '<div class="flex items-center gap-2 mb-1"><span class="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">' + escapeHtml(x.name) + '</span>' +
+      '<span class="ml-auto text-[10px] mono px-1.5 py-0.5 rounded ' + (x.scope === 'project' ? 'bg-violet-100 dark:bg-violet-950 text-violet-700 dark:text-violet-300' : 'bg-slate-200 dark:bg-slate-800 text-slate-500') + ' shrink-0">' + escapeHtml(x.scope || '') + '</span></div>' +
+      '<div class="text-xs text-slate-500 line-clamp-3">' + escapeHtml(x.description || '') + '</div></div>').join('');
+  };
+
+  // Community color palette for the graph viz
+  const GRAPH_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#14b8a6', '#a855f7', '#0ea5e9'];
+  const drawGraph = () => {
+    const canvas = $('#graph-canvas'); if (!canvas || !canvas.getContext) return;
+    const g = state.graph || {}; const sample = g.sample || { nodes: [], links: [] };
+    const nodes = sample.nodes || []; const links = sample.links || [];
+    const dpr = window.devicePixelRatio || 1;
+    const W = canvas.clientWidth || 600, H = 420;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    const ctx = canvas.getContext('2d'); if (!ctx) return; ctx.scale(dpr, dpr); ctx.clearRect(0, 0, W, H);
+    if (!nodes.length) { ctx.fillStyle = '#94a3b8'; ctx.font = '13px sans-serif'; ctx.fillText('No graph data yet', 20, 30); return; }
+    // cluster nodes by community: communities arranged on a big circle, members in a small disc
+    const comms = {}; nodes.forEach(n => { (comms[n.community] = comms[n.community] || []).push(n); });
+    const ckeys = Object.keys(comms); const cx = W / 2, cy = H / 2; const R = Math.min(W, H) * 0.36;
+    const pos = {};
+    ckeys.forEach((ck, ci) => {
+      const ang = (ci / ckeys.length) * Math.PI * 2;
+      const ccx = cx + Math.cos(ang) * R, ccy = cy + Math.sin(ang) * R;
+      const mem = comms[ck].sort((a, b) => (b.degree || 0) - (a.degree || 0));
+      mem.forEach((n, mi) => {
+        if (mi === 0) { pos[n.id] = { x: ccx, y: ccy }; return; }
+        const a2 = (mi / mem.length) * Math.PI * 2; const rr = 14 + Math.min(34, mem.length * 2.2);
+        pos[n.id] = { x: ccx + Math.cos(a2) * rr, y: ccy + Math.sin(a2) * rr };
+      });
+    });
+    // links
+    ctx.strokeStyle = document.documentElement.classList.contains('dark') ? 'rgba(148,163,184,0.12)' : 'rgba(100,116,139,0.15)';
+    ctx.lineWidth = 1;
+    links.forEach(l => { const a = pos[l.source], b = pos[l.target]; if (a && b) { ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); } });
+    // nodes
+    nodes.forEach(n => {
+      const p = pos[n.id]; if (!p) return;
+      const r = Math.max(2.5, Math.min(9, 2 + (n.degree || 0) * 0.4));
+      ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+      ctx.fillStyle = GRAPH_COLORS[(n.community || 0) % GRAPH_COLORS.length]; ctx.fill();
+    });
+  };
+
+  const renderGraph = () => {
+    const g = state.graph || {}; const sum = g.summary || {};
+    const setBind = (k, v) => $$('[data-bind="' + k + '"]').forEach(el => el.textContent = v);
+    setBind('graphNodes', fmtInt.format(sum.nodes || 0)); setBind('graphLinks', fmtInt.format(sum.links || 0));
+    setBind('graphCommunities', sum.communities || 0); setBind('graphCount', fmtInt.format(sum.nodes || 0));
+    const hubs = Array.isArray(g.top_hubs) ? g.top_hubs : [];
+    setBind('graphTopHub', hubs.length ? hubs[0].label : '—'); setBind('graphTopHubDeg', hubs.length ? hubs[0].degree : 0);
+    setBind('graphAge', (g.source_age_days != null ? g.source_age_days : '—') + 'd');
+
+    const searchEl = $('#graph-search');
+    if (searchEl && !searchEl.dataset.init) { searchEl.dataset.init = '1'; searchEl.addEventListener('input', () => { state.filters.graphSearch = searchEl.value; renderGraph(); }); }
+    const q = (state.filters.graphSearch || '').toLowerCase();
+    const shown = hubs.filter(h => !q || (h.label || '').toLowerCase().includes(q));
+    const he = $('#graph-hubs');
+    if (he) he.innerHTML = shown.map(h => '<div class="flex items-center gap-2 text-xs py-1"><span class="w-2 h-2 rounded-full shrink-0" style="background:' + GRAPH_COLORS[(h.community || 0) % GRAPH_COLORS.length] + '"></span><span class="text-slate-600 dark:text-slate-300 truncate" title="' + escapeHtml(h.label || '') + '">' + escapeHtml(h.label || '') + '</span><span class="ml-auto mono text-slate-400 shrink-0">' + (h.degree || 0) + '</span></div>').join('');
+    if (state.activeTab === 'graph') setTimeout(drawGraph, 0);
   };
 
   const renderOverview = () => {
