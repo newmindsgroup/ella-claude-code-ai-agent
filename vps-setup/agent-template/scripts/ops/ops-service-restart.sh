@@ -45,6 +45,7 @@ ALLOWED=(
   rules-engine
   anomaly-detect
   session-parser
+  roi-digest
 )
 
 # Strip optional .service / .timer suffix for comparison

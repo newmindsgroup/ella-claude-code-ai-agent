@@ -1,0 +1,14 @@
+[Unit]
+Description=Weekly ROI digest — Monday mornings
+
+[Timer]
+# Monday 08:00 in the system timezone. Persistent=true so a missed run (VPS
+# off/rebooting Monday morning) fires on next boot. The digest looks back 7
+# days regardless of exact fire time, so a late run is still accurate.
+OnCalendar=Mon *-*-* 08:00:00
+Persistent=true
+RandomizedDelaySec=300
+Unit=roi-digest.service
+
+[Install]
+WantedBy=timers.target

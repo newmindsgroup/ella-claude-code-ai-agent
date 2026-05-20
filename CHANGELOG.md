@@ -2,6 +2,22 @@
 
 All notable changes to this repo. Format roughly follows [Keep a Changelog](https://keepachangelog.com/). This is a multi-tenant template, so versions reflect what's available to clone for a new tenant — not what's running at any one customer's deployment.
 
+## [v0.9.0] — 2026-05-20
+
+### Added — Weekly ROI digest (agent value summary)
+
+Ports the upstream weekly ROI digest (Daniel v2.67.0). An automated "what your agent did + what it was worth" report, built on the spans + `_roi.py` data foundation.
+
+- **`scripts/roi-digest.py`** — composes a digest from `_roi.aggregate_by_type` + `summarize`: tasks completed, agent cost (API tokens), human-equivalent value (realization-adjusted), ROI multiple, hours saved, and the top value-driving task types. Posts to Telegram as **plain text** (sidesteps the MarkdownV2 escaping bugs) with `--no-conversation-log`, and writes `state/roi-digest-latest.json` for the dashboard. Quiet-week handling for zero-task windows.
+- **`systemd/roi-digest.{service,timer}.tmpl`** — Monday 08:00 weekly, `Persistent=true`.
+- **`dashboard-sync.sh.tmpl`** — exposes `/api/roi-digest.json`.
+- **dashboard ROI tab** — a "Latest weekly digest" card renders the message.
+- **`ops-service-restart.sh` allowlist** — adds `roi-digest` (so it's Run-now-able from the Skills tab).
+
+Serves the north-star "how much is the ROI of everything." Verified with sample data: 3 tasks → $0.85 agent cost → ~$229 human-equivalent value → 269× ROI.
+
+---
+
 ## [v0.8.3] — 2026-05-20
 
 ### Added — `scripts/redeploy.sh` (one-command live deploy)

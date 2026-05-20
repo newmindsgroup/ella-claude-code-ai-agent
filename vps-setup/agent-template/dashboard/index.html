@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>{{TENANT_PERSON_FULL_NAME}} — Mission Control</title>
+<title>Daniel Gonell — Mission Control</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1150,6 +1150,15 @@
             </div>
           </div>
 
+          <!-- v2.67.0: latest weekly ROI digest (written by roi-digest.py) -->
+          <div id="roi-digest-card" class="hidden mb-6 rounded-xl bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-950 dark:to-slate-900 border border-indigo-200 dark:border-indigo-800 p-5 card-shadow">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-sm font-semibold text-indigo-800 dark:text-indigo-200">📊 Latest weekly digest</h3>
+              <span id="roi-digest-date" class="text-[11px] mono text-indigo-500 dark:text-indigo-400"></span>
+            </div>
+            <pre id="roi-digest-body" class="text-xs leading-relaxed text-slate-700 dark:text-slate-300 whitespace-pre-wrap font-sans"></pre>
+          </div>
+
           <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div class="rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950 dark:to-emerald-900 border border-emerald-200 dark:border-emerald-800 p-5 card-shadow">
               <div class="text-xs uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Overall ROI</div>
@@ -1568,6 +1577,7 @@
     deploys: { list: [], summary: {} },
     spans: { recent: [], tools: [], kinds: [], live: null, latency: {}, latency_sessions: [], summary: {} },
     roi: { by_type_7d: [], by_type_30d: [], summary_7d: {}, summary_30d: {}, methodology: '' },
+    roiDigest: null,
     roiWindow: 7,
     budget: { blocks: [], count: 0, global_blocked: false },
     queue: { jobs: [] },
@@ -1825,9 +1835,10 @@
       safeFetch('/api/growth.json'),
       safeFetch('/api/jobs.json'),
       safeFetch('/api/security.json'),
-      safeFetch('/api/watchers.json')
+      safeFetch('/api/watchers.json'),
+      safeFetch('/api/roi-digest.json')
     ]);
-    const [tasks, goals, queue, memory, telemetry, health, draftsData, triageData, improvementsData, driftData, competitiveData, sessionsData, llmInsightData, skillsData, auditData, , rulesData, anomaliesData, deploysData, spansData, roiData, budgetData, briefData, proposalsData, growthData, jobsData, securityData, watchersData] = results;
+    const [tasks, goals, queue, memory, telemetry, health, draftsData, triageData, improvementsData, driftData, competitiveData, sessionsData, llmInsightData, skillsData, auditData, , rulesData, anomaliesData, deploysData, spansData, roiData, budgetData, briefData, proposalsData, growthData, jobsData, securityData, watchersData, roiDigestData] = results;
     // tasks.json may be: an array, {tasks:[...]} envelope, or a dict-by-id (telemetry-calc.py shape).
     if (tasks) {
       state.tasks = Array.isArray(tasks) ? tasks
@@ -1963,6 +1974,7 @@
         methodology: roiData.methodology || '',
       };
     }
+    if (roiDigestData) state.roiDigest = roiDigestData;  // v2.67.0 weekly digest
     if (budgetData) {
       state.budget = {
         blocks: Array.isArray(budgetData.blocks) ? budgetData.blocks : [],
@@ -2977,6 +2989,20 @@
     const win = state.roiWindow === 30 ? 30 : 7;
     const groups = (win === 7 ? state.roi.by_type_7d : state.roi.by_type_30d) || [];
     const summary = (win === 7 ? state.roi.summary_7d : state.roi.summary_30d) || {};
+
+    // v2.67.0: latest weekly digest card
+    const dCard = $('#roi-digest-card');
+    if (dCard) {
+      const dg = state.roiDigest;
+      if (dg && dg.message) {
+        $('#roi-digest-body').textContent = dg.message;
+        const dt = dg.generated_at ? new Date(dg.generated_at).toLocaleString([], { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '';
+        $('#roi-digest-date').textContent = dt;
+        dCard.classList.remove('hidden');
+      } else {
+        dCard.classList.add('hidden');
+      }
+    }
 
     // Headline chip in the nav
     const roiVal = summary.overall_roi;
