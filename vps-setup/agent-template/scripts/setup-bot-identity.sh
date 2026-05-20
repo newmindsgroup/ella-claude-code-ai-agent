@@ -70,6 +70,7 @@ COMMANDS=$(cat <<'JSON'
   {"command":"remember",      "description":"Save next message as a memory"},
   {"command":"forget",        "description":"Forget a memory — /forget m-XXXX"},
   {"command":"who",           "description":"Knowledge graph — /who <name or topic>"},
+  {"command":"graph",         "description":"Ask the Graphify graph — /graph <question>"},
   {"command":"improve",       "description":"Self-improvement — /improve list | apply <id>"},
   {"command":"scan",          "description":"Brand drift scan"},
   {"command":"deploy",        "description":"Deploy a release — /deploy v2.X.Y"}

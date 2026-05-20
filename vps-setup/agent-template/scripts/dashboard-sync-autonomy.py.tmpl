@@ -427,16 +427,19 @@ def sync_agents():
 def sync_graph():
     if _fresh("graph", 3600):  # graph rebuilds weekly; recompute hourly at most
         return
-    srcs = list(AGENT_HOME.glob("*/graphify-out/graph.json")) + list(AGENT_HOME.glob("graphify-out/graph.json"))
-    if not srcs:
-        return
-    # Multiple graphs may exist (project repo, memory, etc.) — use the richest one.
-    src = None; g = {}
-    for s in srcs:
-        gg = read_json(s, {})
-        if len(gg.get("nodes", []) or []) > len(g.get("nodes", []) or []):
-            src, g = s, gg
-    if src is None:
+    # Prefer the unified merged graph (code + memory + scripts + concepts);
+    # fall back to the richest single graph if the merge hasn't run yet.
+    merged = AGENT_HOME / "graphify-out" / "merged-graph.json"
+    if merged.is_file():
+        src, g = merged, read_json(merged, {})
+    else:
+        srcs = list(AGENT_HOME.glob("*/graphify-out/graph.json")) + list(AGENT_HOME.glob("graphify-out/graph.json"))
+        src = None; g = {}
+        for s in srcs:
+            gg = read_json(s, {})
+            if len(gg.get("nodes", []) or []) > len(g.get("nodes", []) or []):
+                src, g = s, gg
+    if src is None or not g:
         return
     nodes = g.get("nodes", []) or []
     links = g.get("links", []) or []
@@ -475,10 +478,47 @@ def sync_graph():
         s = _eid(l.get("source")); t = _eid(l.get("target"))
         if s in keep_ids and t in keep_ids:
             sample_links.append({"source": s, "target": t})
+    # Publish the richest interactive D3 graph.html for the "open full graph" link.
+    has_d3 = False
+    try:
+        import shutil as _sh2
+        htmls = sorted(AGENT_HOME.glob("*/graphify-out/graph.html"), key=lambda x: x.stat().st_size, reverse=True)
+        if htmls:
+            _sh2.copy(htmls[0], DST.parent / "graph-full.html")  # web root → /graph-full.html
+            os.chmod(DST.parent / "graph-full.html", 0o644)
+            has_d3 = True
+    except Exception:
+        pass
+
+    history = read_jsonl(AGENT_HOME / "graphify-out" / "graph-history.jsonl", limit=30)
+    # saved Q&A "graph memory" from the query feedback loop (graphify save-result
+    # writes markdown files with YAML frontmatter: type/date/question/source_nodes).
+    gmem = []
+    gmem_dir = AGENT_HOME / "graphify-out" / "memory"
+    if gmem_dir.is_dir():
+        for f in sorted(gmem_dir.glob("*.md"), key=lambda x: x.stat().st_mtime, reverse=True)[:20]:
+            try:
+                txt = f.read_text(errors="ignore")
+            except Exception:
+                continue
+            rec = {"question": "", "type": "query", "saved_at": "", "answer": ""}
+            fm = txt[3:txt.find("\n---", 3)] if txt.startswith("---") else ""
+            for ln in fm.splitlines():
+                s = ln.strip()
+                if s.startswith("question:"): rec["question"] = s[9:].strip().strip('"')
+                elif s.startswith("type:"): rec["type"] = s[5:].strip().strip('"')
+                elif s.startswith("date:"): rec["saved_at"] = s[5:].strip().strip('"')
+            body = txt.split("## Answer", 1)
+            if len(body) > 1:
+                rec["answer"] = " ".join(body[1].split())[:240]
+            if rec["question"]:
+                gmem.append(rec)
     write("graph", {
         "summary": {"nodes": len(nodes), "links": len(links), "communities": len([c for c in comms if c != -1])},
         "file_types": file_types, "top_hubs": top_hubs, "community_sizes": community_sizes,
         "sample": {"nodes": sample_nodes, "links": sample_links[:400]},
+        "history": history, "memory": gmem, "has_d3": has_d3,
+        "merged": (src.name == "merged-graph.json"),
         "source_age_days": int((now.timestamp() - src.stat().st_mtime) // 86400),
         "updated_at": now.isoformat(),
     })

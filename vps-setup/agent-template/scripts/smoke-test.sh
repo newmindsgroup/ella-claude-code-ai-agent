@@ -310,6 +310,29 @@ if [[ -f "$DASH_HTML" ]]; then
 fi
 
 # ───────────────────────────────────────────────────────────────────────────
+section "17. GRAPHIFY GraphRAG (merged graph · Ask-the-Graph · feedback loop)"
+# ───────────────────────────────────────────────────────────────────────────
+MERGED="{{TENANT_AGENT_HOME}}/graphify-out/merged-graph.json"
+if [[ -f "$MERGED" ]]; then
+  mn=$(jq -r '.nodes|length' "$MERGED" 2>/dev/null || echo 0)
+  [[ "$mn" -ge 1 ]] && ok "unified merged-graph.json ($mn nodes)" || fail "merged-graph.json empty"
+else
+  fail "merged-graph.json missing (run graphify-rebuild)"
+fi
+# Ask-the-Graph endpoint wired (bad input → 400, no side effect).
+gcode=$(curl -s -o /dev/null -w "%{http_code}" -X POST 127.0.0.1:8001/api/graph/query \
+  -H "Content-Type: application/json" -d '{"q":""}' 2>/dev/null || echo 000)
+[[ "$gcode" == "400" ]] && ok "/api/graph/query endpoint wired" || fail "/api/graph/query not responding ($gcode)"
+gacode=$(curl -s -o /dev/null -w "%{http_code}" -X POST 127.0.0.1:8001/api/graph/add \
+  -H "Content-Type: application/json" -d '{"url":"notaurl"}' 2>/dev/null || echo 000)
+[[ "$gacode" == "400" ]] && ok "/api/graph/add endpoint wired" || fail "/api/graph/add not responding ($gacode)"
+if [[ -f "$DASH_HTML" ]]; then
+  grep -q 'id="graph-q"' "$DASH_HTML" && grep -q "data-action=\"graph-ask\"" "$DASH_HTML" \
+    && ok "Ask-the-Graph panel present" || fail "Ask-the-Graph panel missing"
+fi
+grep -q '/graph <question>' "{{TENANT_AGENT_HOME}}/CLAUDE.md" 2>/dev/null && ok "/graph wired into agent (CLAUDE.md)" || warn "/graph not in CLAUDE.md"
+
+# ───────────────────────────────────────────────────────────────────────────
 section "FINAL"
 # ───────────────────────────────────────────────────────────────────────────
 echo

@@ -63,4 +63,25 @@ if [[ ${NODE_DELTA#-} -gt 10 || ${LINK_DELTA#-} -gt 10 ]]; then
   "$TG_SEND" send --text "📊 Graphify weekly rebuild: ${BEFORE_NODES}→${AFTER_NODES} nodes (Δ${NODE_DELTA}), ${BEFORE_LINKS}→${AFTER_LINKS} links (Δ${LINK_DELTA}). Project repo graph refreshed." 2>/dev/null || true
 fi
 
+# ── Unify all graphs into one (code + memory + scripts + concepts) ───────────
+# A merged graph lets /graph queries traverse across code, memory, people, and
+# commitments in a single hop. Refreshed here so it tracks the weekly rebuild.
+# Also appends a growth-history line for the dashboard's graph-trend telemetry.
+MERGED="$TENANT_AGENT_HOME/graphify-out/merged-graph.json"
+mkdir -p "$TENANT_AGENT_HOME/graphify-out"
+mapfile -t GRAPHS < <(find "$TENANT_AGENT_HOME" -name graph.json -path '*graphify-out*' 2>/dev/null | grep -v 'merged-graph.json')
+if [[ ${#GRAPHS[@]} -ge 2 ]]; then
+  if graphify merge-graphs "${GRAPHS[@]}" --out "$MERGED" >> "$LOG_FILE" 2>&1; then
+    MN=$(jq '.nodes|length' "$MERGED" 2>/dev/null || echo 0)
+    ML=$(jq '.links|length' "$MERGED" 2>/dev/null || echo 0)
+    log "merged ${#GRAPHS[@]} graphs → $MN nodes, $ML links"
+    printf '{"ts":"%s","nodes":%s,"links":%s,"sources":%s}\n' "$(date -u +%FT%TZ)" "$MN" "$ML" "${#GRAPHS[@]}" \
+      >> "$TENANT_AGENT_HOME/graphify-out/graph-history.jsonl"
+  else
+    log "WARN: graph merge failed"
+  fi
+elif [[ ${#GRAPHS[@]} -eq 1 ]]; then
+  cp "${GRAPHS[0]}" "$MERGED" && log "single graph → merged"
+fi
+
 log "=== done ==="

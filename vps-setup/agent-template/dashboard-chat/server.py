@@ -47,6 +47,10 @@ SESSION_FILE = f"{AGENT_HOME}/dashboard-chat/session.txt"
 # (/usr/bin/claude) and manually-installed ones (/usr/local/bin/claude).
 # Override with CLAUDE_BIN env var in the systemd unit if needed.
 CLAUDE_BIN   = os.environ.get("CLAUDE_BIN") or shutil.which("claude") or "/usr/local/bin/claude"
+USER_HOME    = str(Path(AGENT_HOME).parent)
+GRAPHIFY_BIN = os.environ.get("GRAPHIFY_BIN") or shutil.which("graphify") or f"{USER_HOME}/.local/bin/graphify"
+MERGED_GRAPH = f"{AGENT_HOME}/graphify-out/merged-graph.json"
+GRAPH_MEMORY_DIR = f"{AGENT_HOME}/graphify-out/memory"
 
 # Sonnet 4.6 pricing (USD per 1M tokens)
 PRICE_INPUT       = 3.00
@@ -1211,6 +1215,125 @@ def post_task_state(req: TaskStateRequest):
         raise HTTPException(status_code=500,
                             detail=f"task-update exited {result.returncode}: {result.stderr[-200:]}")
     return {"id": tid, "state": new_state, "updated_at": now_iso()}
+
+
+# ============================================================================
+# Ask-the-Graph — GraphRAG over the Graphify knowledge graph.
+# ============================================================================
+# Runs `graphify query|explain|path` against the unified merged graph (code +
+# memory + scripts + concepts), parses the cited nodes, and — for the feedback
+# loop — saves each Q&A back via `graphify save-result` so the graph accumulates
+# answered-question memory and gets smarter over time. Deterministic, no LLM.
+
+_GRAPH_NODE_RE = re.compile(r"^NODE\s+(.*?)\s*\[src=(.*?)\s+loc=(.*?)\s+community=(.*?)\]\s*$")
+
+
+class GraphQueryRequest(BaseModel):
+    q: str
+    mode: str = "query"     # query | explain | path
+    target: str = ""        # second node label, for path mode
+    budget: int = 1500
+    source: str = "dashboard"
+
+
+def _graph_path() -> str:
+    if os.path.isfile(MERGED_GRAPH):
+        return MERGED_GRAPH
+    # fallback: richest single graph anywhere under the agent home
+    import glob as _glob
+    cands = _glob.glob(f"{AGENT_HOME}/*/graphify-out/graph.json") + _glob.glob(f"{AGENT_HOME}/graphify-out/graph.json")
+    best, best_n = "", -1
+    for c in cands:
+        try:
+            n = len(json.load(open(c)).get("nodes", []))
+        except Exception:
+            n = 0
+        if n > best_n:
+            best, best_n = c, n
+    return best or f"{AGENT_HOME}/graphify-out/graph.json"
+
+
+@app.post("/api/graph/query")
+def post_graph_query(req: GraphQueryRequest):
+    q = (req.q or "").strip()
+    if not q or len(q) > 500:
+        raise HTTPException(status_code=400, detail="q required, max 500 chars")
+    mode = req.mode if req.mode in ("query", "explain", "path") else "query"
+    graph = _graph_path()
+    if not os.path.isfile(graph):
+        raise HTTPException(status_code=503, detail="knowledge graph not built yet")
+    budget = max(200, min(4000, int(req.budget or 1500)))
+    if mode == "query":
+        cmd = [GRAPHIFY_BIN, "query", q, "--graph", graph, "--budget", str(budget)]
+    elif mode == "explain":
+        cmd = [GRAPHIFY_BIN, "explain", q, "--graph", graph]
+    else:  # path
+        tgt = (req.target or "").strip()
+        if not tgt:
+            raise HTTPException(status_code=400, detail="path mode needs a target")
+        cmd = [GRAPHIFY_BIN, "path", q, tgt, "--graph", graph]
+
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=90)
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=504, detail="graph query timed out")
+    except FileNotFoundError:
+        raise HTTPException(status_code=500, detail=f"graphify not found at {GRAPHIFY_BIN}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    if result.returncode != 0:
+        raise HTTPException(status_code=500, detail=f"graphify exited {result.returncode}: {result.stderr[-200:]}")
+
+    out = result.stdout or ""
+    nodes = []
+    for ln in out.splitlines():
+        m = _GRAPH_NODE_RE.match(ln.strip())
+        if m:
+            nodes.append({"label": m.group(1), "src": m.group(2), "loc": m.group(3), "community": m.group(4)})
+    _append_audit(AuditEvent(action="graph-" + mode, target=q[:120],
+                             details={"nodes": len(nodes)}, source=req.source))
+
+    # Feedback loop: persist the Q&A so the graph remembers (best-effort).
+    if mode in ("query", "explain"):
+        try:
+            os.makedirs(GRAPH_MEMORY_DIR, exist_ok=True)
+            sr = [GRAPHIFY_BIN, "save-result", "--question", q, "--answer", out[:4000],
+                  "--type", mode, "--memory-dir", GRAPH_MEMORY_DIR]
+            if nodes:
+                sr += ["--nodes"] + [n["label"] for n in nodes[:8]]
+            subprocess.run(sr, capture_output=True, text=True, timeout=20)
+        except Exception:
+            pass
+
+    return {"mode": mode, "q": q, "answer": out.strip(), "nodes": nodes,
+            "node_count": len(nodes), "graph": os.path.basename(graph), "at": now_iso()}
+
+
+class GraphAddRequest(BaseModel):
+    url: str
+    source: str = "dashboard"
+
+
+@app.post("/api/graph/add")
+def post_graph_add(req: GraphAddRequest):
+    """Grow the corpus: fetch a URL and fold it into the graph (graphify add)."""
+    url = (req.url or "").strip()
+    if not url or not re.match(r"^https?://", url) or len(url) > 600:
+        raise HTTPException(status_code=400, detail="valid http(s) url required")
+    # Added content lands in the agent-home root graph (+ ./raw corpus); the
+    # weekly rebuild then folds it into the merged graph.
+    cwd = AGENT_HOME
+    _append_audit(AuditEvent(action="graph-add", target=url[:160], source=req.source))
+    try:
+        result = subprocess.run([GRAPHIFY_BIN, "add", url], cwd=cwd,
+                                capture_output=True, text=True, timeout=180)
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=504, detail="graph add timed out")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    if result.returncode != 0:
+        raise HTTPException(status_code=500, detail=f"graphify add exited {result.returncode}: {result.stderr[-200:]}")
+    return {"url": url, "stdout_tail": (result.stdout or "")[-400:], "at": now_iso()}
 
 
 # ============================================================================

@@ -831,6 +831,24 @@
               <div class="mt-1 text-xs text-slate-400 mono"><span data-bind="graphTopHubDeg">0</span> links</div>
             </div>
           </div>
+          <!-- Ask the Graph (GraphRAG) -->
+          <div class="rounded-xl bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-950/40 dark:to-violet-950/30 border border-indigo-200 dark:border-indigo-900/60 p-5 card-shadow mb-6">
+            <div class="flex items-center gap-1 mb-3"><h3 class="text-sm font-semibold tracking-tight flex items-center gap-2"><span>🔍</span> Ask the graph</h3>
+              <span class="mc-tip"><button type="button" class="mc-tip-dot" aria-label="More info" tabindex="0">i</button><span class="mc-tip-pop" role="tooltip">GraphRAG traversal over the unified graph (code + memory + concepts). Deterministic, no LLM cost. Every answer is saved back into the graph's memory so it learns over time.</span></span>
+            </div>
+            <div class="flex items-center gap-1.5 mb-3 flex-wrap">
+              <button data-action="graph-mode" data-gmode="query" class="graph-mode px-3 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700">Ask</button>
+              <button data-action="graph-mode" data-gmode="explain" class="graph-mode px-3 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700">Explain a node</button>
+              <button data-action="graph-mode" data-gmode="path" class="graph-mode px-3 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700">Path between</button>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-2">
+              <input id="graph-q" type="text" placeholder="How does the morning brief work?" class="flex-1 text-sm rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 px-3 py-2 outline-none" />
+              <input id="graph-q2" type="text" placeholder="…connected to this node" class="hidden flex-1 text-sm rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 px-3 py-2 outline-none" />
+              <button data-action="graph-ask" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium shrink-0">Ask ▸</button>
+            </div>
+            <div id="graph-answer" class="hidden mt-4"></div>
+          </div>
+
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="lg:col-span-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 card-shadow">
               <div class="flex items-center gap-1 mb-2 px-1"><h3 class="text-sm font-semibold tracking-tight">Map (top-connected sample)</h3>
@@ -842,6 +860,36 @@
               <input id="graph-search" type="search" placeholder="Search hubs…" class="w-full mb-3 text-sm rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent px-3 py-2 outline-none" />
               <h3 class="text-xs uppercase tracking-wider text-slate-500 mb-2">Top hubs</h3>
               <div id="graph-hubs" class="space-y-1.5 max-h-[420px] overflow-y-auto scroll-soft"></div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+            <div class="lg:col-span-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="flex items-center gap-1 mb-3"><h3 class="text-sm font-semibold tracking-tight">Graph memory</h3>
+                <span class="mc-tip"><button type="button" class="mc-tip-dot" aria-label="More info" tabindex="0">i</button><span class="mc-tip-pop" role="tooltip">Questions the graph has answered (via the feedback loop). Each saved Q&A becomes part of the corpus so future answers improve.</span></span>
+                <span class="ml-auto text-[11px] mono text-slate-400"><span data-bind="graphMemCount">0</span> saved</span>
+              </div>
+              <div id="graph-memory" class="space-y-2"></div>
+              <div id="graph-memory-empty" class="hidden text-xs text-slate-400 py-3 text-center">No saved answers yet — ask the graph something.</div>
+            </div>
+            <div class="lg:col-span-1 space-y-6">
+              <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+                <div class="flex items-center gap-1 mb-2"><h3 class="text-sm font-semibold tracking-tight">Growth</h3>
+                  <span class="mc-tip"><button type="button" class="mc-tip-dot" aria-label="More info" tabindex="0">i</button><span class="mc-tip-pop tip-left" role="tooltip">Total graph nodes over time, recorded on each weekly rebuild.</span></span>
+                </div>
+                <div id="graph-trend" class="flex items-end gap-1 h-16"></div>
+                <div class="mt-1 text-[11px] mono text-slate-400">nodes over last rebuilds</div>
+              </div>
+              <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+                <div class="flex items-center gap-1 mb-2"><h3 class="text-sm font-semibold tracking-tight">Grow the corpus</h3>
+                  <span class="mc-tip"><button type="button" class="mc-tip-dot" aria-label="More info" tabindex="0">i</button><span class="mc-tip-pop tip-left" role="tooltip">Fetch a URL (article, doc, competitor page) and fold it into the graph via Graphify's add + Firecrawl. Expands what the agent knows.</span></span>
+                </div>
+                <div class="flex gap-2">
+                  <input id="graph-add-url" type="url" placeholder="https://…" class="flex-1 text-sm rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent px-3 py-2 outline-none" />
+                  <button data-action="graph-add" class="px-3 py-2 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-sm shrink-0">Add</button>
+                </div>
+                <a id="graph-d3-link" href="#" target="_blank" rel="noopener" class="mt-3 inline-flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Open full interactive graph ↗</a>
+              </div>
             </div>
           </div>
         </section>
@@ -1828,7 +1876,8 @@
     watchers: { timers: [], count: 0, updated_at: null },
     system: { disk: {}, mem: {}, load: [], cpu_count: 0, uptime_seconds: 0, top_dirs: [], top_files: [], services: [], vps_cost: {}, updated_at: null },
     agents: { agents: [], count: 0, usage: [], recent_dispatches: [], updated_at: null },
-    graph: { summary: {}, file_types: [], top_hubs: [], community_sizes: [], sample: { nodes: [], links: [] }, source_age_days: 0, updated_at: null },
+    graph: { summary: {}, file_types: [], top_hubs: [], community_sizes: [], sample: { nodes: [], links: [] }, history: [], memory: [], merged: false, source_age_days: 0, updated_at: null },
+    graphAskMode: 'query',
     tasks: [], goals: [], memory: [], drafts: [],
     triage: { runs: [], totals: {} },
     improvements: { reviews: [], totals: {} },
@@ -2410,6 +2459,10 @@
         top_hubs: Array.isArray(graphData.top_hubs) ? graphData.top_hubs : [],
         community_sizes: Array.isArray(graphData.community_sizes) ? graphData.community_sizes : [],
         sample: graphData.sample || { nodes: [], links: [] },
+        history: Array.isArray(graphData.history) ? graphData.history : [],
+        memory: Array.isArray(graphData.memory) ? graphData.memory : [],
+        merged: !!graphData.merged,
+        has_d3: !!graphData.has_d3,
         source_age_days: graphData.source_age_days || 0,
         updated_at: graphData.updated_at || null,
       };
@@ -4460,6 +4513,38 @@
     if (state.activeTab === 'graph') setTimeout(drawGraph, 0);
   };
 
+  const renderGraphAnswer = (r) => {
+    const box = $('#graph-answer'); if (!box) return;
+    box.classList.remove('hidden');
+    if (!r) { box.innerHTML = '<div class="text-sm text-rose-600 dark:text-rose-400">Query failed — try rephrasing.</div>'; return; }
+    const nodes = Array.isArray(r.nodes) ? r.nodes : [];
+    const chips = nodes.length ? '<div class="mt-3 flex flex-wrap gap-1.5">' + nodes.map(n =>
+      '<button data-action="graph-explain-node" data-node="' + escapeHtml(n.label) + '" class="text-[11px] mono px-1.5 py-0.5 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-indigo-400" title="' + escapeHtml((n.src || '') + ' ' + (n.loc || '')) + '">' + escapeHtml(n.label) + '</button>').join('') + '</div>' : '';
+    box.innerHTML = '<div class="rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4">' +
+      '<div class="text-[11px] mono text-slate-400 mb-2">' + escapeHtml(r.mode || '') + ' · ' + (r.node_count || 0) + ' nodes · ' + escapeHtml(r.graph || '') + '</div>' +
+      '<pre class="text-xs text-slate-700 dark:text-slate-200 whitespace-pre-wrap mono max-h-72 overflow-y-auto scroll-soft" style="font-family:ui-monospace,monospace">' + escapeHtml(r.answer || '(no answer)') + '</pre>' + chips + '</div>';
+  };
+  const doGraphAsk = async () => {
+    const qEl = $('#graph-q'); const q = qEl ? qEl.value.trim() : '';
+    if (!q) return;
+    const mode = state.graphAskMode || 'query';
+    const body = { q: q, mode: mode, source: 'dashboard' };
+    if (mode === 'path') { const t = $('#graph-q2'); body.target = t ? t.value.trim() : ''; if (!body.target) { mcToast('Path mode needs a second node', 'error'); return; } }
+    const box = $('#graph-answer'); if (box) { box.classList.remove('hidden'); box.innerHTML = '<div class="text-sm text-slate-400">Traversing the graph…</div>'; }
+    const r = await safeFetch('/api/graph/query', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    renderGraphAnswer(r);
+    postAudit('graph-ask', q, { mode: mode }, 'dashboard');
+    setTimeout(() => { refreshAll().catch(() => {}); }, 1500); // surface the new saved Q&A
+  };
+  const doGraphAdd = async () => {
+    const el = $('#graph-add-url'); const url = el ? el.value.trim() : '';
+    if (!url) return;
+    mcToast('Fetching + folding into the graph…');
+    const r = await safeFetch('/api/graph/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: url, source: 'dashboard' }) });
+    if (r) { mcToast('Added to the graph corpus'); if (el) el.value = ''; setTimeout(() => { refreshAll().catch(() => {}); }, 1500); }
+    else mcToast('Add failed — check the URL', 'error');
+  };
+
   const renderOverview = () => {
     const now = new Date();
     const name = TENANT.name || 'there';
@@ -6165,6 +6250,23 @@
       renderGrowth();
       return;
     }
+    if (action === 'graph-mode') {
+      e.preventDefault();
+      state.graphAskMode = target.dataset.gmode || 'query';
+      renderGraph();
+      const qi = $('#graph-q'); if (qi) qi.focus();
+      return;
+    }
+    if (action === 'graph-ask') { e.preventDefault(); doGraphAsk(); return; }
+    if (action === 'graph-add') { e.preventDefault(); doGraphAdd(); return; }
+    if (action === 'graph-explain-node') {
+      e.preventDefault();
+      const node = target.dataset.node || '';
+      state.graphAskMode = 'explain'; renderGraph();
+      const qi = $('#graph-q'); if (qi) qi.value = node;
+      doGraphAsk();
+      return;
+    }
     if (action === 'growth-apply' || action === 'growth-skip') {
       e.preventDefault(); e.stopPropagation();
       const id = target.dataset.growthId;
@@ -6274,6 +6376,11 @@
       sendChat();
       return;
     }
+    // Enter in the Ask-the-Graph inputs runs the query
+    if (e.key === 'Enter' && ae && (ae.id === 'graph-q' || ae.id === 'graph-q2')) {
+      e.preventDefault(); doGraphAsk(); return;
+    }
+    if (e.key === 'Enter' && ae && ae.id === 'graph-add-url') { e.preventDefault(); doGraphAdd(); return; }
     // Cmd/Ctrl-K toggles the command palette
     if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
       e.preventDefault();
