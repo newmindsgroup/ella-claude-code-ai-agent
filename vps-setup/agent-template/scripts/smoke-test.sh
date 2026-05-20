@@ -254,6 +254,24 @@ else
 fi
 
 # ───────────────────────────────────────────────────────────────────────────
+section "14. DASHBOARD UX (Kanban · tooltips · task write-back)"
+# ───────────────────────────────────────────────────────────────────────────
+DASH_HTML=/var/www/{{TENANT_DASHBOARD_HOSTNAME}}/index.html
+if [[ -f "$DASH_HTML" ]]; then
+  grep -q 'id="kanban-board"' "$DASH_HTML" && grep -q 'data-action="tasks-view"' "$DASH_HTML" \
+    && ok "Tasks Kanban board (List⇄Board) present" || fail "Kanban board markup missing"
+  grep -q 'mc-tip-pop' "$DASH_HTML" && grep -q 'const infoDot' "$DASH_HTML" \
+    && ok "ⓘ tooltip system present" || fail "tooltip system missing"
+else
+  fail "dashboard index.html missing (UX checks)"
+fi
+# Task state write-back endpoint: bad input must 400 (proves it's wired, no side effect).
+code=$(curl -s -o /dev/null -w "%{http_code}" -X POST 127.0.0.1:8001/api/task/state \
+  -H "Content-Type: application/json" -d '{"id":"smoke-test","state":"__bogus__"}' 2>/dev/null || echo 000)
+if [[ "$code" == "400" ]]; then ok "/api/task/state endpoint wired (rejects bad state)"
+else fail "/api/task/state endpoint not responding correctly (got $code)"; fi
+
+# ───────────────────────────────────────────────────────────────────────────
 section "FINAL"
 # ───────────────────────────────────────────────────────────────────────────
 echo

@@ -1159,6 +1159,61 @@ def post_skills_run(req: SkillRunRequest):
 
 
 # ============================================================================
+# Task state write-back — powers the dashboard Kanban drag-and-drop.
+# ============================================================================
+# Free, instant, deterministic: validates id + state then runs the canonical
+# task-ledger lifecycle wrapper. No LLM call (unlike /api/chat), so dragging a
+# card costs nothing and keeps the task ledger as the single source of truth.
+
+_TASK_ID_RE = re.compile(r"^[A-Za-z0-9._\-]{1,64}$")
+_TASK_STATES = {
+    "queued", "committed", "in_progress", "in_review",
+    "blocked", "awaiting_external", "stale", "done", "cancelled",
+}
+TASK_UPDATE_BIN = f"{AGENT_HOME}/scripts/task-update.sh"
+
+
+class TaskStateRequest(BaseModel):
+    id: str
+    state: str
+    source: str = "dashboard"
+
+
+@app.post("/api/task/state")
+def post_task_state(req: TaskStateRequest):
+    """Set a task's lifecycle state (Kanban drag-and-drop). Runs
+    task-update.sh ID STATE "msg" → task-ledger.sh. Deterministic + free."""
+    tid = (req.id or "").strip()
+    new_state = (req.state or "").strip()
+    if not tid or not _TASK_ID_RE.match(tid):
+        raise HTTPException(status_code=400, detail="invalid task id")
+    if new_state not in _TASK_STATES:
+        raise HTTPException(status_code=400, detail=f"invalid state '{new_state}'")
+
+    _append_audit(AuditEvent(action="task-state-set", target=tid,
+                             details={"state": new_state}, source=req.source))
+    try:
+        result = subprocess.run(
+            [TASK_UPDATE_BIN, tid, new_state, "moved via dashboard kanban"],
+            capture_output=True, text=True, timeout=15,
+        )
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=504, detail="task-update timed out")
+    except FileNotFoundError:
+        raise HTTPException(status_code=500, detail=f"task-update.sh not found at {TASK_UPDATE_BIN}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    if result.returncode != 0:
+        _append_audit(AuditEvent(action="task-state-failed", target=tid,
+                                 details={"rc": result.returncode, "stderr": result.stderr[-300:]},
+                                 source=req.source))
+        raise HTTPException(status_code=500,
+                            detail=f"task-update exited {result.returncode}: {result.stderr[-200:]}")
+    return {"id": tid, "state": new_state, "updated_at": now_iso()}
+
+
+# ============================================================================
 # v2.57.0 — Cost ceilings (budget circuit breakers)
 # ============================================================================
 # Hard guardrails: refuse-to-run state file consulted by /api/chat/skills/run
