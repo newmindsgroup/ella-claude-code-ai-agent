@@ -99,6 +99,34 @@
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
         Overview
       </a>
+      <a href="#" data-action="nav" data-tab="briefing" class="nav-link group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/70 transition-colors">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 18a5 5 0 0 0-10 0"/><line x1="12" y1="2" x2="12" y2="9"/><line x1="4.22" y1="10.22" x2="5.64" y2="11.64"/><line x1="1" y1="18" x2="3" y2="18"/><line x1="21" y1="18" x2="23" y2="18"/><line x1="18.36" y1="11.64" x2="19.78" y2="10.22"/><line x1="23" y1="22" x2="1" y2="22"/><polyline points="8 6 12 2 16 6"/></svg>
+        Briefing <span data-bind="briefApprovalBadge" class="ml-auto text-[11px] mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 hidden">0</span>
+      </a>
+      <a href="#" data-action="nav" data-tab="proposals" class="nav-link group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/70 transition-colors">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Proposed Moves <span data-bind="proposalsBadge" class="ml-auto text-[11px] mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 hidden">0</span>
+      </a>
+      <a href="#" data-action="nav" data-tab="growth" class="nav-link group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/70 transition-colors">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 6l-9.5 9.5-5-5L1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        Self-Growth <span data-bind="growthCount" class="ml-auto text-[11px] mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">0</span>
+      </a>
+      <a href="#" data-action="nav" data-tab="jobs" class="nav-link group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/70 transition-colors">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+        Jobs <span data-bind="jobsBadge" class="ml-auto text-[11px] mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">0</span>
+      </a>
+      <a href="#" data-action="nav" data-tab="budget" class="nav-link group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/70 transition-colors">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+        Budget <span data-bind="budgetBadge" class="ml-auto text-[11px] mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">—</span>
+      </a>
+      <a href="#" data-action="nav" data-tab="security" class="nav-link group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/70 transition-colors">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Security <span data-bind="securityBadge" class="ml-auto text-[11px] mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">—</span>
+      </a>
+      <a href="#" data-action="nav" data-tab="automation" class="nav-link group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/70 transition-colors">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/><path d="M3 12a9 9 0 0 1 9-9"/></svg>
+        Automation <span data-bind="automationCount" class="ml-auto text-[11px] mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">0</span>
+      </a>
       <a href="#" data-action="nav" data-tab="tasks" class="nav-link group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/70 transition-colors">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h12M9 12h12M9 18h12"/><circle cx="4" cy="6" r="1.5"/><circle cx="4" cy="12" r="1.5"/><circle cx="4" cy="18" r="1.5"/></svg>
         Tasks <span data-bind="taskCount" class="ml-auto text-[11px] mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">0</span>
@@ -359,6 +387,277 @@
               <ul id="activity-list" class="space-y-3 text-sm"></ul>
             </div>
           </div>
+        </section>
+
+        <section data-tab-content="briefing" class="tab-section hidden">
+          <div class="flex items-center justify-between mb-6">
+            <p class="text-sm text-slate-500">Your daily briefing — what got done overnight, today's focus, and moves awaiting your call. Mirrors the Telegram morning brief; regenerated every minute from live agent state.</p>
+            <span class="text-xs text-slate-400 mono shrink-0 ml-4">as of <span data-bind="briefAsOf">—</span></span>
+          </div>
+
+          <!-- KPI row -->
+          <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Overnight jobs</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum text-indigo-600 dark:text-indigo-400" data-bind="briefJobsDone">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">completed</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Self-growth</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum text-emerald-600 dark:text-emerald-400" data-bind="briefGrowth">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">improvements</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Nudges fired</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="briefNudges">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">proactive pings</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Value today</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum text-emerald-600 dark:text-emerald-400" data-bind="briefValue">$0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">est. work delivered</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Spend today</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="briefCost">$0</div>
+              <div class="mt-1 text-xs text-slate-400 mono"><span data-bind="briefCostPct">0</span>% of ceiling</div>
+            </div>
+          </div>
+
+          <!-- Overnight + Today -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <h3 class="text-sm font-semibold tracking-tight mb-4 flex items-center gap-2"><span>🌙</span> Overnight</h3>
+              <div id="brief-overnight-feed" class="space-y-2.5"></div>
+              <div id="brief-overnight-empty" class="hidden p-6 text-center text-sm text-slate-500 rounded-lg border border-dashed border-slate-300 dark:border-slate-700">A quiet night — nothing ran in the last 14 hours.</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <h3 class="text-sm font-semibold tracking-tight mb-4 flex items-center gap-2"><span>☀️</span> Today's focus</h3>
+              <div id="brief-today-feed" class="space-y-2.5"></div>
+              <div id="brief-today-empty" class="hidden p-6 text-center text-sm text-slate-500 rounded-lg border border-dashed border-slate-300 dark:border-slate-700">No open goals — set one to give the day a target.</div>
+            </div>
+          </div>
+
+          <!-- For approval -->
+          <div class="rounded-xl bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/20 border border-amber-200 dark:border-amber-900/60 p-5 card-shadow">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-sm font-semibold tracking-tight flex items-center gap-2"><span>✅</span> For your approval <span data-bind="briefApprovalCount" class="text-[11px] mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300">0</span></h3>
+              <span class="text-xs text-slate-500">Run dispatches to the named agent · Skip teaches the generator to avoid the shape</span>
+            </div>
+            <div id="brief-approval-feed" class="space-y-3"></div>
+            <div id="brief-approval-empty" class="hidden p-6 text-center text-sm text-slate-500 rounded-lg border border-dashed border-amber-300/60 dark:border-amber-800/60">Nothing waiting — you're all caught up.</div>
+          </div>
+        </section>
+
+        <section data-tab-content="proposals" class="tab-section hidden">
+          <div class="flex items-center justify-between mb-6">
+            <p class="text-sm text-slate-500">Proposed Moves — 2-3 strategic plays a day the stack believes will move you toward revenue/goals. Tap Run to dispatch to the named agent (produces a draft you approve), Skip to teach the generator to avoid the shape.</p>
+            <span class="text-xs text-slate-400 mono shrink-0 ml-4">updated <span data-bind="proposalsAsOf">—</span></span>
+          </div>
+
+          <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Awaiting you</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum text-amber-600 dark:text-amber-400" data-bind="propsProposed">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">proposed</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Approved</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum text-emerald-600 dark:text-emerald-400" data-bind="propsApproved">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">you ran</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Skipped</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="propsSkipped">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">dismissed</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Today</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="propsToday">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">generated</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Recent</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="propsRecent">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">last 5 days</div>
+            </div>
+          </div>
+
+          <h3 class="text-sm font-semibold tracking-tight mb-3">Today — awaiting your call</h3>
+          <div id="proposals-today-feed" class="space-y-3 mb-6"></div>
+          <div id="proposals-today-empty" class="hidden p-6 text-center text-sm text-slate-500 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 mb-6">No proposals generated today yet — the morning brief seeds them.</div>
+
+          <h3 class="text-sm font-semibold tracking-tight mb-3">Recent history</h3>
+          <div id="proposals-recent-feed" class="space-y-2"></div>
+          <div id="proposals-recent-empty" class="hidden p-6 text-center text-sm text-slate-500 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">No proposal history yet.</div>
+        </section>
+
+        <section data-tab-content="growth" class="tab-section hidden">
+          <div class="flex items-center justify-between mb-6">
+            <p class="text-sm text-slate-500">The agent improving itself. Every night at 22:30 the self-growth loop picks the single highest-leverage upgrade to its own capabilities — green tiers auto-apply (smoke-gated), yellow tiers wait for your <code class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-xs mono">apply growth-…</code>.</p>
+            <span class="text-xs text-slate-400 mono shrink-0 ml-4">updated <span data-bind="growthAsOf">—</span></span>
+          </div>
+
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Total</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="growthTotal">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">improvements logged</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Applied</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum text-emerald-600 dark:text-emerald-400" data-bind="growthApplied">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">live in the stack</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Pending</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum text-amber-600 dark:text-amber-400" data-bind="growthPending">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">yellow — your call</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Skipped</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="growthSkipped">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">declined</div>
+            </div>
+          </div>
+
+          <div id="growth-feed" class="space-y-4"></div>
+          <div id="growth-empty" class="hidden p-10 text-center text-sm text-slate-500 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">No self-growth entries yet — the loop runs nightly at 22:30.</div>
+        </section>
+
+        <section data-tab-content="jobs" class="tab-section hidden">
+          <div class="flex items-center justify-between mb-6">
+            <p class="text-sm text-slate-500">Background jobs — work the agent dispatched to sub-agents so it stays free to talk. Running jobs are live now; recent jobs are the last 15 completions.</p>
+            <span class="text-xs text-slate-400 mono shrink-0 ml-4">updated <span data-bind="jobsAsOf">—</span></span>
+          </div>
+
+          <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Running now</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum text-indigo-600 dark:text-indigo-400" data-bind="jobsRunning">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">/ 3 concurrency cap</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Recent done</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="jobsRecentDone">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">last 15</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Failures</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum text-rose-600 dark:text-rose-400" data-bind="jobsFailures">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">non-zero exit</div>
+            </div>
+          </div>
+
+          <h3 class="text-sm font-semibold tracking-tight mb-3">Running</h3>
+          <div id="jobs-running-feed" class="space-y-2 mb-6"></div>
+          <div id="jobs-running-empty" class="hidden p-6 text-center text-sm text-slate-500 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 mb-6">Nothing running — the agent is idle or working in-conversation.</div>
+
+          <h3 class="text-sm font-semibold tracking-tight mb-3">Recent</h3>
+          <div id="jobs-recent-feed" class="space-y-2"></div>
+          <div id="jobs-recent-empty" class="hidden p-6 text-center text-sm text-slate-500 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">No completed jobs yet.</div>
+        </section>
+
+        <section data-tab-content="budget" class="tab-section hidden">
+          <div class="flex items-center justify-between mb-6">
+            <p class="text-sm text-slate-500">Cost control — daily API spend against the ceiling. The spend-guard checks every 30 min; crossing the ceiling trips frugal mode (cheaper models, deferred non-urgent work) automatically.</p>
+            <span class="text-xs text-slate-400 mono shrink-0 ml-4">as of <span data-bind="budgetAsOf">—</span></span>
+          </div>
+
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Spend today</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="budgetSpend">$0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">of <span data-bind="budgetCeiling">$0</span> ceiling</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Used</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="budgetPct">0%</div>
+              <div class="mt-1 text-xs text-slate-400 mono">of daily budget</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Value today</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum text-emerald-600 dark:text-emerald-400" data-bind="budgetValue">$0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">est. delivered</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Frugal mode</div>
+              <div class="mt-2 text-2xl font-semibold" data-bind="budgetFrugal">—</div>
+              <div class="mt-1 text-xs text-slate-400 mono">auto-throttle</div>
+            </div>
+          </div>
+
+          <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow mb-6">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-sm font-semibold tracking-tight">Daily spend</h3>
+              <span class="text-xs text-slate-400 mono"><span data-bind="budgetSpend2">$0</span> / <span data-bind="budgetCeiling2">$0</span></span>
+            </div>
+            <div class="h-3 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden"><div id="budget-gauge" class="h-full bg-emerald-500 transition-all" style="width:0%"></div></div>
+            <div id="budget-alerts" class="mt-3 flex items-center gap-2 flex-wrap"></div>
+          </div>
+
+          <h3 class="text-sm font-semibold tracking-tight mb-3">Tool-budget blocks</h3>
+          <div id="budget-blocks-feed" class="space-y-2"></div>
+          <div id="budget-blocks-empty" class="hidden p-6 text-center text-sm text-slate-500 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">No skills are budget-blocked — everything is within limits.</div>
+        </section>
+
+        <section data-tab-content="security" class="tab-section hidden">
+          <div class="flex items-center justify-between mb-6">
+            <p class="text-sm text-slate-500">Security posture — the controls that keep autonomy safe. Verified weekly (Sundays 08:00) by the self-audit and on-demand via <code class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-xs mono">/security</code>. Any control drift is a RED alert.</p>
+            <span class="text-xs text-slate-400 mono shrink-0 ml-4">as of <span data-bind="securityAsOf">—</span></span>
+          </div>
+
+          <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Controls intact</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="securityControls">0/0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">the floor of autonomy</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Injection attempts</div>
+              <div class="mt-2 text-3xl font-mono font-semibold tnum" data-bind="securityInjections">0</div>
+              <div class="mt-1 text-xs text-slate-400 mono">blocked + logged</div>
+            </div>
+            <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Posture</div>
+              <div class="mt-2 text-2xl font-semibold" data-bind="securityPosture">—</div>
+              <div class="mt-1 text-xs text-slate-400 mono">overall</div>
+            </div>
+          </div>
+
+          <h3 class="text-sm font-semibold tracking-tight mb-3">Control integrity</h3>
+          <div id="security-controls-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-6"></div>
+
+          <h3 class="text-sm font-semibold tracking-tight mb-3">Injection attempts</h3>
+          <div id="security-injections-feed" class="space-y-2"></div>
+          <div id="security-injections-empty" class="hidden p-6 text-center text-sm text-slate-500 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">No prompt-injection attempts logged — clean record.</div>
+        </section>
+
+        <section data-tab-content="automation" class="tab-section hidden">
+          <div class="flex items-center justify-between mb-6">
+            <p class="text-sm text-slate-500">Automation — the scheduled timers that drive proactive work (watchers, briefs, self-growth, audits) and the capability tiers that bound what the agent may do on its own.</p>
+            <span class="text-xs text-slate-400 mono shrink-0 ml-4">updated <span data-bind="automationAsOf">—</span></span>
+          </div>
+
+          <h3 class="text-sm font-semibold tracking-tight mb-3">Capability tiers</h3>
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+            <div class="rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 p-4">
+              <div class="text-sm font-semibold text-emerald-700 dark:text-emerald-300 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> GREEN — autonomous</div>
+              <p class="mt-2 text-xs text-slate-600 dark:text-slate-400">Acts without asking. Drafting, research, memory writes, website-source edits + deploy, internal cleanup, green self-growth (smoke-gated).</p>
+            </div>
+            <div class="rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 p-4">
+              <div class="text-sm font-semibold text-amber-700 dark:text-amber-300 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-amber-500"></span> YELLOW — two-tap approval</div>
+              <p class="mt-2 text-xs text-slate-600 dark:text-slate-400">Stages and waits for you. Public posts, outbound email/SMS, prompt/CLAUDE.md changes, anything that spends or spams.</p>
+            </div>
+            <div class="rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 p-4">
+              <div class="text-sm font-semibold text-rose-700 dark:text-rose-300 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-rose-500"></span> RED — forbidden</div>
+              <p class="mt-2 text-xs text-slate-600 dark:text-slate-400">Self-disarming. Reboot/shutdown, editing its own sudoers/deny-list, secrets exfiltration, destructive ops. Blocked by the deny-list.</p>
+            </div>
+          </div>
+
+          <h3 class="text-sm font-semibold tracking-tight mb-3">Scheduled timers <span data-bind="automationCount2" class="text-[11px] mono text-slate-400">(0)</span></h3>
+          <div id="automation-feed" class="space-y-2"></div>
+          <div id="automation-empty" class="hidden p-6 text-center text-sm text-slate-500 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">No timers found.</div>
         </section>
 
         <section data-tab-content="tasks" class="tab-section hidden">
@@ -1249,6 +1548,12 @@
   };
 
   const state = {
+    briefing: { overnight: { jobs_completed: [], growth: [], nudges_fired: 0 }, today: { open_goals: [], stale_tasks: 0, cost_today: 0, value_today: 0, spend: {} }, for_approval: [], generated_at: null },
+    proposals: { today: [], recent: [], by_state: {}, updated_at: null },
+    growth: { entries: [], stats: {}, updated_at: null },
+    jobs: { running: [], recent: [], running_count: 0, updated_at: null },
+    security: { controls: {}, controls_ok: 0, controls_total: 0, injection_attempts: [], injection_count: 0, frugal_mode: false, spend: {}, updated_at: null },
+    watchers: { timers: [], count: 0, updated_at: null },
     tasks: [], goals: [], memory: [], drafts: [],
     triage: { runs: [], totals: {} },
     improvements: { reviews: [], totals: {} },
@@ -1432,7 +1737,8 @@
   };
 
   const TAB_TITLES = {
-    overview: 'Overview', tasks: 'Tasks', goals: 'Goals', memory: 'Memory',
+    overview: 'Overview', briefing: 'Daily Briefing', proposals: 'Proposed Moves', growth: 'Self-Growth', jobs: 'Background Jobs',
+    budget: 'Budget & Cost', security: 'Security Posture', automation: 'Automation', tasks: 'Tasks', goals: 'Goals', memory: 'Memory',
     drafts: 'Drafts', inbound: 'Inbound', improvements: 'Improvements',
     insights: 'Insights', skills: 'Skills', audit: 'Audit', rules: 'Rules', deploys: 'Deploys',
     drift: 'Drift', competitive: 'Competitive',
@@ -1513,9 +1819,15 @@
       safeFetch('/api/deploys.json'),
       safeFetch('/api/spans.json'),
       safeFetch('/api/roi.json'),
-      safeFetch('/api/budget.json')
+      safeFetch('/api/budget.json'),
+      safeFetch('/api/daily-brief.json'),
+      safeFetch('/api/proposals.json'),
+      safeFetch('/api/growth.json'),
+      safeFetch('/api/jobs.json'),
+      safeFetch('/api/security.json'),
+      safeFetch('/api/watchers.json')
     ]);
-    const [tasks, goals, queue, memory, telemetry, health, draftsData, triageData, improvementsData, driftData, competitiveData, sessionsData, llmInsightData, skillsData, auditData, , rulesData, anomaliesData, deploysData, spansData, roiData, budgetData] = results;
+    const [tasks, goals, queue, memory, telemetry, health, draftsData, triageData, improvementsData, driftData, competitiveData, sessionsData, llmInsightData, skillsData, auditData, , rulesData, anomaliesData, deploysData, spansData, roiData, budgetData, briefData, proposalsData, growthData, jobsData, securityData, watchersData] = results;
     // tasks.json may be: an array, {tasks:[...]} envelope, or a dict-by-id (telemetry-calc.py shape).
     if (tasks) {
       state.tasks = Array.isArray(tasks) ? tasks
@@ -1658,6 +1970,68 @@
         global_blocked: !!budgetData.global_blocked,
       };
     }
+    if (briefData) {
+      const o = briefData.overnight || {};
+      const t = briefData.today || {};
+      state.briefing = {
+        generated_at: briefData.generated_at || null,
+        overnight: {
+          jobs_completed: Array.isArray(o.jobs_completed) ? o.jobs_completed : [],
+          growth: Array.isArray(o.growth) ? o.growth : [],
+          nudges_fired: o.nudges_fired || 0,
+        },
+        today: {
+          open_goals: Array.isArray(t.open_goals) ? t.open_goals : [],
+          stale_tasks: t.stale_tasks || 0,
+          cost_today: t.cost_today || 0,
+          value_today: t.value_today || 0,
+          spend: t.spend || {},
+        },
+        for_approval: Array.isArray(briefData.for_approval) ? briefData.for_approval : [],
+      };
+    }
+    if (proposalsData) {
+      state.proposals = {
+        today: Array.isArray(proposalsData.today) ? proposalsData.today : [],
+        recent: Array.isArray(proposalsData.recent) ? proposalsData.recent : [],
+        by_state: proposalsData.by_state || {},
+        updated_at: proposalsData.updated_at || null,
+      };
+    }
+    if (growthData) {
+      state.growth = {
+        entries: Array.isArray(growthData.entries) ? growthData.entries : [],
+        stats: growthData.stats || {},
+        updated_at: growthData.updated_at || null,
+      };
+    }
+    if (jobsData) {
+      state.jobs = {
+        running: Array.isArray(jobsData.running) ? jobsData.running : [],
+        recent: Array.isArray(jobsData.recent) ? jobsData.recent : [],
+        running_count: jobsData.running_count || 0,
+        updated_at: jobsData.updated_at || null,
+      };
+    }
+    if (securityData) {
+      state.security = {
+        controls: securityData.controls || {},
+        controls_ok: securityData.controls_ok || 0,
+        controls_total: securityData.controls_total || 0,
+        injection_attempts: Array.isArray(securityData.injection_attempts) ? securityData.injection_attempts : [],
+        injection_count: securityData.injection_count || 0,
+        frugal_mode: !!securityData.frugal_mode,
+        spend: securityData.spend || {},
+        updated_at: securityData.updated_at || null,
+      };
+    }
+    if (watchersData) {
+      state.watchers = {
+        timers: Array.isArray(watchersData.timers) ? watchersData.timers : [],
+        count: watchersData.count || 0,
+        updated_at: watchersData.updated_at || null,
+      };
+    }
     state.lastPoll = new Date();
     state.stale = !tasks && !goals && !queue && !memory && !telemetry;
     render();
@@ -1665,6 +2039,13 @@
 
   const render = () => {
     renderHeader();
+    renderBriefing();
+    renderProposals();
+    renderGrowth();
+    renderJobs();
+    renderBudgetPage();
+    renderSecurity();
+    renderAutomation();
     renderOverview();
     renderTasks();
     renderGoals();
@@ -3033,6 +3414,383 @@
         '</div>' +
         '</div>';
     }).join('');
+  };
+
+  // Daily Briefing — overnight accomplishments, today's focus, and the
+  // Proposed Moves awaiting approval. Mirrors the Telegram morning brief.
+  // Reads state.briefing (hydrated from /api/daily-brief.json).
+  const renderBriefing = () => {
+    const b = state.briefing || {};
+    const o = b.overnight || {}; const t = b.today || {}; const spend = t.spend || {};
+    const setBind = (key, val) => $$('[data-bind="' + key + '"]').forEach(el => el.textContent = val);
+
+    const jobs = Array.isArray(o.jobs_completed) ? o.jobs_completed : [];
+    const growth = Array.isArray(o.growth) ? o.growth : [];
+    const goals = Array.isArray(t.open_goals) ? t.open_goals : [];
+    const approvals = Array.isArray(b.for_approval) ? b.for_approval : [];
+
+    // KPIs
+    setBind('briefJobsDone', jobs.length);
+    setBind('briefGrowth', growth.length);
+    setBind('briefNudges', o.nudges_fired || 0);
+    setBind('briefValue', fmtMoney.format(t.value_today || 0));
+    setBind('briefCost', fmtMoney.format(t.cost_today || 0));
+    setBind('briefCostPct', (spend.pct != null ? spend.pct : 0));
+    setBind('briefAsOf', b.generated_at ? relTime(b.generated_at) : '—');
+    setBind('briefApprovalCount', approvals.length);
+
+    // Nav badge — only shown when something awaits approval
+    $$('[data-bind="briefApprovalBadge"]').forEach(el => {
+      el.textContent = approvals.length;
+      el.classList.toggle('hidden', approvals.length === 0);
+    });
+
+    // Overnight feed
+    const ovFeed = $('#brief-overnight-feed'); const ovEmpty = $('#brief-overnight-empty');
+    if (ovFeed) {
+      const rows = [];
+      jobs.forEach(j => {
+        const ok = (j.status || '').toLowerCase() === 'done';
+        const icon = ok ? '✅' : '⚠️';
+        rows.push('<div class="flex items-start gap-2 text-sm"><span>' + icon + '</span><span class="text-slate-700 dark:text-slate-200">' + escapeHtml(j.title || 'job') + '</span><span class="ml-auto text-[11px] mono px-1.5 py-0.5 rounded ' + (ok ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300' : 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300') + ' shrink-0">' + escapeHtml(j.status || '—') + '</span></div>');
+      });
+      growth.forEach(g => {
+        const tier = (g.tier || '').toLowerCase();
+        const dot = tier === 'green' ? 'bg-emerald-500' : (tier === 'yellow' ? 'bg-amber-500' : 'bg-slate-400');
+        rows.push('<div class="flex items-start gap-2 text-sm"><span class="mt-1.5 w-1.5 h-1.5 rounded-full ' + dot + ' shrink-0"></span><span class="text-slate-700 dark:text-slate-200">' + escapeHtml(g.title || 'improvement') + '</span><span class="ml-auto text-[11px] mono text-slate-400 shrink-0">' + escapeHtml(g.outcome || '') + '</span></div>');
+      });
+      ovFeed.innerHTML = rows.join('');
+      if (ovEmpty) ovEmpty.classList.toggle('hidden', rows.length > 0);
+    }
+
+    // Today feed
+    const tdFeed = $('#brief-today-feed'); const tdEmpty = $('#brief-today-empty');
+    if (tdFeed) {
+      const rows = [];
+      goals.forEach(g => {
+        const cur = g.current != null ? g.current : '—';
+        const tgt = g.target != null ? g.target : '—';
+        const pct = (typeof g.current === 'number' && typeof g.target === 'number' && g.target > 0)
+          ? Math.min(100, Math.round(100 * g.current / g.target)) : null;
+        rows.push('<div class="text-sm">' +
+          '<div class="flex items-start gap-2"><span>🎯</span><span class="text-slate-700 dark:text-slate-200">' + escapeHtml(g.summary || 'goal') + '</span>' +
+          '<span class="ml-auto text-[11px] mono text-slate-400 shrink-0">' + escapeHtml(String(cur)) + '/' + escapeHtml(String(tgt)) + (g.target_date ? ' · ' + escapeHtml(g.target_date) : '') + '</span></div>' +
+          (pct != null ? '<div class="mt-1.5 ml-6 h-1.5 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden"><div class="h-full bg-indigo-500" style="width:' + pct + '%"></div></div>' : '') +
+        '</div>');
+      });
+      if (t.stale_tasks) {
+        rows.push('<div class="flex items-center gap-2 text-sm pt-1"><span>🕓</span><span class="text-slate-500"><a href="#" data-action="nav" data-tab="tasks" class="underline decoration-dotted hover:text-indigo-500">' + t.stale_tasks + ' stale task' + (t.stale_tasks === 1 ? '' : 's') + '</a> need a nudge</span></div>');
+      }
+      tdFeed.innerHTML = rows.join('');
+      if (tdEmpty) tdEmpty.classList.toggle('hidden', goals.length > 0);
+    }
+
+    // For-approval feed (interactive Run/Skip)
+    const apFeed = $('#brief-approval-feed'); const apEmpty = $('#brief-approval-empty');
+    if (apFeed) {
+      const execColor = (x) => ({
+        'comms-agent': 'bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300',
+        'content-agent': 'bg-violet-100 dark:bg-violet-950 text-violet-700 dark:text-violet-300',
+        'pipeline-agent': 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300',
+        'research-agent': 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300',
+        'drift-scanner': 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300',
+        'self': 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300',
+      }[x] || 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300');
+      apFeed.innerHTML = approvals.map(p => {
+        const id = p.id || '';
+        const exec = p.executor || 'self';
+        return '<div class="rounded-lg bg-white/70 dark:bg-slate-900/60 border border-amber-200/70 dark:border-amber-900/40 p-3.5" data-prop-card="' + escapeHtml(id) + '">' +
+          '<div class="flex items-start gap-2">' +
+            '<div class="min-w-0">' +
+              '<div class="text-sm text-slate-800 dark:text-slate-100">' + escapeHtml(p.title || 'proposal') + '</div>' +
+              '<div class="mt-1.5 flex items-center gap-2 flex-wrap">' +
+                '<span class="text-[11px] mono px-1.5 py-0.5 rounded ' + execColor(exec) + '">' + escapeHtml(exec) + '</span>' +
+                (p.archetype ? '<span class="text-[11px] mono text-slate-400">' + escapeHtml(p.archetype) + '</span>' : '') +
+                '<span class="text-[11px] mono text-slate-400">' + escapeHtml(id) + '</span>' +
+              '</div>' +
+            '</div>' +
+            '<div class="ml-auto flex items-center gap-2 shrink-0">' +
+              '<button data-action="prop-run" data-prop-id="' + escapeHtml(id) + '" class="text-xs px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium">▶ Run</button>' +
+              '<button data-action="prop-skip" data-prop-id="' + escapeHtml(id) + '" class="text-xs px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300">Skip</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+      if (apEmpty) apEmpty.classList.toggle('hidden', approvals.length > 0);
+    }
+  };
+
+  // Shared executor → badge color
+  const EXEC_COLOR = (x) => ({
+    'comms-agent': 'bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300',
+    'content-agent': 'bg-violet-100 dark:bg-violet-950 text-violet-700 dark:text-violet-300',
+    'pipeline-agent': 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300',
+    'research-agent': 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300',
+    'drift-scanner': 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300',
+    'self': 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300',
+  }[x] || 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300');
+  const STATE_BADGE = (s) => ({
+    'proposed': 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300',
+    'approved': 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300',
+    'executed': 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300',
+    'skipped': 'bg-slate-200 dark:bg-slate-800 text-slate-500',
+  }[s] || 'bg-slate-200 dark:bg-slate-800 text-slate-500');
+
+  // Build an interactive proposal card (Run/Skip) — shared shape with Briefing.
+  const proposalCard = (p) => {
+    const id = p.id || ''; const exec = p.executor || 'self';
+    return '<div class="rounded-lg bg-white dark:bg-slate-900 border border-amber-200/70 dark:border-amber-900/40 p-3.5" data-prop-card="' + escapeHtml(id) + '">' +
+      '<div class="flex items-start gap-2">' +
+        '<div class="min-w-0">' +
+          '<div class="text-sm text-slate-800 dark:text-slate-100">' + escapeHtml(p.title || 'proposal') + '</div>' +
+          '<div class="mt-1.5 flex items-center gap-2 flex-wrap">' +
+            '<span class="text-[11px] mono px-1.5 py-0.5 rounded ' + EXEC_COLOR(exec) + '">' + escapeHtml(exec) + '</span>' +
+            (p.archetype ? '<span class="text-[11px] mono text-slate-400">' + escapeHtml(p.archetype) + '</span>' : '') +
+            '<span class="text-[11px] mono text-slate-400">' + escapeHtml(id) + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="ml-auto flex items-center gap-2 shrink-0">' +
+          '<button data-action="prop-run" data-prop-id="' + escapeHtml(id) + '" class="text-xs px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium">▶ Run</button>' +
+          '<button data-action="prop-skip" data-prop-id="' + escapeHtml(id) + '" class="text-xs px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300">Skip</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  };
+
+  const renderProposals = () => {
+    const pr = state.proposals || {};
+    const today = Array.isArray(pr.today) ? pr.today : [];
+    const recent = Array.isArray(pr.recent) ? pr.recent : [];
+    const bs = pr.by_state || {};
+    const setBind = (key, val) => $$('[data-bind="' + key + '"]').forEach(el => el.textContent = val);
+    const todayProposed = today.filter(p => (p.state || 'proposed') === 'proposed');
+
+    setBind('propsProposed', bs.proposed || 0);
+    setBind('propsApproved', (bs.approved || 0) + (bs.executed || 0));
+    setBind('propsSkipped', bs.skipped || 0);
+    setBind('propsToday', today.length);
+    setBind('propsRecent', recent.length);
+    setBind('proposalsAsOf', pr.updated_at ? relTime(pr.updated_at) : '—');
+
+    $$('[data-bind="proposalsBadge"]').forEach(el => {
+      el.textContent = todayProposed.length;
+      el.classList.toggle('hidden', todayProposed.length === 0);
+    });
+
+    const tf = $('#proposals-today-feed'); const te = $('#proposals-today-empty');
+    if (tf) {
+      tf.innerHTML = today.map(p => {
+        const st = p.state || 'proposed';
+        if (st === 'proposed') return proposalCard(p);
+        // non-actionable: show with state badge, no buttons
+        return '<div class="rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3.5 opacity-80">' +
+          '<div class="flex items-start gap-2"><div class="min-w-0"><div class="text-sm text-slate-700 dark:text-slate-200">' + escapeHtml(p.title || 'proposal') + '</div>' +
+          '<div class="mt-1.5 flex items-center gap-2 flex-wrap"><span class="text-[11px] mono px-1.5 py-0.5 rounded ' + EXEC_COLOR(p.executor || 'self') + '">' + escapeHtml(p.executor || 'self') + '</span><span class="text-[11px] mono text-slate-400">' + escapeHtml(p.id || '') + '</span></div></div>' +
+          '<span class="ml-auto text-[11px] mono px-1.5 py-0.5 rounded ' + STATE_BADGE(st) + ' shrink-0">' + escapeHtml(st) + '</span></div></div>';
+      }).join('');
+      if (te) te.classList.toggle('hidden', today.length > 0);
+    }
+
+    const rf = $('#proposals-recent-feed'); const re = $('#proposals-recent-empty');
+    if (rf) {
+      rf.innerHTML = recent.map(p => {
+        const st = p.state || 'proposed';
+        return '<div class="flex items-center gap-2 text-sm py-2 px-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">' +
+          '<span class="text-[11px] mono text-slate-400 w-20 shrink-0">' + escapeHtml(p.date || '') + '</span>' +
+          '<span class="text-slate-700 dark:text-slate-200 truncate">' + escapeHtml(p.title || 'proposal') + '</span>' +
+          '<span class="ml-auto text-[11px] mono px-1.5 py-0.5 rounded ' + STATE_BADGE(st) + ' shrink-0">' + escapeHtml(st) + '</span></div>';
+      }).join('');
+      if (re) re.classList.toggle('hidden', recent.length > 0);
+    }
+  };
+
+  const renderGrowth = () => {
+    const g = state.growth || {};
+    const entries = Array.isArray(g.entries) ? g.entries : [];
+    const st = g.stats || {};
+    const setBind = (key, val) => $$('[data-bind="' + key + '"]').forEach(el => el.textContent = val);
+    setBind('growthTotal', st.total || 0);
+    setBind('growthApplied', st.applied || 0);
+    setBind('growthPending', st.proposed || 0);
+    setBind('growthSkipped', st.skipped || 0);
+    setBind('growthCount', st.total || 0);
+    setBind('growthAsOf', g.updated_at ? relTime(g.updated_at) : '—');
+
+    const feed = $('#growth-feed'); const empty = $('#growth-empty');
+    if (feed) {
+      feed.innerHTML = entries.map(e => {
+        const tier = (e.tier || '').toLowerCase();
+        const tierCls = tier === 'green' ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
+                      : tier === 'yellow' ? 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300'
+                      : 'bg-slate-200 dark:bg-slate-800 text-slate-500';
+        const outcome = e.outcome || '';
+        const detail = e.expected_benefit || e.rationale || '';
+        return '<div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 card-shadow">' +
+          '<div class="flex items-start gap-2">' +
+            '<div class="min-w-0"><div class="text-sm font-medium text-slate-800 dark:text-slate-100">' + escapeHtml(e.title || 'improvement') + '</div>' +
+            (detail ? '<div class="mt-1.5 text-xs text-slate-500 line-clamp-3">' + escapeHtml(detail) + '</div>' : '') +
+            '<div class="mt-2 flex items-center gap-2 flex-wrap">' +
+              '<span class="text-[11px] mono px-1.5 py-0.5 rounded ' + tierCls + '">' + escapeHtml(e.tier || 'tier?') + '</span>' +
+              (e.type ? '<span class="text-[11px] mono text-slate-400">' + escapeHtml(e.type) + '</span>' : '') +
+              (outcome ? '<span class="text-[11px] mono text-slate-400">' + escapeHtml(outcome) + '</span>' : '') +
+              '<span class="text-[11px] mono text-slate-400">' + escapeHtml(e.id || '') + '</span>' +
+            '</div></div>' +
+            '<span class="ml-auto text-[11px] mono text-slate-400 shrink-0">' + relTime(e.logged_at) + '</span>' +
+          '</div></div>';
+      }).join('');
+      if (empty) empty.classList.toggle('hidden', entries.length > 0);
+    }
+  };
+
+  const renderJobs = () => {
+    const j = state.jobs || {};
+    const running = Array.isArray(j.running) ? j.running : [];
+    const recent = Array.isArray(j.recent) ? j.recent : [];
+    const setBind = (key, val) => $$('[data-bind="' + key + '"]').forEach(el => el.textContent = val);
+    const failures = recent.filter(r => (r.exit_code != null && r.exit_code !== 0) || (r.status && r.status !== 'done')).length;
+    setBind('jobsRunning', running.length);
+    setBind('jobsRecentDone', recent.length);
+    setBind('jobsFailures', failures);
+    setBind('jobsAsOf', j.updated_at ? relTime(j.updated_at) : '—');
+    $$('[data-bind="jobsBadge"]').forEach(el => el.textContent = running.length);
+
+    const rf = $('#jobs-running-feed'); const remp = $('#jobs-running-empty');
+    if (rf) {
+      rf.innerHTML = running.map(job => {
+        return '<div class="flex items-center gap-2 text-sm py-2.5 px-3 rounded-lg bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-900/50">' +
+          '<span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse shrink-0"></span>' +
+          '<span class="text-slate-700 dark:text-slate-200 truncate">' + escapeHtml(job.title || job.id || 'job') + '</span>' +
+          (job.executor ? '<span class="text-[11px] mono px-1.5 py-0.5 rounded ' + EXEC_COLOR(job.executor) + ' shrink-0">' + escapeHtml(job.executor) + '</span>' : '') +
+          '<span class="ml-auto text-[11px] mono text-slate-400 shrink-0">' + relTime(job.started_at) + '</span></div>';
+      }).join('');
+      if (remp) remp.classList.toggle('hidden', running.length > 0);
+    }
+
+    const cf = $('#jobs-recent-feed'); const cemp = $('#jobs-recent-empty');
+    if (cf) {
+      cf.innerHTML = recent.map(job => {
+        const ok = (job.status || '').toLowerCase() === 'done' && (job.exit_code == null || job.exit_code === 0);
+        const badge = ok ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300' : 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300';
+        const label = ok ? 'done' : (job.status || ('exit ' + (job.exit_code != null ? job.exit_code : '?')));
+        return '<div class="flex items-center gap-2 text-sm py-2.5 px-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">' +
+          '<span class="text-slate-700 dark:text-slate-200 truncate">' + escapeHtml(job.title || job.id || 'job') + '</span>' +
+          (job.executor ? '<span class="text-[11px] mono px-1.5 py-0.5 rounded ' + EXEC_COLOR(job.executor) + ' shrink-0">' + escapeHtml(job.executor) + '</span>' : '') +
+          '<span class="text-[11px] mono px-1.5 py-0.5 rounded ' + badge + ' shrink-0">' + escapeHtml(label) + '</span>' +
+          '<span class="ml-auto text-[11px] mono text-slate-400 shrink-0">' + relTime(job.finished_at) + '</span></div>';
+      }).join('');
+      if (cemp) cemp.classList.toggle('hidden', recent.length > 0);
+    }
+  };
+
+  const renderBudgetPage = () => {
+    const sp = (state.security && state.security.spend) || {};
+    const cost = sp.today_cost || 0; const ceiling = sp.ceiling || 0;
+    const pct = sp.pct != null ? sp.pct : (ceiling ? Math.round(100 * cost / ceiling) : 0);
+    const frugal = !!sp.frugal_mode;
+    const value = (state.briefing && state.briefing.today && state.briefing.today.value_today) || 0;
+    const setBind = (key, val) => $$('[data-bind="' + key + '"]').forEach(el => el.textContent = val);
+    setBind('budgetSpend', fmtMoney.format(cost));
+    setBind('budgetSpend2', fmtMoney.format(cost));
+    setBind('budgetCeiling', fmtMoney.format(ceiling));
+    setBind('budgetCeiling2', fmtMoney.format(ceiling));
+    setBind('budgetPct', pct + '%');
+    setBind('budgetValue', fmtMoney.format(value));
+    setBind('budgetFrugal', frugal ? '🔻 ON' : '✓ off');
+    setBind('budgetAsOf', sp.as_of ? relTime(sp.as_of) : '—');
+    setBind('budgetBadge', pct + '%');
+
+    const gauge = $('#budget-gauge');
+    if (gauge) {
+      gauge.style.width = Math.min(100, pct) + '%';
+      gauge.className = 'h-full transition-all ' + (pct >= 100 ? 'bg-rose-500' : pct >= 80 ? 'bg-amber-500' : 'bg-emerald-500');
+    }
+    const alerts = $('#budget-alerts');
+    if (alerts) {
+      const chips = [];
+      if (frugal) chips.push('<span class="text-[11px] mono px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300">FRUGAL MODE ON</span>');
+      if (sp.alerted100) chips.push('<span class="text-[11px] mono px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300">100% ceiling hit</span>');
+      else if (sp.alerted80) chips.push('<span class="text-[11px] mono px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300">80% warning sent</span>');
+      if (!chips.length) chips.push('<span class="text-[11px] mono text-slate-400">within budget — no alerts</span>');
+      alerts.innerHTML = chips.join(' ');
+    }
+
+    const blocks = (state.budget && Array.isArray(state.budget.blocks)) ? state.budget.blocks : [];
+    const bf = $('#budget-blocks-feed'); const be = $('#budget-blocks-empty');
+    if (bf) {
+      bf.innerHTML = blocks.map(b => {
+        return '<div class="flex items-center gap-2 text-sm py-2.5 px-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">' +
+          '<span class="text-[11px] mono px-1.5 py-0.5 rounded ' + (b.is_global ? 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300' : 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300') + ' shrink-0">' + (b.is_global ? 'global' : 'skill') + '</span>' +
+          '<span class="text-slate-700 dark:text-slate-200">' + escapeHtml(b.skill || 'skill') + '</span>' +
+          (b.reason ? '<span class="text-xs text-slate-400 truncate">' + escapeHtml(b.reason) + '</span>' : '') +
+          '<span class="ml-auto text-[11px] mono text-slate-400 shrink-0">' + (b.until_ts ? 'until ' + relTime(b.until_ts) : '') + '</span></div>';
+      }).join('');
+      if (be) be.classList.toggle('hidden', blocks.length > 0);
+    }
+  };
+
+  const CONTROL_LABELS = {
+    deny_list: 'Deny-list intact', sudoers: 'Sudoers 440 root', ops_root_owned: 'Ops wrappers root-owned',
+    audit_log: 'Ops audit log', charter: 'Charter in CLAUDE.md', injection_detector: 'Injection detector',
+  };
+  const renderSecurity = () => {
+    const sec = state.security || {};
+    const controls = sec.controls || {};
+    const setBind = (key, val) => $$('[data-bind="' + key + '"]').forEach(el => el.textContent = val);
+    const okCount = sec.controls_ok || 0; const total = sec.controls_total || Object.keys(controls).length;
+    const intact = total > 0 && okCount === total;
+    setBind('securityControls', okCount + '/' + total);
+    setBind('securityInjections', sec.injection_count || 0);
+    setBind('securityPosture', intact ? '🛡️ Intact' : '🚨 Drift');
+    setBind('securityBadge', okCount + '/' + total);
+
+    const grid = $('#security-controls-grid');
+    if (grid) {
+      grid.innerHTML = Object.keys(controls).map(k => {
+        const c = controls[k] || {}; const ok = !!c.ok;
+        const cls = ok ? 'border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-emerald-950/20'
+                       : 'border-rose-300 dark:border-rose-800 bg-rose-50/50 dark:bg-rose-950/20';
+        const icon = ok ? '<span class="text-emerald-600 dark:text-emerald-400">✓</span>' : '<span class="text-rose-600 dark:text-rose-400">✗</span>';
+        return '<div class="flex items-center gap-3 p-3.5 rounded-xl border ' + cls + '">' + icon +
+          '<div class="min-w-0"><div class="text-sm font-medium text-slate-800 dark:text-slate-100">' + escapeHtml(CONTROL_LABELS[k] || k) + '</div>' +
+          (c.detail ? '<div class="text-xs text-slate-500 mono truncate">' + escapeHtml(c.detail) + '</div>' : '') + '</div></div>';
+      }).join('');
+    }
+
+    const inj = Array.isArray(sec.injection_attempts) ? sec.injection_attempts : [];
+    const inf = $('#security-injections-feed'); const ine = $('#security-injections-empty');
+    if (inf) {
+      inf.innerHTML = inj.map(a => {
+        const verdict = a.verdict || (a.score >= 2 ? 'DANGER' : a.score === 1 ? 'SUSPICIOUS' : 'CLEAN');
+        const vcls = /DANGER/i.test(verdict) ? 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300' : 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300';
+        const txt = a.label || a.snippet || a.text || a.matched || 'attempt';
+        return '<div class="flex items-center gap-2 text-sm py-2.5 px-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">' +
+          '<span class="text-[11px] mono px-1.5 py-0.5 rounded ' + vcls + ' shrink-0">' + escapeHtml(verdict) + (a.score != null ? ' ' + a.score : '') + '</span>' +
+          '<span class="text-slate-700 dark:text-slate-200 truncate">' + escapeHtml(txt) + '</span>' +
+          '<span class="ml-auto text-[11px] mono text-slate-400 shrink-0">' + relTime(a.ts || a.logged_at) + '</span></div>';
+      }).join('');
+      if (ine) ine.classList.toggle('hidden', inj.length > 0);
+    }
+  };
+
+  const renderAutomation = () => {
+    const w = state.watchers || {};
+    const timers = Array.isArray(w.timers) ? w.timers : [];
+    const setBind = (key, val) => $$('[data-bind="' + key + '"]').forEach(el => el.textContent = val);
+    setBind('automationCount', timers.length);
+    setBind('automationCount2', '(' + timers.length + ')');
+    setBind('automationAsOf', w.updated_at ? relTime(w.updated_at) : '—');
+
+    const feed = $('#automation-feed'); const empty = $('#automation-empty');
+    if (feed) {
+      feed.innerHTML = timers.map(t => {
+        const unit = (t.unit || '').replace(/\.timer$/, '');
+        return '<div class="flex items-center gap-2 text-sm py-2.5 px-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">' +
+          '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" class="text-slate-400 shrink-0"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>' +
+          '<span class="text-slate-700 dark:text-slate-200 mono truncate">' + escapeHtml(unit) + '</span>' +
+          '<span class="ml-auto text-[11px] mono text-slate-400 shrink-0">next: ' + escapeHtml(t.next || '—') + '</span></div>';
+      }).join('');
+      if (empty) empty.classList.toggle('hidden', timers.length > 0);
+    }
   };
 
   const renderOverview = () => {
@@ -4562,6 +5320,43 @@
       const ta = $('#chat-input');
       ta.value = 'Help me revise: ' + summary;
       ta.focus();
+      return;
+    }
+    if (action === 'prop-run' || action === 'prop-skip') {
+      e.preventDefault(); e.stopPropagation();
+      const id = target.dataset.propId;
+      if (!id) return;
+      const verb = action === 'prop-run' ? 'run' : 'skip';
+      if (verb === 'skip' && !confirm('Skip this proposal? The generator learns to avoid this shape.')) return;
+      const card = document.querySelector('[data-prop-card="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]');
+      if (card) {
+        card.style.opacity = '0.6';
+        card.querySelectorAll('button').forEach(b => b.disabled = true);
+        const lbl = card.querySelector('[data-prop-status]') || (() => {
+          const s = document.createElement('span');
+          s.setAttribute('data-prop-status', '');
+          s.className = 'ml-auto text-[11px] mono text-amber-600 dark:text-amber-400 shrink-0';
+          const row = card.querySelector('.ml-auto');
+          if (row) row.replaceWith(s);
+          return s;
+        })();
+        lbl.textContent = verb === 'run' ? 'dispatching…' : 'skipping…';
+      }
+      postAudit('proposal-' + verb, id, {}, 'dashboard');
+      // Reuse the existing /api/chat relay — the agent's CLAUDE.md routing turns
+      // "run p-…" / "skip p-…" into the same handler Telegram callbacks trigger.
+      fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: verb + ' ' + id, source: 'dashboard' }) })
+        .then(() => {
+          // Optimistically drop it from the approval list, then re-sync.
+          if (state.briefing && Array.isArray(state.briefing.for_approval)) {
+            state.briefing.for_approval = state.briefing.for_approval.filter(p => (p.id || '') !== id);
+          }
+          renderBriefing();
+          setTimeout(() => { refreshAll().catch(()=>{}); }, 3000);
+        })
+        .catch(() => {
+          if (card) { card.style.opacity = '1'; card.querySelectorAll('button').forEach(b => b.disabled = false); }
+        });
       return;
     }
     if (action === 'send-chat') { sendChat(); return; }

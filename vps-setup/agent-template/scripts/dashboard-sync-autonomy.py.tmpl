@@ -1,0 +1,269 @@
+#!/usr/bin/env python3
+"""
+dashboard-sync-autonomy.py — write the api/*.json endpoints for the autonomy
+layer (Phases 2-5 + daily briefing) that the older dashboard-sync.sh didn't
+cover. Called once per dashboard-sync run.
+
+Writes (atomic, 644):
+  jobs.json       — background dispatch jobs (running + recent)
+  growth.json     — self-growth log + stats
+  proposals.json  — Proposed Moves (today + recent) by state
+  security.json   — control integrity + injection attempts + frugal/spend
+  watchers.json   — scheduled timers (last/next run) for the automation view
+  daily-brief.json— composed: overnight accomplishments + today + approvals
+
+Read-only over agent state. Safe to run every minute. Never raises — each
+section is independently guarded so one bad file can't blank the others.
+"""
+from __future__ import annotations
+import json, os, subprocess, glob
+from datetime import datetime, timezone, timedelta
+from pathlib import Path
+
+AGENT_HOME = Path(os.environ.get("TENANT_AGENT_HOME", "{{TENANT_AGENT_HOME}}"))
+DST = Path(os.environ.get("DASHBOARD_API_DIR", "/var/www/{{TENANT_DASHBOARD_HOSTNAME}}/api"))
+TELEMETRY = DST / "telemetry.json"
+CEILING = float(os.environ.get("DAILY_SPEND_CEILING_USD", "{{TENANT_DAILY_SPEND_CEILING_USD}}") or 20)
+
+def write(name: str, obj) -> None:
+    try:
+        tmp = DST / f"{name}.json.tmp"
+        tmp.write_text(json.dumps(obj, indent=2))
+        tmp.replace(DST / f"{name}.json")
+        os.chmod(DST / f"{name}.json", 0o644)
+    except Exception as e:
+        print(f"[autonomy-sync] {name} write failed: {e}")
+
+def read_jsonl(p: Path, limit: int = 0):
+    out = []
+    if not p.is_file():
+        return out
+    try:
+        lines = p.read_text().splitlines()
+        if limit:
+            lines = lines[-limit:]
+        for ln in lines:
+            ln = ln.strip()
+            if ln:
+                try: out.append(json.loads(ln))
+                except Exception: pass
+    except Exception:
+        pass
+    return out
+
+def read_json(p: Path, default=None):
+    try:
+        return json.loads(p.read_text())
+    except Exception:
+        return default if default is not None else {}
+
+now = datetime.now(timezone.utc)
+today = now.strftime("%Y-%m-%d")
+
+# ── jobs.json ────────────────────────────────────────────────────────────────
+def sync_jobs():
+    active_dir = AGENT_HOME / "jobs" / "active"
+    done_dir = AGENT_HOME / "jobs" / "done"
+    running, recent = [], []
+    if active_dir.is_dir():
+        for f in sorted(active_dir.glob("*.json")):
+            running.append(read_json(f))
+    if done_dir.is_dir():
+        files = sorted(done_dir.glob("*.json"), key=lambda x: x.stat().st_mtime, reverse=True)[:15]
+        for f in files:
+            recent.append(read_json(f))
+    write("jobs", {"running": running, "recent": recent,
+                   "running_count": len(running), "updated_at": now.isoformat()})
+
+# ── growth.json ──────────────────────────────────────────────────────────────
+def sync_growth():
+    entries = read_jsonl(AGENT_HOME / "growth" / "growth-log.jsonl")
+    # collapse to one record per id (latest outcome wins), keep chronological
+    by_id = {}
+    for e in entries:
+        eid = e.get("id", "")
+        if eid and eid != "none":
+            by_id[eid] = {**by_id.get(eid, {}), **e}
+    items = list(by_id.values())
+    stats = {
+        "total": len(items),
+        "applied": sum(1 for i in items if i.get("outcome") in ("applied", "auto-applying-green", "auto-applied")),
+        "proposed": sum(1 for i in items if i.get("tier") == "yellow"),
+        "skipped": sum(1 for i in items if i.get("outcome") == "skipped"),
+    }
+    items_sorted = sorted(items, key=lambda x: x.get("logged_at", ""), reverse=True)[:40]
+    write("growth", {"entries": items_sorted, "stats": stats, "updated_at": now.isoformat()})
+
+# ── proposals.json ───────────────────────────────────────────────────────────
+def sync_proposals():
+    pdir = AGENT_HOME / "proposals"
+    todays = read_json(pdir / f"{today}.json", {"proposals": []}).get("proposals", [])
+    # recent: last 5 day files
+    recent_props = []
+    if pdir.is_dir():
+        for f in sorted(pdir.glob("20*.json"), reverse=True)[:5]:
+            d = read_json(f, {})
+            for p in d.get("proposals", []):
+                recent_props.append({**p, "date": d.get("date", f.stem)})
+    by_state = {}
+    for p in recent_props:
+        by_state.setdefault(p.get("state", "proposed"), 0)
+        by_state[p.get("state", "proposed")] += 1
+    write("proposals", {"today": todays, "recent": recent_props[:30],
+                        "by_state": by_state, "updated_at": now.isoformat()})
+
+# ── spend helper (shared by security + daily-brief + budget view) ─────────────
+def spend_snapshot():
+    sg = read_json(AGENT_HOME / "state" / "spend-guard.json", {})
+    today_cost = sg.get("last_cost")
+    if today_cost is None:
+        tel = read_json(TELEMETRY, {})
+        today_cost = tel.get("rollup", {}).get("today", {}).get("api_cost_usd", 0)
+    today_cost = round(float(today_cost or 0), 4)
+    pct = sg.get("last_pct")
+    if pct is None and CEILING:
+        pct = round(100 * today_cost / CEILING)
+    frugal = (AGENT_HOME / "state" / "frugal-mode").exists()
+    return {
+        "today_cost": today_cost,
+        "ceiling": CEILING,
+        "pct": pct if pct is not None else 0,
+        "frugal_mode": frugal,
+        "alerted80": bool(sg.get("alerted80")),
+        "alerted100": bool(sg.get("alerted100")),
+        "as_of": sg.get("updated_at", now.isoformat()),
+    }
+
+# ── security.json ────────────────────────────────────────────────────────────
+def sync_security():
+    user_home = AGENT_HOME.parent
+    settings = read_json(user_home / ".claude" / "settings.json", {})
+    deny = settings.get("permissions", {}).get("deny", [])
+    sudoers = Path(f"/etc/sudoers.d/{AGENT_HOME.parent.name}-agent-ops")
+    ops_dir = AGENT_HOME / "scripts" / "ops"
+    nonroot_ops = 0
+    if ops_dir.is_dir():
+        for f in ops_dir.glob("*.sh"):
+            try:
+                if f.stat().st_uid != 0:
+                    nonroot_ops += 1
+            except Exception:
+                pass
+    charter = (AGENT_HOME / "CLAUDE.md")
+    charter_ok = False
+    try:
+        charter_ok = "Autonomy & Security Charter" in charter.read_text(errors="ignore")
+    except Exception:
+        pass
+    controls = {
+        "deny_list": {"ok": len(deny) >= 15, "detail": f"{len(deny)} entries"},
+        "sudoers": {"ok": sudoers.exists(), "detail": "present (440 root)" if sudoers.exists() else "MISSING"},
+        "ops_root_owned": {"ok": nonroot_ops == 0, "detail": f"{nonroot_ops} non-root" if nonroot_ops else "all root-owned"},
+        "audit_log": {"ok": Path(f"/var/log/{AGENT_HOME.parent.name}-agent-ops.log").exists(), "detail": ""},
+        "charter": {"ok": charter_ok, "detail": "present" if charter_ok else "MISSING"},
+        "injection_detector": {"ok": (AGENT_HOME / "scripts" / "injection-check.sh").exists(), "detail": ""},
+    }
+    injections = read_jsonl(AGENT_HOME / "security" / "injection-attempts.jsonl", limit=20)
+    controls_ok = sum(1 for c in controls.values() if c["ok"])
+    spend = spend_snapshot()
+    write("security", {
+        "controls": controls,
+        "controls_ok": controls_ok,
+        "controls_total": len(controls),
+        "injection_attempts": list(reversed(injections)),
+        "injection_count": len(injections),
+        "frugal_mode": spend["frugal_mode"],
+        "spend": spend,
+        "updated_at": now.isoformat(),
+    })
+
+# ── watchers.json ────────────────────────────────────────────────────────────
+def sync_watchers():
+    timers = []
+    try:
+        out = subprocess.run(["systemctl", "list-timers", "--all", "--no-pager", "--no-legend"],
+                             capture_output=True, text=True, timeout=15).stdout
+        wanted = ("morning-brief", "evening-rollup", "stale-watcher", "task-deadline",
+                  "goal-deadline", "stalled-deal", "disk-space", "hot-lead", "calendar-conflict",
+                  "graphify-rebuild", "self-growth", "spend-guard", "security-audit",
+                  "agent-skill@", "telegram-poller", "telemetry-calc", "anomaly-detect",
+                  "dashboard-sync", "deploy-timeout")
+        for line in out.splitlines():
+            parts = line.split()
+            if len(parts) < 9:
+                continue
+            unit = next((p for p in parts if p.endswith(".timer")), "")
+            if not unit or not any(w in unit for w in wanted):
+                continue
+            # NEXT is parts[0..2], LEFT parts[3..], LAST etc — formats vary; keep raw next + unit
+            timers.append({"unit": unit,
+                           "next": " ".join(parts[0:3]),
+                           "activates": parts[-1]})
+    except Exception as e:
+        print(f"[autonomy-sync] watchers failed: {e}")
+    write("watchers", {"timers": sorted(timers, key=lambda x: x["unit"]),
+                       "count": len(timers), "updated_at": now.isoformat()})
+
+# ── daily-brief.json ─────────────────────────────────────────────────────────
+def sync_daily_brief():
+    # Overnight window = since 20:00 yesterday tenant-ish (use last 14h UTC as proxy)
+    cutoff = now - timedelta(hours=14)
+    cutoff_s = cutoff.isoformat()
+
+    # Overnight: jobs finished, growth applied, nudges fired
+    done_dir = AGENT_HOME / "jobs" / "done"
+    jobs_overnight = []
+    if done_dir.is_dir():
+        for f in done_dir.glob("*.json"):
+            d = read_json(f)
+            if d.get("finished_at", "") >= cutoff_s:
+                jobs_overnight.append({"title": d.get("title"), "status": d.get("status")})
+    growth_overnight = [g for g in read_jsonl(AGENT_HOME / "growth" / "growth-log.jsonl")
+                        if g.get("logged_at", "") >= cutoff_s and g.get("id") not in (None, "none")]
+    # nudge logs (notifications/*.jsonl) fired overnight
+    nudges = 0
+    ndir = AGENT_HOME / "notifications"
+    if ndir.is_dir():
+        for f in ndir.glob("*.jsonl"):
+            for rec in read_jsonl(f):
+                if rec.get("sent_at", "") >= cutoff_s:
+                    nudges += 1
+
+    # Today: goals + deadlines + proposals
+    goals = read_json(AGENT_HOME / "goals" / "active.json", {})
+    open_goals = [g for g in goals.values()
+                  if isinstance(g, dict) and g.get("summary")
+                  and g.get("state") not in ("achieved", "abandoned")]
+    tasks = read_json(AGENT_HOME / "tasks" / "active.json", {})
+    stale = sum(1 for t in tasks.values() if isinstance(t, dict) and t.get("state") == "stale")
+    todays_props = read_json(AGENT_HOME / "proposals" / f"{today}.json", {"proposals": []}).get("proposals", [])
+
+    tel = read_json(TELEMETRY, {})
+    today_value = tel.get("rollup", {}).get("today", {}).get("value_usd", 0)
+    spend = spend_snapshot()
+
+    write("daily-brief", {
+        "generated_at": now.isoformat(),
+        "overnight": {
+            "jobs_completed": jobs_overnight,
+            "growth": [{"title": g.get("title"), "tier": g.get("tier"), "outcome": g.get("outcome")} for g in growth_overnight],
+            "nudges_fired": nudges,
+        },
+        "today": {
+            "open_goals": [{"summary": g.get("summary"), "target_date": g.get("target_date"),
+                            "current": g.get("current_value"), "target": g.get("target_value")} for g in open_goals[:8]],
+            "stale_tasks": stale,
+            "cost_today": spend["today_cost"],
+            "value_today": today_value,
+            "spend": spend,
+        },
+        "for_approval": [p for p in todays_props if p.get("state") == "proposed"],
+    })
+
+for fn in (sync_jobs, sync_growth, sync_proposals, sync_security, sync_watchers, sync_daily_brief):
+    try:
+        fn()
+    except Exception as e:
+        print(f"[autonomy-sync] {fn.__name__} failed: {e}")
+
+print(f"[autonomy-sync] wrote autonomy endpoints at {now.isoformat()}")

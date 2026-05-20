@@ -231,6 +231,29 @@ else
 fi
 
 # ───────────────────────────────────────────────────────────────────────────
+section "13. AUTONOMY DASHBOARD ENDPOINTS"
+# ───────────────────────────────────────────────────────────────────────────
+API_DIR=/var/www/{{TENANT_DASHBOARD_HOSTNAME}}/api
+for ep in jobs growth proposals security watchers daily-brief; do
+  f="$API_DIR/$ep.json"
+  if [[ -f "$f" ]] && jq -e . "$f" >/dev/null 2>&1; then
+    ok "/api/$ep.json present + valid JSON"
+  else
+    fail "/api/$ep.json missing or invalid"
+  fi
+done
+DASH_HTML=/var/www/{{TENANT_DASHBOARD_HOSTNAME}}/index.html
+if [[ -f "$DASH_HTML" ]]; then
+  missing=""
+  for tab in briefing proposals growth jobs budget security automation; do
+    grep -q "data-tab-content=\"$tab\"" "$DASH_HTML" || missing="$missing $tab"
+  done
+  [[ -z "$missing" ]] && ok "dashboard has all 7 autonomy tabs" || fail "dashboard missing tabs:$missing"
+else
+  fail "dashboard index.html missing"
+fi
+
+# ───────────────────────────────────────────────────────────────────────────
 section "FINAL"
 # ───────────────────────────────────────────────────────────────────────────
 echo

@@ -953,6 +953,13 @@ PY
 mv "$DST/budget.json.tmp" "$DST/budget.json"
 chmod 644 "$DST/budget.json"
 
+# Autonomy layer endpoints (Phases 2-5 + daily briefing):
+# jobs / growth / proposals / security / watchers / daily-brief.
+# Guarded with `|| true` — the writer never raises, but we never let a hiccup
+# here abort the rest of the sync (set -e is active).
+DASHBOARD_API_DIR="$DST" TENANT_AGENT_HOME="$SRC" \
+  python3 "$SRC/scripts/dashboard-sync-autonomy.py" || true
+
 # v2.27.0: auto-sync dashboard HTML from agents-config source.
 HTML_SRC="$SRC/{{TENANT_BRAND_REPO_NAME}}/vps-setup/agents-config/{{TENANT_ID}}/dashboard/index.html"
 HTML_DST="/var/www/{{TENANT_DASHBOARD_HOSTNAME}}/index.html"
