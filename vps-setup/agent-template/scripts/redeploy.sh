@@ -24,6 +24,16 @@
 
 set -uo pipefail
 
+# ── self-update safety ──────────────────────────────────────────────────────
+# This script syncs scripts/ — which INCLUDES this file. Bash reads a script
+# lazily (line by line as it executes), so if `cp` overwrites redeploy.sh
+# mid-run, the next bytes bash reads come from the new file at the old offset →
+# parse error. The `{ ... }` group around the entire body forces bash to read
+# the WHOLE script into memory before executing a single line, so overwriting
+# the file on disk during the run is harmless. The new version takes effect on
+# the NEXT invocation. (Closing brace is at EOF.)
+{
+
 AGENT_HOME="{{TENANT_AGENT_HOME}}"
 BRAND_REPO_NAME="{{TENANT_BRAND_REPO_NAME}}"
 TENANT_ID="{{TENANT_ID}}"
@@ -156,3 +166,5 @@ if [[ ${#OPS_PENDING[@]} -gt 0 ]]; then
 fi
 
 say "done. $CHANGED file(s) synced.$([ ${#OPS_PENDING[@]} -gt 0 ] && echo " ${#OPS_PENDING[@]} ops wrapper(s) pending (see above).")"
+
+}  # end self-update safety group — see top of file
