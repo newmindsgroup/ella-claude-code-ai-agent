@@ -273,3 +273,41 @@ def test_cost_breakdown_empty(tmp_db):
     assert bd["cache_ratio"] == 0.0
     assert bd["by_kind"] == []
     assert bd["top_sessions"] == []
+
+
+def test_agent_breakdown_aggregates(tmp_db):
+    """v2.70.0: per-sub-agent rollup from agent_dispatch spans."""
+    spans = [
+        _span(span_id="d1", kind="agent_dispatch", agent_id="brand-drift-scanner",
+              tool_name="Task", duration_ms=2000, end_ts="2026-05-20T01:00:02Z",
+              start_ts="2026-05-20T01:00:00Z", tokens_in=100_000, tokens_out=20_000),
+        _span(span_id="d2", kind="agent_dispatch", agent_id="brand-drift-scanner",
+              tool_name="Task", duration_ms=4000, end_ts="2026-05-20T02:00:04Z",
+              start_ts="2026-05-20T02:00:00Z", tokens_in=80_000, tokens_out=10_000),
+        # An in-flight dispatch (end_ts NULL) of a different agent
+        _span(span_id="d3", kind="agent_dispatch", agent_id="pipeline-reporter",
+              tool_name="Task", duration_ms=None, end_ts=None,
+              start_ts="2026-05-20T03:00:00Z", status="error"),
+        # A non-dispatch span — must be excluded
+        _span(span_id="t1", kind="tool_call", agent_id=None, tool_name="Read"),
+    ]
+    with _spans.connect(tmp_db) as conn:
+        _spans.upsert_many(conn, spans)
+        agents = _spans.agent_breakdown(conn, "2020-01-01T00:00:00Z")
+    by_id = {a["agent_id"]: a for a in agents}
+    assert set(by_id) == {"brand-drift-scanner", "pipeline-reporter"}
+    drift = by_id["brand-drift-scanner"]
+    assert drift["dispatches"] == 2
+    assert drift["total_ms"] == 6000
+    assert drift["avg_ms"] == 3000
+    assert drift["live"] == 0
+    assert drift["cost_usd"] > 0
+    pr = by_id["pipeline-reporter"]
+    assert pr["live"] == 1       # in-flight
+    assert pr["errors"] == 1
+
+
+def test_agent_breakdown_empty(tmp_db):
+    with _spans.connect(tmp_db) as conn:
+        agents = _spans.agent_breakdown(conn, "2020-01-01T00:00:00Z")
+    assert agents == []

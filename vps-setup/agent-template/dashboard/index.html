@@ -1412,6 +1412,30 @@
             </div>
           </div>
 
+          <!-- v2.70.0: Sub-agent activity — per-sub-agent rollup from agent_dispatch spans -->
+          <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 card-shadow overflow-hidden mb-6">
+            <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Sub-agents (24h)</div>
+              <div class="text-xs text-slate-400 mono">what each sub-agent did · 🟢 = running now</div>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="bg-slate-50 dark:bg-slate-900/40 text-xs uppercase tracking-wider text-slate-500">
+                  <tr>
+                    <th class="text-left px-4 py-2 font-medium">Sub-agent</th>
+                    <th class="text-right px-4 py-2 font-medium">Runs</th>
+                    <th class="text-right px-4 py-2 font-medium">Total time</th>
+                    <th class="text-right px-4 py-2 font-medium">Avg</th>
+                    <th class="text-right px-4 py-2 font-medium">Cost</th>
+                    <th class="text-right px-4 py-2 font-medium">Last run</th>
+                  </tr>
+                </thead>
+                <tbody id="spans-agents-tbody" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+              </table>
+            </div>
+            <div id="spans-agents-empty" class="hidden p-6 text-center text-xs text-slate-500">No sub-agent dispatches in the last 24h. When the agent spawns a sub-agent (Task tool), it shows up here.</div>
+          </div>
+
           <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 card-shadow overflow-hidden">
             <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
               <div class="text-xs uppercase tracking-wider text-slate-500 whitespace-nowrap">Recent spans</div>
@@ -1890,7 +1914,7 @@
     rules: { list: [], total: 0, enabled_count: 0 },
     anomalies: { flagged: [], metrics: {}, history_days_used: 0 },
     deploys: { list: [], summary: {} },
-    spans: { recent: [], tools: [], kinds: [], live: null, latency: {}, latency_sessions: [], summary: {} },
+    spans: { recent: [], tools: [], kinds: [], agents: [], live: null, latency: {}, latency_sessions: [], summary: {} },
     roi: { by_type_7d: [], by_type_30d: [], summary_7d: {}, summary_30d: {}, methodology: '' },
     roiDigest: null,
     costToday: null,
@@ -2355,6 +2379,7 @@
         recent: Array.isArray(spansData.recent) ? spansData.recent : [],
         tools:  Array.isArray(spansData.tools)  ? spansData.tools  : [],
         kinds:  Array.isArray(spansData.kinds)  ? spansData.kinds  : [],
+        agents: Array.isArray(spansData.agents) ? spansData.agents : [],
         live:   spansData.live || null,
         latency: spansData.latency || {},
         latency_sessions: Array.isArray(spansData.latency_sessions) ? spansData.latency_sessions : [],
@@ -3662,6 +3687,52 @@
       }
     }
 
+    // v2.70.0: Sub-agent activity table
+    const agentsTbody = $('#spans-agents-tbody');
+    const agentsEmpty = $('#spans-agents-empty');
+    if (agentsTbody) {
+      const agents = sp.agents || [];
+      if (!agents.length) {
+        agentsTbody.innerHTML = '';
+        if (agentsEmpty) agentsEmpty.classList.remove('hidden');
+      } else {
+        if (agentsEmpty) agentsEmpty.classList.add('hidden');
+        const fmtDur = (ms) => {
+          if (!ms && ms !== 0) return '—';
+          if (ms < 1000) return ms + 'ms';
+          if (ms < 60000) return (ms / 1000).toFixed(1) + 's';
+          return (ms / 60000).toFixed(1) + 'm';
+        };
+        const fmtLast = (iso) => {
+          if (!iso) return '—';
+          try {
+            const ms = Date.now() - new Date(iso).getTime();
+            if (ms < 60000) return Math.round(ms/1000) + 's ago';
+            if (ms < 3600000) return Math.round(ms/60000) + 'm ago';
+            if (ms < 86400000) return Math.round(ms/3600000) + 'h ago';
+            return new Date(iso).toLocaleDateString([], { month:'short', day:'numeric' });
+          } catch(e) { return iso; }
+        };
+        agentsTbody.innerHTML = agents.map(a => {
+          const live = (a.live || 0) > 0;
+          const err = (a.errors || 0) > 0;
+          const cost = a.cost_usd ? '$' + a.cost_usd.toFixed(4) : '—';
+          return '<tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40">' +
+            '<td class="px-4 py-2 text-xs">' +
+              (live ? '<span class="inline-block w-2 h-2 rounded-full bg-emerald-500 live-dot mr-1.5"></span>' : '') +
+              '<span class="mono font-medium">' + escapeHtml(a.agent_id || '?') + '</span>' +
+              (err ? ' <span class="text-[9px] px-1 py-0.5 rounded bg-rose-600 text-white">' + a.errors + ' err</span>' : '') +
+            '</td>' +
+            '<td class="px-4 py-2 text-right tnum">' + (a.dispatches || 0) + '</td>' +
+            '<td class="px-4 py-2 text-right tnum text-xs text-slate-500">' + fmtDur(a.total_ms) + '</td>' +
+            '<td class="px-4 py-2 text-right tnum text-xs text-slate-500">' + fmtDur(a.avg_ms ? Math.round(a.avg_ms) : null) + '</td>' +
+            '<td class="px-4 py-2 text-right tnum text-xs text-amber-600 dark:text-amber-400">' + cost + '</td>' +
+            '<td class="px-4 py-2 text-right tnum text-xs text-slate-500">' + fmtLast(a.last_seen) + '</td>' +
+            '</tr>';
+        }).join('');
+      }
+    }
+
     // Recent spans table
     const recentTbody = $('#spans-recent-tbody');
     const empty = $('#spans-empty');
@@ -4510,6 +4581,40 @@
     const shown = hubs.filter(h => !q || (h.label || '').toLowerCase().includes(q));
     const he = $('#graph-hubs');
     if (he) he.innerHTML = shown.map(h => '<div class="flex items-center gap-2 text-xs py-1"><span class="w-2 h-2 rounded-full shrink-0" style="background:' + GRAPH_COLORS[(h.community || 0) % GRAPH_COLORS.length] + '"></span><span class="text-slate-600 dark:text-slate-300 truncate" title="' + escapeHtml(h.label || '') + '">' + escapeHtml(h.label || '') + '</span><span class="ml-auto mono text-slate-400 shrink-0">' + (h.degree || 0) + '</span></div>').join('');
+
+    // graph memory (saved Q&As from the feedback loop)
+    const mem = Array.isArray(g.memory) ? g.memory : [];
+    setBind('graphMemCount', mem.length);
+    const me = $('#graph-memory'); const meEmpty = $('#graph-memory-empty');
+    if (me) {
+      me.innerHTML = mem.map(x => '<div class="rounded-lg bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 p-3">' +
+        '<div class="flex items-center gap-2"><span class="text-[10px] mono px-1.5 py-0.5 rounded ' + (x.type === 'explain' ? 'bg-violet-100 dark:bg-violet-950 text-violet-700 dark:text-violet-300' : 'bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300') + '">' + escapeHtml(x.type || 'query') + '</span>' +
+        '<span class="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">' + escapeHtml(x.question || '') + '</span>' +
+        '<span class="ml-auto text-[11px] mono text-slate-400 shrink-0">' + relTime(x.saved_at) + '</span></div>' +
+        (x.answer ? '<div class="mt-1 text-xs text-slate-500 line-clamp-2">' + escapeHtml(x.answer) + '</div>' : '') + '</div>').join('');
+      if (meEmpty) meEmpty.classList.toggle('hidden', mem.length > 0);
+    }
+
+    // growth trend (nodes over rebuilds)
+    const hist = Array.isArray(g.history) ? g.history : [];
+    const te = $('#graph-trend');
+    if (te) {
+      const maxN = Math.max(1, ...hist.map(h => h.nodes || 0));
+      te.innerHTML = hist.length ? hist.map(h => {
+        const pct = Math.round(100 * (h.nodes || 0) / maxN);
+        return '<div class="flex-1 flex flex-col justify-end" title="' + escapeHtml((h.ts || '').slice(0, 10)) + ': ' + (h.nodes || 0) + ' nodes" style="height:100%"><div class="rounded-t bg-indigo-500" style="height:' + Math.max(8, pct) + '%"></div></div>';
+      }).join('') : '<div class="text-[11px] text-slate-400 self-center w-full text-center">first rebuild pending</div>';
+    }
+
+    // mode toggle active state + path second input
+    $$('.graph-mode').forEach(b => {
+      const on = b.dataset.gmode === (state.graphAskMode || 'query');
+      b.classList.toggle('bg-indigo-600', on); b.classList.toggle('text-white', on); b.classList.toggle('border-indigo-600', on);
+    });
+    const q2 = $('#graph-q2'); if (q2) q2.classList.toggle('hidden', (state.graphAskMode || 'query') !== 'path');
+    // D3 full-graph link (published to /graph-full.html by the sync when available)
+    const d3 = $('#graph-d3-link'); if (d3) { d3.href = '/graph-full.html'; d3.classList.toggle('hidden', !g.has_d3); }
+
     if (state.activeTab === 'graph') setTimeout(drawGraph, 0);
   };
 

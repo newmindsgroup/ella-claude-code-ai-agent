@@ -371,6 +371,50 @@ def tool_breakdown(conn: sqlite3.Connection, since_ts: str) -> list[dict]:
     return out
 
 
+def agent_breakdown(conn: sqlite3.Connection, since_ts: str) -> list[dict]:
+    """v2.70.0: per-sub-agent activity rollup from agent_dispatch spans.
+
+    When the main agent spawns a sub-agent (Task/Agent tool), session-parser
+    records an agent_dispatch span tagged with agent_id (the subagent_type).
+    This aggregates them so you can see, per sub-agent: how many times it ran,
+    total + average wall-clock, total cost, when it last ran, and how many are
+    currently in-flight (end_ts NULL = still running). Answers "what are all my
+    sub-agents doing, how long, and what does each cost."
+    """
+    rows = conn.execute(
+        """
+        SELECT agent_id,
+               COUNT(*)                                   AS dispatches,
+               SUM(COALESCE(duration_ms, 0))              AS total_ms,
+               AVG(duration_ms)                           AS avg_ms,
+               SUM(tokens_in)                             AS tokens_in,
+               SUM(tokens_out)                            AS tokens_out,
+               SUM(cache_read)                            AS cache_read,
+               SUM(cache_write)                           AS cache_write,
+               MAX(start_ts)                              AS last_seen,
+               SUM(CASE WHEN end_ts IS NULL THEN 1 ELSE 0 END) AS live,
+               SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END) AS errors
+          FROM spans
+         WHERE kind = 'agent_dispatch' AND agent_id IS NOT NULL AND start_ts >= ?
+         GROUP BY agent_id
+         ORDER BY dispatches DESC
+        """,
+        (since_ts,),
+    ).fetchall()
+    out = []
+    for r in rows:
+        d = dict(r)
+        d["cost_usd"] = round(
+            (d.get("tokens_in")  or 0)  * INPUT_PER_MTOK_USD       / 1_000_000
+            + (d.get("tokens_out") or 0) * OUTPUT_PER_MTOK_USD      / 1_000_000
+            + (d.get("cache_read") or 0) * CACHE_READ_PER_MTOK_USD  / 1_000_000
+            + (d.get("cache_write") or 0)* CACHE_WRITE_PER_MTOK_USD / 1_000_000,
+            4,
+        )
+        out.append(d)
+    return out
+
+
 def kind_breakdown(conn: sqlite3.Connection, since_ts: str) -> list[dict]:
     """Aggregate by span kind since the given UTC ISO timestamp."""
     rows = conn.execute(

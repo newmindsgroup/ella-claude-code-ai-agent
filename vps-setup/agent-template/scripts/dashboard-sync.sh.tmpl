@@ -853,6 +853,7 @@ try:
         since_24h = _spans.iso_minus_hours(24)
         tools = _spans.tool_breakdown(conn, since_24h)
         kinds = _spans.kind_breakdown(conn, since_24h)
+        agents = _spans.agent_breakdown(conn, since_24h)  # v2.70.0 per-sub-agent
         since_live = (NOW - timedelta(minutes=3)).isoformat().replace("+00:00", "Z")
         live = _spans.live_span(conn, since_live)
         latencies = _spans.session_latencies(conn, since_24h)
@@ -867,7 +868,7 @@ try:
         cache_ratio_24h = round(cache_read_24h / cache_input_total, 4) if cache_input_total > 0 else 0.0
         cache_savings_24h = round((cache_read_24h / 1_000_000) * (3.00 - 0.30), 4)
 except Exception:
-    recent, tools, kinds, live = [], [], [], None
+    recent, tools, kinds, live, agents = [], [], [], None, []
     total_24h, tokens_24h, cost_24h = 0, 0, 0.0
     cache_ratio_24h = cache_savings_24h = 0.0
     cache_read_24h = cache_write_24h = 0
@@ -878,7 +879,7 @@ except Exception:
 
 print(json.dumps({
     "generated_at": NOW.isoformat().replace("+00:00", "Z"),
-    "recent": recent, "tools": tools, "kinds":  kinds, "live":   live,
+    "recent": recent, "tools": tools, "kinds":  kinds, "agents": agents, "live":   live,
     "summary": {
         "calls_24h":         total_24h,
         "tokens_24h":        tokens_24h,
