@@ -389,6 +389,76 @@ def kind_breakdown(conn: sqlite3.Connection, since_ts: str) -> list[dict]:
     return [dict(r) for r in rows]
 
 
+def _tok_cost(ti, to, cr, cw) -> float:
+    return round(
+        (ti or 0) * INPUT_PER_MTOK_USD       / 1_000_000
+        + (to or 0) * OUTPUT_PER_MTOK_USD     / 1_000_000
+        + (cr or 0) * CACHE_READ_PER_MTOK_USD / 1_000_000
+        + (cw or 0) * CACHE_WRITE_PER_MTOK_USD/ 1_000_000,
+        4,
+    )
+
+
+def cost_breakdown(conn: sqlite3.Connection, since_ts: str, top: int = 8) -> dict:
+    """v2.68.0: cost-attribution for spend-spike diagnosis. Returns total cost,
+    cache stats, per-kind cost, and the top sessions by cost since `since_ts`.
+
+    Cache ratio is the headline diagnostic: if it's low (<~50%) for a session
+    that re-sends a big context every turn, prompt caching isn't landing and
+    that's a 10× cost multiplier — the usual culprit behind a spend spike.
+    """
+    rows = conn.execute(
+        """
+        SELECT conversation_id, kind, tokens_in, tokens_out, cache_read, cache_write
+          FROM spans
+         WHERE start_ts >= ?
+        """,
+        (since_ts,),
+    ).fetchall()
+
+    total_in = total_out = total_cr = total_cw = 0
+    by_kind: dict[str, dict] = {}
+    by_session: dict[str, dict] = {}
+    for r in rows:
+        ti, to_, cr, cw = (r["tokens_in"] or 0, r["tokens_out"] or 0,
+                           r["cache_read"] or 0, r["cache_write"] or 0)
+        total_in += ti; total_out += to_; total_cr += cr; total_cw += cw
+        k = by_kind.setdefault(r["kind"], {"kind": r["kind"], "in": 0, "out": 0, "cr": 0, "cw": 0, "calls": 0})
+        k["in"] += ti; k["out"] += to_; k["cr"] += cr; k["cw"] += cw; k["calls"] += 1
+        sid = r["conversation_id"]
+        s = by_session.setdefault(sid, {"conversation_id": sid, "in": 0, "out": 0, "cr": 0, "cw": 0, "calls": 0})
+        s["in"] += ti; s["out"] += to_; s["cr"] += cr; s["cw"] += cw; s["calls"] += 1
+
+    def _finish(d):
+        d["cost_usd"] = _tok_cost(d["in"], d["out"], d["cr"], d["cw"])
+        return d
+
+    kinds = sorted((_finish(v) for v in by_kind.values()), key=lambda x: x["cost_usd"], reverse=True)
+    sessions = sorted((_finish(v) for v in by_session.values()), key=lambda x: x["cost_usd"], reverse=True)[:top]
+
+    total_cost = _tok_cost(total_in, total_out, total_cr, total_cw)
+    # Cache ratio = cache_read / (cache_read + uncached input). High = good.
+    cache_denom = total_cr + total_in
+    cache_ratio = round(total_cr / cache_denom, 4) if cache_denom else 0.0
+    # What the cache_read tokens WOULD have cost at full input price (savings).
+    cache_savings = round((total_cr / 1_000_000) * (INPUT_PER_MTOK_USD - CACHE_READ_PER_MTOK_USD), 4)
+
+    return {
+        "total_cost_usd": total_cost,
+        "tokens": {"input": total_in, "output": total_out, "cache_read": total_cr, "cache_write": total_cw},
+        "cache_ratio": cache_ratio,
+        "cache_savings_usd": cache_savings,
+        "by_kind": kinds,
+        "top_sessions": sessions,
+    }
+
+
+def iso_start_of_day_utc() -> str:
+    """UTC midnight today, ISO8601 — for 'today's' cost windows."""
+    now = datetime.now(timezone.utc)
+    return now.replace(hour=0, minute=0, second=0, microsecond=0).isoformat().replace("+00:00", "Z")
+
+
 def prune_older_than(conn: sqlite3.Connection, days: int = 30) -> int:
     """Delete spans older than N days. Returns rows deleted."""
     cutoff = (datetime.now(timezone.utc).timestamp() - days * 86400)

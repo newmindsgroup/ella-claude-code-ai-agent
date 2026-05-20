@@ -1066,7 +1066,7 @@ _UNIT_ALLOWLIST_REGEX = _re.compile(
     r"[a-z0-9_-]+-watcher|"
     r"morning-brief|evening-rollup|"
     r"dashboard-sync|telemetry-calc|deploy-timeout-sweep|"
-    r"graphify-rebuild|rules-engine|anomaly-detect|session-parser|roi-digest|"
+    r"graphify-rebuild|rules-engine|anomaly-detect|session-parser|roi-digest|cost-report|"
     r"claude-agent|dashboard-chat|nginx|{{TENANT_WEBSITE_SYSTEMD_SERVICE}}|"
     r"telegram-poller-watchdog)"
     r"(\.service|\.timer)?$"

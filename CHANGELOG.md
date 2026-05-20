@@ -2,6 +2,21 @@
 
 All notable changes to this repo. Format roughly follows [Keep a Changelog](https://keepachangelog.com/). This is a multi-tenant template, so versions reflect what's available to clone for a new tenant — not what's running at any one customer's deployment.
 
+## [v0.9.3] — 2026-05-20
+
+### Added — Cost intelligence: today's-spend attribution + cache-health diagnostic
+
+Ports the upstream cost-intelligence work (Daniel v2.68.0). Turns the dollar-cap circuit breaker into actionable attribution so a spend spike explains itself.
+
+- **`_spans.cost_breakdown()`** — today's cost grouped by span-kind + top sessions, plus the headline diagnostic: prompt-cache hit ratio + cache savings. A LOW cache ratio is the usual cause of a runaway cost number (the session re-pays full input price each turn instead of the 10×-cheaper cache-read price).
+- **`scripts/cost-report.py`** — composes the attribution, writes `state/cost-today.json`, and `--post` sends a plain-text Telegram report. Daily total from telemetry, breakdown + cache ratio from spans.
+- **`systemd/cost-report.{service,timer}.tmpl`** — hourly silent refresh.
+- **`dashboard-sync.sh.tmpl`** — `/api/cost-today.json`. **Overview "💰 Today's spend" card** — total vs cap, cache-health chip (red if <50%), cost by kind. **`ops-service-restart.sh`** allowlist adds `cost-report`. **tests** — 2 new `cost_breakdown` contract tests.
+
+Serves the north-star "full control of money + tokens": when the breaker trips, you see WHAT drove it and whether caching is the culprit.
+
+---
+
 ## [v0.9.0] — 2026-05-20
 
 ### Added — Weekly ROI digest (agent value summary)

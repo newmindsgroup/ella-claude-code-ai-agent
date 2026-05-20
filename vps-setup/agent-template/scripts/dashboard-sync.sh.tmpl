@@ -958,6 +958,11 @@ if [[ -f "$SRC/state/roi-digest-latest.json" ]]; then
   copy "$SRC/state/roi-digest-latest.json" "$DST/roi-digest.json"
 fi
 
+# v2.68.0: /api/cost-today.json — today's spend attribution (cost-report.py).
+if [[ -f "$SRC/state/cost-today.json" ]]; then
+  copy "$SRC/state/cost-today.json" "$DST/cost-today.json"
+fi
+
 # Autonomy layer endpoints (Phases 2-5 + daily briefing):
 # jobs / growth / proposals / security / watchers / daily-brief.
 # Guarded with `|| true` — the writer never raises, but we never let a hiccup

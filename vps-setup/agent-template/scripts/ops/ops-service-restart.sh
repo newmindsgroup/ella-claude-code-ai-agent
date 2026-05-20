@@ -46,6 +46,7 @@ ALLOWED=(
   anomaly-detect
   session-parser
   roi-digest
+  cost-report
 )
 
 # Strip optional .service / .timer suffix for comparison

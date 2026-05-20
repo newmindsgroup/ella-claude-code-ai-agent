@@ -402,6 +402,22 @@
             </div>
           </div>
 
+          <!-- v2.68.0: Today's spend — cost attribution + cache-health -->
+          <div id="cost-today-card" class="hidden rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow mb-6">
+            <div class="flex items-center justify-between mb-3">
+              <h2 class="text-sm font-semibold tracking-tight">💰 Today's spend</h2>
+              <span id="cost-today-cache" class="text-[11px] mono px-2 py-0.5 rounded"></span>
+            </div>
+            <div class="flex items-end gap-3 mb-3">
+              <div class="text-3xl font-mono font-semibold tnum" data-bind="costTodayTotal">$0.00</div>
+              <div class="text-xs text-slate-400 mono mb-1.5"><span data-bind="costTodayPct">—</span> of cap</div>
+            </div>
+            <div class="h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden mb-3">
+              <div id="cost-today-bar" class="h-full bg-emerald-500" style="width:0%"></div>
+            </div>
+            <div id="cost-today-kinds" class="text-xs text-slate-500 space-y-1"></div>
+          </div>
+
           <!-- v2.55.0: Tool budget — last 24h tool-call distribution -->
           <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 card-shadow mb-6">
             <div class="flex items-center justify-between mb-4">
@@ -1682,6 +1698,7 @@
     spans: { recent: [], tools: [], kinds: [], live: null, latency: {}, latency_sessions: [], summary: {} },
     roi: { by_type_7d: [], by_type_30d: [], summary_7d: {}, summary_30d: {}, methodology: '' },
     roiDigest: null,
+    costToday: null,
     roiWindow: 7,
     budget: { blocks: [], count: 0, global_blocked: false },
     queue: { jobs: [] },
@@ -2014,9 +2031,10 @@
       safeFetch('/api/jobs.json'),
       safeFetch('/api/security.json'),
       safeFetch('/api/watchers.json'),
-      safeFetch('/api/roi-digest.json')
+      safeFetch('/api/roi-digest.json'),
+      safeFetch('/api/cost-today.json')
     ]);
-    const [tasks, goals, queue, memory, telemetry, health, draftsData, triageData, improvementsData, driftData, competitiveData, sessionsData, llmInsightData, skillsData, auditData, , rulesData, anomaliesData, deploysData, spansData, roiData, budgetData, briefData, proposalsData, growthData, jobsData, securityData, watchersData, roiDigestData] = results;
+    const [tasks, goals, queue, memory, telemetry, health, draftsData, triageData, improvementsData, driftData, competitiveData, sessionsData, llmInsightData, skillsData, auditData, , rulesData, anomaliesData, deploysData, spansData, roiData, budgetData, briefData, proposalsData, growthData, jobsData, securityData, watchersData, roiDigestData, costTodayData] = results;
     // tasks.json may be: an array, {tasks:[...]} envelope, or a dict-by-id (telemetry-calc.py shape).
     if (tasks) {
       state.tasks = Array.isArray(tasks) ? tasks
@@ -2153,6 +2171,7 @@
       };
     }
     if (roiDigestData) state.roiDigest = roiDigestData;  // v2.67.0 weekly digest
+    if (costTodayData) state.costToday = costTodayData;   // v2.68.0 today's spend
     if (budgetData) {
       state.budget = {
         blocks: Array.isArray(budgetData.blocks) ? budgetData.blocks : [],
@@ -2251,6 +2270,7 @@
     renderDeploys();
     renderActivity();
     renderToolBudget();
+    renderCostToday();
     renderRoi();
     renderBudgetBanner();
     renderDrift();
@@ -3248,6 +3268,47 @@
 
   // v2.55.0: Overview "Tool budget" widget — horizontal bars showing
   // tool-call frequency over the last 24h. Reuses state.spans.tools.
+  // v2.68.0: Today's spend card — cost attribution + cache-health diagnostic.
+  const renderCostToday = () => {
+    const card = $('#cost-today-card');
+    if (!card) return;
+    const c = state.costToday;
+    if (!c) { card.classList.add('hidden'); return; }
+    card.classList.remove('hidden');
+    const total = c.headline_cost_usd || 0;
+    const cap = c.daily_cap_usd || 20;
+    const pct = c.pct_of_cap != null ? c.pct_of_cap : (total / cap * 100);
+    $$('[data-bind="costTodayTotal"]').forEach(el => el.textContent = '$' + total.toFixed(2));
+    $$('[data-bind="costTodayPct"]').forEach(el => el.textContent = pct.toFixed(0) + '%');
+    const bar = $('#cost-today-bar');
+    if (bar) {
+      bar.style.width = Math.min(100, pct) + '%';
+      bar.className = 'h-full ' + (pct >= 100 ? 'bg-rose-500' : pct >= 75 ? 'bg-amber-500' : 'bg-emerald-500');
+    }
+    // Cache-health chip — the key diagnostic
+    const cacheEl = $('#cost-today-cache');
+    if (cacheEl) {
+      const cr = c.cache_ratio;
+      if (cr == null) { cacheEl.textContent = ''; }
+      else {
+        const pctC = (cr * 100).toFixed(0);
+        const good = cr >= 0.85, bad = cr < 0.5;
+        cacheEl.textContent = 'cache ' + pctC + '%' + (bad ? ' ⚠ low' : good ? ' ✓' : '');
+        cacheEl.className = 'text-[11px] mono px-2 py-0.5 rounded ' +
+          (bad ? 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300'
+               : good ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
+                      : 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300');
+      }
+    }
+    const kindsEl = $('#cost-today-kinds');
+    if (kindsEl) {
+      const kinds = (c.by_kind || []).slice(0, 4);
+      kindsEl.innerHTML = kinds.length
+        ? kinds.map(k => '<div class="flex justify-between"><span class="mono">' + escapeHtml(k.kind) + '</span><span class="mono">$' + (k.cost_usd || 0).toFixed(2) + ' · ' + (k.calls || 0) + ' calls</span></div>').join('')
+        : '<div class="text-slate-400 italic">No spans recorded today yet (session-parser populates every 2 min).</div>';
+    }
+  };
+
   const renderToolBudget = () => {
     const wrap = $('#tool-budget-bars');
     const empty = $('#tool-budget-empty');

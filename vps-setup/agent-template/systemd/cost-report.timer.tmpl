@@ -1,0 +1,15 @@
+[Unit]
+Description=Cost-attribution report — hourly refresh
+
+[Timer]
+# Hourly: keeps /api/cost-today.json fresh for the dashboard's "Today's spend"
+# widget. Cheap (a couple of SQLite reads), no LLM calls, no Telegram post
+# (the bare run is silent; --post is for on-demand or the budget breaker).
+OnBootSec=5min
+OnUnitActiveSec=60min
+RandomizedDelaySec=120
+Persistent=true
+Unit=cost-report.service
+
+[Install]
+WantedBy=timers.target

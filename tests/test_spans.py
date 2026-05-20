@@ -244,3 +244,32 @@ def test_session_latencies_handles_no_spans(tmp_db):
     assert result["sessions"] == []
     assert result["summary"]["sessions"] == 0
     assert result["summary"]["median_first_action_ms"] is None
+
+
+def test_cost_breakdown_attribution(tmp_db):
+    """v2.68.0: cost_breakdown groups cost by kind + session, computes cache ratio."""
+    spans = [
+        _span(span_id="x1", conversation_id="sess-A", kind="llm_call", tool_name=None,
+              tokens_in=1_000_000, tokens_out=100_000, cache_read=50_000),
+        _span(span_id="x2", conversation_id="sess-A", kind="llm_call", tool_name=None,
+              tokens_in=2_000_000, tokens_out=50_000, cache_read=0),
+        _span(span_id="t1", conversation_id="sess-B", kind="tool_call", tool_name="Read",
+              tokens_in=5_000),
+    ]
+    with _spans.connect(tmp_db) as conn:
+        _spans.upsert_many(conn, spans)
+        bd = _spans.cost_breakdown(conn, "2020-01-01T00:00:00Z")
+    assert bd["total_cost_usd"] > 0
+    # Cache ratio low: ~50k cache_read / (50k + ~3.005M input)
+    assert bd["cache_ratio"] < 0.1
+    assert bd["by_kind"][0]["kind"] == "llm_call"
+    assert bd["top_sessions"][0]["conversation_id"] == "sess-A"
+
+
+def test_cost_breakdown_empty(tmp_db):
+    with _spans.connect(tmp_db) as conn:
+        bd = _spans.cost_breakdown(conn, "2020-01-01T00:00:00Z")
+    assert bd["total_cost_usd"] == 0
+    assert bd["cache_ratio"] == 0.0
+    assert bd["by_kind"] == []
+    assert bd["top_sessions"] == []
