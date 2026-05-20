@@ -73,7 +73,7 @@ if [[ -f "$HFILE" ]]; then
 fi
 
 # TLS cert expiry.
-CERT_PATH="/etc/ssl/certs/{{TENANT_TLD}}-origin.crt"
+CERT_PATH="{{TENANT_TLS_CERT_PATH}}"
 cert_days_remaining=0
 cert_expiry=""
 if [[ -f "$CERT_PATH" ]]; then
