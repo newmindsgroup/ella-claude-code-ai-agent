@@ -2,6 +2,41 @@
 
 All notable changes to this repo. Format roughly follows [Keep a Changelog](https://keepachangelog.com/). This is a multi-tenant template, so versions reflect what's available to clone for a new tenant — not what's running at any one customer's deployment.
 
+## [v0.20.0] — 2026-05-25
+
+### Added — Safe update propagation: push template updates without clobbering deployments
+
+Answers "how do we update live agents without breaking their config or overwriting
+what they've implemented locally?" with a three-layer model + a guarded updater.
+
+- **`docs/updating-deployments.md`** (new) — the model: Layer 1 template code
+  (refreshed), Layer 2 tenant config (regenerated from `tenant.yml`, never lost),
+  Layer 3 runtime state + secrets + local overrides (never touched). Plus the safe
+  update flow and rollback.
+- **`redeploy.sh` — local-modification guard.** Now keeps a baseline manifest
+  (`state/.deploy-manifest`) of each Layer-1 file *as last deployed*, and does a
+  three-way compare (base vs. live vs. new) before touching anything:
+  - live == new → skip; file absent → install (additive);
+  - live == baseline (untouched) → safe overwrite;
+  - live ≠ baseline (locally modified by a human or the self-growth loop) →
+    **back up to `backups/` and SKIP**, never silent-overwrite. `--force` adopts
+    the template version (after backup). Conflicts persist across runs until
+    resolved, so nothing is lost between deploys.
+  - Coverage expanded to `dashboard/`, `swarms/`, `rules/`, `crontab/`, `CLAUDE.md`
+    (was just `scripts/` + `dashboard-chat/`); `scripts/ops/` still
+    report-only-privileged; new `scripts/local/` overlay is never synced.
+- **Local-override overlays** (update-proof by design):
+  - **`scripts/local/`** (new dir) — local/self-grown helper scripts; never synced.
+  - **`CLAUDE.local.md`** — per-deployment standing instructions that load on top
+    of `CLAUDE.md`; `CLAUDE.md.tmpl` now tells the agent to honor it and to prefer
+    these overlays when self-growing, so a future update can't clobber local work.
+
+Tested against a scratch deployment: locally-modified files preserved + backed up,
+net-new local files untouched, `memory/` intact, conflicts persist across runs,
+`--force` adopts cleanly, re-runs idempotent.
+
+---
+
 ## [v0.19.1] — 2026-05-25
 
 ### Changed — Template governance: this repo is a consume-only template
