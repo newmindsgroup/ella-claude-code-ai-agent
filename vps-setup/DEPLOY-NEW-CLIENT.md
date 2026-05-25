@@ -282,14 +282,29 @@ nginx -t && systemctl reload nginx
 
 ## Phase 7 — Telegram bot finalization
 
-The local Claude:
+**One command does the whole Telegram config** — `install-capabilities.sh` already
+calls it if a token is present; otherwise run it once the bot exists:
 
-1. Writes `/opt/<linux_user>/.claude/channels/telegram/.env` with the bot token
-2. Writes `/opt/<linux_user>/.claude/channels/telegram/access.json` with the user_id allowlist + ackReaction emoji
-3. Runs `bash {agent_home}/scripts/setup-bot-identity.sh` to set bot commands menu + description
-4. Sends a test message to the bot's chat: `bash {agent_home}/scripts/tg-send.sh send --text "🚀 Agent online. Send /brief to fire your morning brief."`
+```bash
+sudo -u <linux_user> -H bash {agent_home}/scripts/setup-telegram.sh \
+  --token <BOTFATHER_TOKEN> --owner-id <YOUR_TELEGRAM_USER_ID>
+```
 
-The user (you) receives the test message in Telegram. **Reply with anything** to confirm two-way communication.
+That single idempotent step writes the token `.env` (mode 600), writes the
+allowlist `access.json` (only if missing — never clobbers paired users), runs
+`setup-bot-identity.sh` (the 31-command menu + About text + description + menu
+button), and verifies the token with `getMe`. The callback-routing patches
+(deploy/draft/prop/forward/email/chat-parity) are applied automatically by
+`claude-agent.service` `ExecStartPre` — nothing to do there.
+
+See [`docs/telegram-setup.md`](../docs/telegram-setup.md) for the full inventory
+of what's pre-configured vs. the two values you provide.
+
+The ONE step that needs a human is the pairing handshake (you DM the bot for a
+6-char code): `/plugin install telegram@claude-plugins-official` →
+`/telegram:configure <token>` → DM the bot → `/telegram:access pair <code>` →
+`/telegram:access policy allowlist`. Then reply to the test message to confirm
+two-way comms.
 
 ---
 

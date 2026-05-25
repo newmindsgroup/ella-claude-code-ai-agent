@@ -2,6 +2,39 @@
 
 All notable changes to this repo. Format roughly follows [Keep a Changelog](https://keepachangelog.com/). This is a multi-tenant template, so versions reflect what's available to clone for a new tenant — not what's running at any one customer's deployment.
 
+## [v0.21.0] — 2026-05-25
+
+### Added — One-command Telegram setup (config is in the template, awaiting only your token)
+
+All the brand-agnostic Telegram configuration already lived in the template
+(command menu, description, allowlist policy, callback-routing patches, voice,
+Mini App, watchdog). The gap was that applying it was a manual multi-step ritual
+on every deploy. v0.21.0 collapses it to one idempotent command + documents
+exactly what's pre-built vs. what the user provides.
+
+- **`scripts/setup-telegram.sh`** (new) — one command that takes the two
+  user-provided values (BotFather token + your Telegram user_id) and applies the
+  *entire* Telegram config: writes the token `.env` (mode 600), writes the
+  allowlist `access.json` (only if missing — never clobbers paired users), runs
+  `setup-bot-identity.sh` (31-command menu + About + description + menu button),
+  and verifies the token via `getMe`. Idempotent; re-run any time to refresh.
+- **`install-capabilities.sh`** — new "6b. Telegram" section runs
+  `setup-telegram.sh` automatically when a token is already present, else prints
+  the exact one-liner to run after creating the bot.
+- **`docs/telegram-setup.md`** (new) — full inventory of what the template
+  pre-configures (so it's auditable) vs. the only two values you provide, plus
+  the one genuinely-manual pairing handshake.
+- **`DEPLOY-NEW-CLIENT.md`** Phase 7 — replaced the manual 4-step ritual with the
+  single `setup-telegram.sh` command + a pointer to the new doc.
+
+What's confirmed already-captured + auto-applied: the 7 channels-plugin callback
+passes (deploy/draft/prop/forward/email/chat-parity) apply on every
+`claude-agent` start via `ExecStartPre`; the poller watchdog timer is enabled by
+`install-capabilities.sh`. Net effect: a new deploy reuses 100% of the Telegram
+config — you only ever supply the token + your user_id, then do the ~60s pairing.
+
+---
+
 ## [v0.20.0] — 2026-05-25
 
 ### Added — Safe update propagation: push template updates without clobbering deployments

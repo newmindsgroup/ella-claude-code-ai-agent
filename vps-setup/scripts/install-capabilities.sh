@@ -162,6 +162,21 @@ else
   skip "multi_agent_swarms disabled — built-in swarms still work via swarm-router.sh"
 fi
 
+# ── 6b. Telegram (apply full config if the bot token is present) ──
+section "6b. Telegram — full config (command menu, allowlist, identity)"
+TG_ENV="$USER_HOME/.claude/channels/telegram/.env"
+if [[ -f "$AGENT_HOME/scripts/setup-telegram.sh" ]]; then
+  if [[ -f "$TG_ENV" ]] && grep -q '^TELEGRAM_BOT_TOKEN=' "$TG_ENV" 2>/dev/null; then
+    asuser "bash '$AGENT_HOME/scripts/setup-telegram.sh'" >/tmp/cap-telegram.log 2>&1 \
+      && ok "Telegram configured (command menu + description + allowlist applied)" \
+      || warn "setup-telegram.sh had issues (see /tmp/cap-telegram.log)"
+  else
+    skip "no bot token yet — after @BotFather, run: setup-telegram.sh --token <T> --owner-id <ID>"
+  fi
+else
+  skip "setup-telegram.sh not in render"
+fi
+
 # ── 7. Discord (optional, needs tokens) ──
 section "7. Discord command center (optional)"
 if [[ "$(read_flag discord_enabled)" == "True" ]]; then
