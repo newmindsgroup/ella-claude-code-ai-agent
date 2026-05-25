@@ -120,6 +120,16 @@ rsync -av --delete vps-setup/agents-config/<client-id>/ \
 
 ## Phase 4 — VPS bootstrap
 
+> **⚡ The single most important step — `install-capabilities.sh`.** `bootstrap-tenant.sh` renders + copies files + creates the user, then at step 7d it calls `vps-setup/scripts/install-capabilities.sh`, which is what actually **installs every capability**: Graphify (CLI + skill), the MCP servers (memory/fetch/filesystem/playwright/chroma), agency-agents sub-agents, Firecrawl, the memory-v2 embedding daemon, the Obsidian export crontab, Mission Control, and **all 31 systemd timers**, plus OpenSwarm if enabled. It is **idempotent and re-runnable** — if a deploy looks incomplete (no Graphify, no Obsidian, missing timers), the fix is simply:
+>
+> ```bash
+> sudo bash vps-setup/scripts/install-capabilities.sh vps-setup/tenants/<client-id>.yml
+> # then, after `claude login` finishes the auth-dependent installers, run it ONE more time:
+> sudo bash vps-setup/scripts/install-capabilities.sh vps-setup/tenants/<client-id>.yml
+> ```
+>
+> Auth-dependent installers (Superpowers, some MCP servers) only complete after `claude login` — that's why you run it once before auth and once after. Everything else installs on the first pass.
+
 SSH to the VPS as root and run the bootstrap sequence from `DEPLOY-NEW-CLIENT.md` Phase 5. Highlights:
 
 1. `apt-get install -y curl git jq nginx python3-pip python3-yaml python3-venv ffmpeg sqlite3 nodejs npm`

@@ -183,6 +183,61 @@ if [[ -n "$DASHBOARD_HOSTNAME" && -n "$BASIC_AUTH_PW" ]]; then
   fi
 fi
 
+# ── 5b. agent capabilities (Graphify / embedding daemon / Obsidian / crontab) ──
+# This is the section that catches "files copied but capabilities not installed."
+# If any FAIL here, re-run: install-capabilities.sh vps-setup/tenants/<id>.yml
+section "5b. agent capabilities"
+
+if [[ -n "$VPS_IP" && -n "$TENANT_LINUX_USER" ]]; then
+  AH="/opt/$TENANT_LINUX_USER/agents"
+
+  # Graphify CLI installed for the tenant user
+  if ssh $SSH_OPTS "$VPS_ROOT_USER@$VPS_IP" "sudo -u $TENANT_LINUX_USER -H bash -lc 'command -v graphify >/dev/null 2>&1 || [ -x \$HOME/.local/bin/graphify ]'" 2>/dev/null; then
+    ok "Graphify CLI installed"
+  else
+    fail "Graphify NOT installed — run install-capabilities.sh"
+  fi
+
+  # Graphify Claude Code skill registered
+  if ssh $SSH_OPTS "$VPS_ROOT_USER@$VPS_IP" "test -f /opt/$TENANT_LINUX_USER/.claude/skills/graphify/SKILL.md" 2>/dev/null; then
+    ok "Graphify skill registered"
+  else
+    warn "Graphify skill not registered (finishes after 'claude login' + re-run)"
+  fi
+
+  # Embedding daemon socket present (memory v2 semantic recall)
+  if ssh $SSH_OPTS "$VPS_ROOT_USER@$VPS_IP" "test -S $AH/embedding.sock" 2>/dev/null; then
+    ok "embedding daemon socket present"
+  else
+    warn "embedding daemon not running (lazy-starts on first recall; or re-run install-capabilities.sh)"
+  fi
+
+  # Obsidian vault populated (memory-export has run at least once)
+  if ssh $SSH_OPTS "$VPS_ROOT_USER@$VPS_IP" "test -d $AH/obsidian-vault/memories" 2>/dev/null; then
+    ok "Obsidian vault directory present"
+  else
+    warn "Obsidian vault not initialized — re-run install-capabilities.sh"
+  fi
+
+  # Crontab installed for the tenant (memory-export 5min + @reboot daemons)
+  CRON_LINES=$(ssh $SSH_OPTS "$VPS_ROOT_USER@$VPS_IP" "crontab -u $TENANT_LINUX_USER -l 2>/dev/null | grep -cE 'memory-export|entity-linker|start-embedding' || true" 2>/dev/null)
+  if [[ "${CRON_LINES:-0}" =~ ^[0-9]+$ && "${CRON_LINES:-0}" -ge 1 ]]; then
+    ok "tenant crontab installed ($CRON_LINES capability jobs)"
+  else
+    fail "tenant crontab NOT installed (no memory-export/entity-linker jobs) — run install-capabilities.sh"
+  fi
+
+  # MCP servers registered
+  MCP_COUNT=$(ssh $SSH_OPTS "$VPS_ROOT_USER@$VPS_IP" "sudo -u $TENANT_LINUX_USER -H bash -lc 'claude mcp list 2>/dev/null | grep -cE \"memory|fetch|filesystem|firecrawl|chroma\"' || true" 2>/dev/null)
+  if [[ "${MCP_COUNT:-0}" =~ ^[0-9]+$ && "${MCP_COUNT:-0}" -ge 1 ]]; then
+    ok "$MCP_COUNT MCP servers registered"
+  else
+    warn "no MCP servers registered yet (finish after 'claude login' + re-run install-capabilities.sh)"
+  fi
+else
+  warn "vps_ip or tenant linux user unknown — skipping capability checks"
+fi
+
 # ── 6. pytest contract suite ───────────────────────────────────────────────
 section "6. pytest contract suite (local)"
 

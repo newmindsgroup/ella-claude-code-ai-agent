@@ -207,6 +207,15 @@ if [[ -n "$CLIENT_REPO_URL" ]]; then
   " && echo "      client repo folded into merged graph" || echo "      (client repo graphing skipped/failed — non-fatal)"
 fi
 
+# ---- step 7d: install ALL capabilities (Graphify, MCPs, agency-agents, memory v2, Obsidian, Mission Control, timers) ----
+# This is the step that turns "files copied" into "fully working agent."
+# Idempotent + re-runnable. Auth-dependent bits (Superpowers, some MCPs) finish
+# on a re-run after `claude login` — the manual steps below cover that.
+echo
+echo "[7d/8] Installing all agent capabilities…"
+bash "$REPO_ROOT/vps-setup/scripts/install-capabilities.sh" "$TENANT_FILE" || \
+  echo "  ⚠ some capabilities warned — re-run install-capabilities.sh after Claude login (see below)"
+
 # ---- step 8: print remaining manual steps ----
 echo
 echo "[8/8] ============================================================"

@@ -158,18 +158,26 @@ That gives you the **rituals + sub-agents + MCPs + brand-voice infrastructure** 
 See [docs/install-vps.md](docs/install-vps.md) — the short version is:
 
 ```bash
-# On a clean Ubuntu 22.04+ VPS, as a non-root sudo user:
-git clone https://github.com/newmindsgroup/ella-claude-code-ai-agent.git ~/ella
-cd ~/ella
+# On a clean Ubuntu 22.04+ VPS, as root (from the cloned repo):
+git clone https://github.com/newmindsgroup/ella-claude-code-ai-agent.git /tmp/ella
+cd /tmp/ella
 
-# Stand up Claude Code, install agent-stack, render your tenant, deploy systemd units
-claude login
-bash agent-stack/scripts/install-all.sh
 cp vps-setup/tenants/EXAMPLE_TENANT.yml vps-setup/tenants/<your-tenant-id>.yml
 $EDITOR vps-setup/tenants/<your-tenant-id>.yml
-bash vps-setup/scripts/render-tenant.sh vps-setup/tenants/<your-tenant-id>.yml
-bash vps-setup/scripts/bootstrap-tenant.sh vps-setup/tenants/<your-tenant-id>.yml
+
+# ONE command: render, create user, install Node/Claude, copy files, activate
+# ops, install systemd units, AND (step 7d) install every capability —
+# Graphify, MCP servers, agency-agents, Firecrawl, the memory-v2 embedding
+# daemon, the Obsidian crontab, Mission Control, and all 31 timers.
+sudo bash vps-setup/scripts/bootstrap-tenant.sh vps-setup/tenants/<your-tenant-id>.yml
+
+# Authenticate the subscription, then re-run the capability installer ONCE so the
+# auth-dependent pieces (Superpowers, MCP servers, Graphify skill) finish:
+sudo -u <linux_user> -H claude login
+sudo bash vps-setup/scripts/install-capabilities.sh vps-setup/tenants/<your-tenant-id>.yml
 ```
+
+`install-capabilities.sh` is **idempotent and re-runnable** — it's the one to run if a deploy ever looks incomplete (no Graphify, no Obsidian, missing timers). Verify with `vps-setup/scripts/post-deploy-verify.sh` (now includes a capability-coverage section).
 
 Then point your domain's DNS at the VPS and you have a fully autonomous always-on agent reachable via your Telegram bot in ~60 minutes from blank Ubuntu.
 

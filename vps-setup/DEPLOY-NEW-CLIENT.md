@@ -162,19 +162,24 @@ rsync -av vps-setup/agents-config/<client-id>/ root@<vps_ip>:/tmp/<client-id>-re
 
 ### 5.4 Bootstrap on VPS
 
+One command does the whole thing — render, create user, install Node/Claude, copy files, activate ops, install systemd units, **and (at step 7d) call `install-capabilities.sh`**:
+
 ```bash
-# On VPS as root:
-bash /tmp/<client-id>-rendered/scripts/install-all.sh   # if this script exists in the template
-# OR run the manual steps that bootstrap-tenant.sh would do:
-# - copy CLAUDE.md, .claude/settings.json, agents, scripts
-# - install systemd units (.service + .timer files)
-# - install nginx vhost
-# - generate htpasswd for dashboard basic-auth
-# - install sudoers entry
-# - generate SSH key for the agent user
+# On VPS as root, from the cloned repo:
+sudo bash vps-setup/scripts/bootstrap-tenant.sh vps-setup/tenants/<client-id>.yml
 ```
 
-The Ella template includes a `bootstrap-tenant.sh` (or equivalent) that wraps all of this — see `vps-setup/scripts/`.
+`install-capabilities.sh` is the step that installs **every capability** — and it's the one to re-run if a deploy ever looks incomplete:
+
+```bash
+# Idempotent + re-runnable. Installs Graphify (CLI + skill), MCP servers
+# (memory/fetch/filesystem/playwright/chroma), agency-agents, Firecrawl, the
+# memory-v2 embedding daemon, the Obsidian export crontab, Mission Control, ALL
+# 31 systemd timers, and OpenSwarm (if enabled).
+sudo bash vps-setup/scripts/install-capabilities.sh vps-setup/tenants/<client-id>.yml
+```
+
+**Auth-dependent installers** (Superpowers, some MCP servers) only finish after `claude login`. So the reliable sequence is: bootstrap → `claude login` (5.5) → **run `install-capabilities.sh` once more** to complete those. It's idempotent, so re-running is safe and only fills gaps.
 
 ### 5.5 Authenticate Claude Code on the VPS
 
@@ -185,7 +190,9 @@ sudo -u <linux_user> -H claude login
 # Visit it in your browser, sign in with the client's Anthropic account, paste the code back.
 ```
 
-This is the ONE interactive step the human can't skip — Anthropic OAuth requires a browser. ~30 seconds.
+This is the ONE interactive step the human can't skip — Anthropic OAuth requires a browser. ~30 seconds. **After this, re-run `install-capabilities.sh` (5.4) once** so the auth-dependent installers (Superpowers, MCP servers, Graphify skill registration) complete.
+
+Steps 5.6–5.9 below describe what `install-capabilities.sh` does internally — you don't run them by hand unless you're debugging a specific capability.
 
 ### 5.6 Memory layer v2 init (new in v0.5)
 

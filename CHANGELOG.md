@@ -2,6 +2,42 @@
 
 All notable changes to this repo. Format roughly follows [Keep a Changelog](https://keepachangelog.com/). This is a multi-tenant template, so versions reflect what's available to clone for a new tenant — not what's running at any one customer's deployment.
 
+## [v0.9.4] — 2026-05-20
+
+### Fixed — Incomplete deploys: bootstrap now installs EVERY capability
+
+**The bug:** a real deployment came up missing Graphify, the Obsidian mirror, the embedding daemon, MCP servers, and most systemd timers. Root cause was a **split-brain bootstrap**: `bootstrap-tenant.sh` (the VPS entry point) only installed Node/Claude + copied files + enabled **4 of 31 timers**. It never ran the `agent-stack/scripts/` installers (Graphify, MCP servers, agency-agents, Firecrawl, Superpowers), never set up the memory-v2 embedding daemon, never installed the Obsidian export crontab, and never called `bootstrap-mission-control.sh`. It even *used* `graphify` at step 7c without ever installing it (failed silently, "non-fatal"). The richer steps lived only in the prose runbook, so a deploy that ran the script directly got a hollow agent.
+
+**The fix — one idempotent capability installer:**
+
+- **`vps-setup/scripts/install-capabilities.sh`** (new) — installs **every** capability in one re-runnable command, driven by `tenant.yml` feature flags:
+  1. agent-stack installers (Superpowers, MCP memory/fetch/filesystem/playwright/chroma, agency-agents, Firecrawl, **Graphify**) — auto-generates the `agent-stack/config/client.env` the installers need, then runs each as the tenant user, non-fatal.
+  2. Memory v2 — `pip install sentence-transformers`, vault rebuild, `install-memory-timers.sh`, embedding daemon start.
+  3. Obsidian mirror — installs the high-frequency crontab (memory-export every 5 min, entity-linker, commitment-watcher, @reboot daemons) + first export.
+  4. Enables **all 31 systemd timers** (was 4).
+  5. Mission Control — calls `bootstrap-mission-control.sh`.
+  6. OpenSwarm — if `multi_agent_swarms: true`.
+  7. Discord — enables the webhook server if a token is present.
+- **`bootstrap-tenant.sh`** — new step 7d calls `install-capabilities.sh` automatically, so a fresh deploy is complete end-to-end.
+- **`post-deploy-verify.sh`** — new "5b. agent capabilities" section that fails if Graphify, the tenant crontab, or MCP servers are missing — so an incomplete deploy can't pass verification.
+- **`NEW-CLIENT-CLAUDE.md` + `DEPLOY-NEW-CLIENT.md`** — document `install-capabilities.sh` as the capability step, including the run-twice-around-`claude login` pattern (auth-dependent installers finish on the second pass).
+- **`README.md`** — VPS-install quickstart updated to the complete one-command flow.
+
+**Repairing an existing incomplete deploy** (idempotent — safe to run on a live agent):
+
+```bash
+cd /path/to/cloned/ella-repo
+sudo bash vps-setup/scripts/install-capabilities.sh vps-setup/tenants/<id>.yml
+sudo -u <linux_user> -H claude login    # if not already authed
+sudo bash vps-setup/scripts/install-capabilities.sh vps-setup/tenants/<id>.yml   # 2nd pass finishes auth-dependent installers
+```
+
+### Why it matters
+
+Before v0.9.4: whether a deploy was complete depended on whether the operator (human or agent) followed the full prose runbook or just ran the bootstrap script. After v0.9.4: the bootstrap script *is* the full runbook — one idempotent command installs everything, and `post-deploy-verify.sh` proves it.
+
+---
+
 ## [v0.9.3] — 2026-05-20
 
 ### Added — Cost intelligence: today's-spend attribution + cache-health diagnostic
