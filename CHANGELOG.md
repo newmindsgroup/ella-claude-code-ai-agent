@@ -2,7 +2,7 @@
 
 All notable changes to this repo. Format roughly follows [Keep a Changelog](https://keepachangelog.com/). This is a multi-tenant template, so versions reflect what's available to clone for a new tenant — not what's running at any one customer's deployment.
 
-## [v0.9.4] — 2026-05-20
+## [v0.19.0] — 2026-05-20
 
 ### Fixed — Incomplete deploys: bootstrap now installs EVERY capability
 
