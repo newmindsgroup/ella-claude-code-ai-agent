@@ -2,6 +2,29 @@
 
 All notable changes to this repo. Format roughly follows [Keep a Changelog](https://keepachangelog.com/). This is a multi-tenant template, so versions reflect what's available to clone for a new tenant — not what's running at any one customer's deployment.
 
+## [v0.19.1] — 2026-05-25
+
+### Changed — Template governance: this repo is a consume-only template
+
+Marks the repo as a **GitHub template** (`is_template: true`) and adds an explicit
+"don't write to the template" guardrail, after multiple uncoordinated sessions
+(all pushing as the same `newmindsgroup` account during the Daniel-stack → Ella
+mirror) caused a versioning collision (two different `v0.9.4`s).
+
+- **`AGENTS.md`** (new, repo root) — the rule any agent reads on entry: deployed
+  agents are *consumers* and must never push/commit/PR to this repo. Documents how
+  a deployed agent updates itself from the template (clone read-only → re-render its
+  tenant → `install-capabilities.sh`), plus the maintainer mirror discipline
+  (fetch + `git tag -l | sort -V | tail` to find the true latest version before
+  committing; stage only your own files; one mirror session at a time).
+- **`README.md`** — banner stating the repo is the canonical template; deployed
+  agents pull updates and never push back.
+- Repo flagged as a GitHub template (adds the "Use this template" button).
+
+No code changes — governance + docs only.
+
+---
+
 ## [v0.19.0] — 2026-05-20
 
 ### Fixed — Incomplete deploys: bootstrap now installs EVERY capability

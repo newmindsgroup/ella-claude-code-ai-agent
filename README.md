@@ -8,6 +8,8 @@
 
 > Designed and built by **[Daniel Gonell](https://danielgonell.com)** — brand, UX & AI systems consultant.
 
+> 📐 **This is a template repository — the canonical source of truth.** Click **Use this template** (or clone it) to start a deployment. Deployed agents are *consumers*: they pull updates into their own deployment and **never push back here**. See [`AGENTS.md`](AGENTS.md) for the rules agents follow.
+
 ---
 
 ## What this is
