@@ -38,6 +38,7 @@ expected_timers=(
   "disk-space-watcher.timer"
   "hot-lead-inbox-watcher.timer"
   "calendar-conflict-watcher.timer"
+  "website-uptime-watcher.timer"
   "graphify-rebuild.timer"
   "graphify-semantic.timer"
   "agent-skill@brand-drift-scanner.timer"
@@ -72,6 +73,7 @@ expected_scripts=(
   "disk-space-watcher.sh"
   "hot-lead-inbox-watcher.sh"
   "calendar-conflict-watcher.sh"
+  "website-uptime-watcher.sh"
   "graphify-rebuild.sh"
 )
 for s in "${expected_scripts[@]}"; do
@@ -80,7 +82,7 @@ for s in "${expected_scripts[@]}"; do
 done
 
 # ───────────────────────────────────────────────────────────────────────────
-section "4. CHANNELS PLUGIN PATCHES (5 passes)"
+section "4. CHANNELS PLUGIN PATCHES (7 passes)"
 # ───────────────────────────────────────────────────────────────────────────
 PLUGIN={{TENANT_USER_HOME}}/.claude/plugins/cache/claude-plugins-official/telegram/0.0.6/server.ts
 sentinels=(
@@ -89,6 +91,8 @@ sentinels=(
   "v2.27.2: proposal approval callbacks"
   "v2.27.3: forward_origin metadata"
   "v2.27.4: email triage callbacks"
+  "v2.62.0: chat parity ingest tee"
+  "v2.78.0: outbound reply ingest tee"
 )
 for s in "${sentinels[@]}"; do
   if grep -q "$s" "$PLUGIN" 2>/dev/null; then ok "$s"
