@@ -120,12 +120,15 @@
   .kanban-card:focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; }
   .seg-toggle { transition: background 120ms ease, color 120ms ease; }
 
-  /* ── Table cells: short labels never wrap mid-token (e.g. "inbound-triage"). ──
+  /* ── Labels never wrap mid-token (e.g. "inbound-triage"). ──
      Every Mission Control table sits in an overflow-x-auto wrapper, so keeping
      cells single-line widens the column and lets the table scroll horizontally
-     instead of breaking a label onto two rows. Prose (descriptions) opts back
-     into normal wrapping with .cell-wrap. */
+     instead of breaking a label onto two rows. The pill rule below catches
+     short label pills outside tables too — sidebar counters, kanban card
+     owners, chat badges, modal labels. Prose opts back in with .cell-wrap. */
   table td, table th { white-space: nowrap; }
+  span[class*="rounded"][class*="text-[10px]"],
+  span[class*="rounded"][class*="text-[11px]"] { white-space: nowrap; }
   .cell-wrap, .cell-wrap * { white-space: normal; }
 </style>
 </head>
@@ -368,7 +371,7 @@
                 <span>Today's signal</span>
                 <span data-bind="signalTotalBadge" class="text-[11px] mono px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">0 need attention</span>
               </h2>
-              <span class="text-xs text-slate-400 mono">unified view across all surfaces</span>
+              <span class="hidden md:inline text-xs text-slate-400 mono">unified view across all surfaces</span>
             </div>
             <div id="signal-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></div>
             <div id="signal-empty" class="hidden p-6 text-center text-sm text-slate-500">
@@ -414,7 +417,7 @@
                 <span>Active sessions</span>
                 <span data-bind="sessionsActiveBadge" class="text-[11px] mono px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">0 active</span>
               </h2>
-              <span class="text-xs text-slate-400 mono">~/.claude/projects/ · context window usage</span>
+              <span class="hidden md:inline text-xs text-slate-400 mono">~/.claude/projects/ · context window usage</span>
             </div>
             <div id="sessions-list" class="space-y-3"></div>
             <div id="sessions-empty" class="hidden p-4 text-center text-xs text-slate-500">
