@@ -190,6 +190,7 @@ TIMERS=(claude-agent.service)
 [[ -f "/etc/systemd/system/morning-brief.timer" ]]   && TIMERS+=(morning-brief.timer)
 [[ -f "/etc/systemd/system/evening-rollup.timer" ]]  && TIMERS+=(evening-rollup.timer)
 [[ -f "/etc/systemd/system/stale-watcher.timer" ]]   && TIMERS+=(stale-watcher.timer)
+[[ -f "/etc/systemd/system/website-uptime-watcher.timer" ]] && TIMERS+=(website-uptime-watcher.timer)
 systemctl enable "${TIMERS[@]}"
 
 # ---- step 7c: fold the client's codebase into the knowledge graph ----

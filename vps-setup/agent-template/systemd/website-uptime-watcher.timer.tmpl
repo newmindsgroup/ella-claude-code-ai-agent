@@ -1,0 +1,15 @@
+[Unit]
+Description=Run website-uptime-watcher every 10 minutes
+
+[Timer]
+# Every 10 minutes, around the clock. Site can break at any hour; visitors
+# don't wait for waking hours. 10-min cadence is the sweet spot — fast enough
+# that you'd find out before customers do, slow enough not to flood logs or
+# look like a load test in the access log.
+OnCalendar=*:0/10
+Persistent=true
+RandomizedDelaySec=60
+Unit=website-uptime-watcher.service
+
+[Install]
+WantedBy=timers.target

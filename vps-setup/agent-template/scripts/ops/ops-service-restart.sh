@@ -38,6 +38,7 @@ ALLOWED=(
   disk-space-watcher
   hot-lead-inbox-watcher
   calendar-conflict-watcher
+  website-uptime-watcher
   graphify-rebuild
   telegram-poller-watchdog
   deploy-timeout-sweep

@@ -1,0 +1,18 @@
+[Unit]
+Description={{TENANT_PERSON_FIRST_NAME}} website-uptime watcher (proactive Telegram nudges)
+Documentation=https://github.com/newmindsgroup/{{TENANT_BRAND_REPO_NAME}}
+After=network.target
+
+[Service]
+Type=oneshot
+User={{TENANT_LINUX_USER}}
+Group={{TENANT_LINUX_GROUP}}
+WorkingDirectory={{TENANT_AGENT_HOME}}
+Environment="HOME={{TENANT_USER_HOME}}"
+Environment="PATH=/usr/local/bin:/usr/bin:/bin:{{TENANT_USER_HOME}}/.bun/bin:{{TENANT_USER_HOME}}/.local/bin"
+Environment="TENANT_AGENT_HOME={{TENANT_AGENT_HOME}}"
+Environment="TENANT_WEBSITE_URL={{TENANT_WEBSITE_URL}}"
+ExecStart=/usr/bin/env bash {{TENANT_AGENT_HOME}}/scripts/website-uptime-watcher.sh
+StandardOutput=append:{{TENANT_AGENT_HOME}}/logs/website-uptime-watcher.log
+StandardError=append:{{TENANT_AGENT_HOME}}/logs/website-uptime-watcher.log
+TimeoutStartSec=60
