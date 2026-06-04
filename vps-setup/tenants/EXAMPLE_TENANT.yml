@@ -198,6 +198,10 @@ features:
   hot_lead_inbox_watcher:   true   # 4×/day — Gmail MCP + GHL cross-ref via claude --print
   calendar_conflict_watcher: true  # 3×/day 07/12/17 — overlapping events on primary calendar
   graphify_rebuild:         true   # weekly Sunday 03:00 — AST-only project graph refresh
+  context7:                 true   # Context7 MCP — up-to-date library docs at query time; the agent calls it
+                                    # automatically before generating code that uses any third-party library.
+                                    # Works without an API key (free anonymous tier); raise rate limits by
+                                    # setting context7_api_key in client-credentials.md (→ CONTEXT7_API_KEY env).
   # v0.3+ agent self-service ops (5 wrappers under {{TENANT_AGENT_HOME}}/scripts/ops/)
   agent_self_service_ops:   true   # adds sudoers entry for {{TENANT_LINUX_USER}}
   # v0.3+ voice round-trip (whisper.cpp transcribe + edge-tts reply)

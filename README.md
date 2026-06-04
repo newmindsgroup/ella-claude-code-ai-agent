@@ -436,6 +436,7 @@ Built on top of work by:
 - [VRSEN](https://github.com/VRSEN) (OpenSwarm — 8-specialist multi-agent framework)
 - [VoltAgent](https://github.com/VoltAgent) (awesome-design-md / DESIGN.md format)
 - [Mendable](https://github.com/mendableai) (Firecrawl)
+- [Upstash](https://github.com/upstash) (Context7 — live library docs MCP)
 - [Microsoft](https://github.com/microsoft/playwright-mcp) (Playwright MCP)
 
 If your work is in here and you'd like better attribution or want it removed, open an issue.

@@ -2,6 +2,42 @@
 
 All notable changes to this repo. Format roughly follows [Keep a Changelog](https://keepachangelog.com/). This is a multi-tenant template, so versions reflect what's available to clone for a new tenant — not what's running at any one customer's deployment.
 
+## [v0.22.0] — 2026-05-25
+
+### Added — Context7 MCP fully wired (live, version-aware library docs)
+
+Every new deploy now ships [Context7](https://github.com/upstash/context7)
+(Upstash) end-to-end — installer, MCP registration, and the auto-use rule in the
+agent's CLAUDE.md — so the agent codes against *current* library APIs instead of
+training-data guesswork. Works on the free anonymous tier with zero config.
+
+- **`agent-stack/scripts/10-install-context7-mcp.sh`** (new) — pre-pulls the
+  `@upstash/context7-mcp` npm package via `npx`, idempotently registers it as
+  the `context7` MCP server (in `.mcp.json` if `AGENT_MCP_JSON_PATH` is set,
+  else `claude mcp add --scope user`), and uses `CONTEXT7_API_KEY` from
+  `client.env` for higher rate limits when provided.
+- **`agent-stack/scripts/install-all.sh`** + **`vps-setup/scripts/install-capabilities.sh`** — added `10-install-context7-mcp` to the installer loop, so a fresh deploy and `install-capabilities.sh` both wire it.
+- **`vps-setup/agent-template/.mcp.json.example.tmpl`** — adds the `context7`
+  server entry (npx-based, env-injected API key).
+- **`vps-setup/agent-template/CLAUDE.md.tmpl`** — new top-level rule
+  ("Library/API docs — ALWAYS use Context7 before generating code") that tells
+  the agent to call `resolve-library-id` → `get-library-docs` automatically for
+  any task touching a third-party library/SDK/framework. Documents the two-step
+  pattern, the `use context7` trigger phrase, and when to skip (pure logic, own
+  canon, etc.).
+- **`EXAMPLE_TENANT.yml`** — `features.context7: true` (default on).
+- **`examples/client-credentials.template.md`** — optional `context7_api_key`
+  slot (works without; raises rate limits with).
+- **`docs/context7-setup.md`** (new) — short inventory of what's pre-configured
+  vs. the (optional, zero-required) API key.
+- **`docs/upstream-dependencies.md`** + README acknowledgements — added.
+
+Net effect: every deploy from v0.22.0 onward has live library docs wired by
+default. The agent reaches for `mcp__context7__*` whenever a request would
+otherwise produce code against a possibly-stale API surface.
+
+---
+
 ## [v0.21.0] — 2026-05-25
 
 ### Added — One-command Telegram setup (config is in the template, awaiting only your token)

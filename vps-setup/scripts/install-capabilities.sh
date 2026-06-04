@@ -70,7 +70,8 @@ chown "$LINUX_USER:$LINUX_USER" "$CLIENT_ENV" 2>/dev/null || true
 # their ~/.claude). Order matters: superpowers first, graphify last.
 for inst in 01-install-superpowers 02-install-mcp-memory 03-install-mcp-fetch \
             04-install-mcp-filesystem 05-install-mcp-playwright 06-install-mcp-chroma \
-            07-install-agency-agents 08-install-firecrawl-mcp 09-install-graphify; do
+            07-install-agency-agents 08-install-firecrawl-mcp 09-install-graphify \
+            10-install-context7-mcp; do
   script="$REPO_ROOT/agent-stack/scripts/$inst.sh"
   if [[ ! -f "$script" ]]; then warn "$inst.sh missing — skipping"; continue; fi
   echo "  → $inst …"

@@ -176,6 +176,18 @@ firecrawl_api_key:    ""                               # OPTIONAL. Without it, F
                                                        # Get one at firecrawl.dev (free tier exists).
 ```
 
+### Context7 (live library docs MCP, v0.22+)
+
+Pulls current, version-specific documentation for any library/SDK/framework at
+query time, so the agent codes against the *current* API instead of stale
+training data. **Works with NO API key** (free anonymous tier) — providing one
+just raises rate limits.
+
+```yaml
+context7_api_key:     ""                               # OPTIONAL. Free key at https://context7.com/dashboard.
+                                                       # Without it: anonymous tier (lower rate limits, still works).
+```
+
 ### Discord command center (v0.5+, optional second surface)
 
 Set `discord_enabled: true` in the rendered tenant.yml to activate. Setup runbook:

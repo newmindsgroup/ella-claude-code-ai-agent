@@ -17,6 +17,7 @@ bash "${SCRIPT_DIR}/06-install-mcp-chroma.sh"
 bash "${SCRIPT_DIR}/07-install-agency-agents.sh"
 bash "${SCRIPT_DIR}/08-install-firecrawl-mcp.sh"
 bash "${SCRIPT_DIR}/09-install-graphify.sh"
+bash "${SCRIPT_DIR}/10-install-context7-mcp.sh"
 bash "${SCRIPT_DIR}/99-verify-all.sh"
 
 log_step "install-all complete"

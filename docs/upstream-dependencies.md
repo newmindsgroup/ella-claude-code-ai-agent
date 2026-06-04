@@ -42,6 +42,13 @@ If you're auditing this for a security-conscious deployment, this is the documen
 - **Why:** 14-tool MCP server for scrape, search, crawl, structured extract, persistent browser sessions. Pairs with `ai-citation-strategist` for AI-search visibility audits, `competitive-monitor` patterns for site change tracking. Registered by `08-install-firecrawl-mcp.sh`.
 - **Pricing:** Free tier has rate limits + monthly quota; paid tiers scale with volume.
 
+### Context7 (Upstash)
+- **MCP Server repo:** https://github.com/upstash/context7
+- **Service:** https://context7.com — free anonymous tier; free signed-up tier raises rate limits
+- **License:** MIT
+- **Why:** Two-tool MCP (`resolve-library-id` + `get-library-docs`) that pulls up-to-date, version-specific library documentation at query time, so the agent codes against the *current* API instead of stale training data. The template's `CLAUDE.md.tmpl` tells the agent to call it automatically before generating any code that touches a third-party library or framework, and the user can also append `use context7` to force a lookup. Registered by `10-install-context7-mcp.sh`.
+- **Cost:** $0 — anonymous works; a free API key raises rate limits.
+
 ### VoltAgent/awesome-design-md
 - **Repo:** https://github.com/VoltAgent/awesome-design-md
 - **License:** MIT
