@@ -87,12 +87,43 @@ if [[ -z "${API_KEY}" ]]; then
   log_warn "Get a free key at https://context7.com/dashboard and re-run to upgrade."
 fi
 
+# ---------- enable in project trust list ----------
+# Project-scoped MCPs from .mcp.json require approval before Claude Code will
+# load them in dontAsk mode. Idempotently add 'context7' (and 'ghl' +
+# 'firecrawl' for parity with the other installers) to
+# projects[<CLAUDE_PROJECT_ROOT>].enabledMcpjsonServers in the user's
+# ~/.claude.json. Without this, the server is registered in .mcp.json but
+# never actually loaded by the agent.
+#
+# Caller env (with sensible defaults):
+#   USER_CLAUDE_JSON_PATH  — override path to .claude.json
+#   CLAUDE_PROJECT_ROOT    — the project key inside .claude.json
+USER_CLAUDE_JSON="${USER_CLAUDE_JSON_PATH:-}"
+if [[ -z "${USER_CLAUDE_JSON}" && -n "${CLAUDE_PROJECT_ROOT:-}" ]]; then
+  # Convention: .claude.json sits in the linux user's HOME, one level above CLAUDE_PROJECT_ROOT
+  USER_CLAUDE_JSON="$(dirname "${CLAUDE_PROJECT_ROOT}")/.claude.json"
+fi
+
+if [[ -n "${USER_CLAUDE_JSON}" && -f "${USER_CLAUDE_JSON}" && -n "${CLAUDE_PROJECT_ROOT:-}" ]]; then
+  log_info "Enabling project MCPs (context7, ghl, firecrawl) in ${USER_CLAUDE_JSON}"
+  tmp="$(mktemp)"
+  jq --arg proj "${CLAUDE_PROJECT_ROOT}" '
+    .projects[$proj].enabledMcpjsonServers =
+      ((.projects[$proj].enabledMcpjsonServers // []) + ["context7", "ghl", "firecrawl"] | unique)
+  ' "${USER_CLAUDE_JSON}" > "${tmp}" && mv "${tmp}" "${USER_CLAUDE_JSON}"
+  log_info "  ✓ enabledMcpjsonServers updated"
+else
+  log_warn "USER_CLAUDE_JSON_PATH / CLAUDE_PROJECT_ROOT not set or .claude.json missing — skipping trust-list update."
+  log_warn "If 'claude --print' refuses to call mcp__context7__*, manually add 'context7' to"
+  log_warn "  projects[<your-project-root>].enabledMcpjsonServers in ~/.claude.json"
+fi
+
 log_info ""
 log_info "Context7 installed."
 log_info "  Tools:        resolve-library-id, get-library-docs"
 log_info "  Trigger:      append 'use context7' to any prompt"
 log_info "  Auto-use:     the agent's CLAUDE.md tells it to call Context7 for any library task"
-log_info "  Verify:       claude mcp list | grep context7"
+log_info "  Verify:       jq '.mcpServers.context7' .mcp.json   (project MCPs do not show in 'claude mcp list')"
 
 log_step "Context7 install complete"
 log_implementation "10-install-context7-mcp.sh" "Registered Context7 MCP$([ -n "${API_KEY}" ] && echo ' (with API key)' || echo ' (anonymous tier)')"
