@@ -137,10 +137,10 @@ tz_yaml=$(grep '^timezone:' {{TENANT_AGENT_HOME}}/{{TENANT_BRAND_REPO_NAME}}/vps
 if [[ "$tz_yaml" == "{{TENANT_TIMEZONE}}" ]]; then ok "tenant.yml timezone = {{TENANT_WEATHER_LABEL}}"
 else fail "tenant.yml timezone = $tz_yaml (expected {{TENANT_TIMEZONE}})"; fi
 
-# All timer files should reference {{TENANT_WEATHER_LABEL}}
-hf_count=$(grep -l '{{TENANT_TIMEZONE}}' /etc/systemd/system/*.timer /etc/systemd/system/*.service 2>/dev/null | wc -l)
-if [[ "$hf_count" -eq 0 ]]; then ok "No {{TENANT_WEATHER_LABEL}} references in /etc/systemd/system/"
-else fail "$hf_count units still reference {{TENANT_TIMEZONE}}"; fi
+# Retired: the old "no Halifax references" scar-tissue check. Halifax was a
+# stale Cowork-session leak corrected pre-v2.43.0; the check has no purpose
+# now and a naive {{TENANT_TIMEZONE}} substitution inverts the intent
+# (the tenant's own timezone is expected to appear in timer/service units).
 
 # ───────────────────────────────────────────────────────────────────────────
 section "7. WATCHER DEDUP LOGS (notifications/)"
