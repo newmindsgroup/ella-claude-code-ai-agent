@@ -381,6 +381,20 @@ else
   fail "/docs slash command missing from CLAUDE.md routing"
 fi
 
+CTX7_JSON="/var/www/{{TENANT_DASHBOARD_HOSTNAME}}/api/context7.json"
+if [[ -f "$CTX7_JSON" ]] && jq -e '.calls_24h, .calls_7d' "$CTX7_JSON" >/dev/null 2>&1; then
+  ok "Mission Control state/context7.json endpoint live"
+else
+  fail "state/context7.json missing or invalid (run dashboard-sync-autonomy.py)"
+fi
+
+if grep -q 'data-tab="library-docs"' "{{TENANT_AGENT_HOME}}/dashboard/index.html" 2>/dev/null \
+   || grep -q 'data-tab="library-docs"' "/var/www/{{TENANT_DASHBOARD_HOSTNAME}}/index.html" 2>/dev/null; then
+  ok "Mission Control Library Docs tab present in dashboard HTML"
+else
+  warn "Library Docs tab not found in dashboard HTML (re-run dashboard-sync.sh or redeploy)"
+fi
+
 # ───────────────────────────────────────────────────────────────────────────
 section "FINAL"
 # ───────────────────────────────────────────────────────────────────────────
