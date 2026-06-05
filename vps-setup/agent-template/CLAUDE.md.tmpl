@@ -69,6 +69,18 @@ When you write code that uses any library, SDK, framework, CLI, or external API 
 1. `mcp__context7__resolve-library-id` with the library/framework name → returns a Context7 ID like `/upstash/context7` or `/vercel/next.js`.
 2. `mcp__context7__get-library-docs` with that ID + your specific question → returns current, version-scoped documentation snippets.
 
+**{{TENANT_PERSON_FIRST_NAME}}'s stack — canonical Context7 IDs (skip step 1 for these; call `get-library-docs` directly with the ID):**
+
+Populate this table during onboarding with the client's actual stack. Resolve each library once with `ctx7 library <name>` and pin the top result's ID, so the agent never does an ambiguous lookup for a known library. Example rows (replace with the client's real stack):
+
+| Library | Context7 ID | Where it's used |
+|---|---|---|
+| Next.js | `/vercel/next.js` | (example) web frontend |
+| Tailwind CSS | `/tailwindlabs/tailwindcss.com` | (example) styling |
+| _…add the client's libraries here…_ | | |
+
+For anything NOT in this table, run `resolve-library-id` first.
+
 **Do this automatically — {{TENANT_PERSON_FIRST_NAME}} should not have to ask.** Triggers: "set up X", "configure Y", "implement auth with Z", "what's the API for…", or any request that produces code touching a third-party library. If {{TENANT_PERSON_FIRST_NAME}} appends `use context7` to a prompt, treat that as an explicit instruction to ground the next step in fresh docs, including the version if mentioned (e.g. *Next.js 15 middleware*).
 
 **When to skip:** pure logic with no external dependency, your own brand canon, anything already covered by the project's own `{{TENANT_AGENT_HOME}}/{{TENANT_BRAND_REPO_NAME}}/` docs. Don't lookup-storm for trivia.
