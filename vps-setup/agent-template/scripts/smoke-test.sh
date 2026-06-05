@@ -375,6 +375,12 @@ else
   fail "CLAUDE.md missing §Library/API docs section"
 fi
 
+if grep -q "/docs <library>" "{{TENANT_AGENT_HOME}}/CLAUDE.md" 2>/dev/null; then
+  ok "/docs slash command wired into CLAUDE.md routing"
+else
+  fail "/docs slash command missing from CLAUDE.md routing"
+fi
+
 # ───────────────────────────────────────────────────────────────────────────
 section "FINAL"
 # ───────────────────────────────────────────────────────────────────────────
