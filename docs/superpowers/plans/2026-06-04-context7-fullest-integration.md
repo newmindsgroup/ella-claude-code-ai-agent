@@ -233,7 +233,7 @@ Record the new HEAD: `git rev-parse HEAD`.
 ```bash
 ssh projectizer 'bash -lc "
   set -e
-  cd /opt/danielgonell/source
+  cd /opt/danielgonell/agents/daniel-personal-brand
   git fetch --quiet && git pull --ff-only
   sudo bash vps-setup/scripts/render-and-deploy.sh danielgonell
   sudo bash agent-stack/scripts/10-install-context7-mcp.sh
@@ -365,7 +365,7 @@ git push origin main
 ```bash
 ssh projectizer 'bash -lc "
   set -e
-  cd /opt/danielgonell/source
+  cd /opt/danielgonell/agents/daniel-personal-brand
   git pull --ff-only
   sudo bash vps-setup/scripts/render-and-deploy.sh danielgonell
   sudo -u danielgonell -H bash /opt/danielgonell/.agents/scripts/smoke-test.sh 2>&1 | tail -30
@@ -527,7 +527,7 @@ Same shape as Step 3.6 in the Daniel repo. Push.
 ```bash
 ssh projectizer 'bash -lc "
   set -e
-  cd /opt/danielgonell/source
+  cd /opt/danielgonell/agents/daniel-personal-brand
   git pull --ff-only
   sudo bash vps-setup/scripts/render-and-deploy.sh danielgonell
   ls -la /opt/danielgonell/.agents/skills/context7-cli/
@@ -610,7 +610,7 @@ Same atomic-commit pattern: pull --ff-only, add only the new files, commit with 
 ```bash
 ssh projectizer 'bash -lc "
   set -e
-  cd /opt/danielgonell/source
+  cd /opt/danielgonell/agents/daniel-personal-brand
   git pull --ff-only
   sudo bash vps-setup/scripts/render-and-deploy.sh danielgonell
   test -f /opt/danielgonell/.claude/commands/docs.md && cat /opt/danielgonell/.claude/commands/docs.md | head -5
@@ -901,7 +901,7 @@ git push origin main
 ```bash
 ssh projectizer 'bash -lc "
   set -e
-  cd /opt/danielgonell/source
+  cd /opt/danielgonell/agents/daniel-personal-brand
   git pull --ff-only
   sudo bash vps-setup/scripts/render-and-deploy.sh danielgonell
   sudo systemctl restart dashboard-sync.service || true
