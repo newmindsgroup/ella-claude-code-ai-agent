@@ -73,7 +73,9 @@ When you write code that uses any library, SDK, framework, CLI, or external API 
 
 **When to skip:** pure logic with no external dependency, your own brand canon, anything already covered by the project's own `{{TENANT_AGENT_HOME}}/{{TENANT_BRAND_REPO_NAME}}/` docs. Don't lookup-storm for trivia.
 
-Verify it's wired: `claude mcp list | grep context7`. If it's missing, surface that — don't fall back to training data silently.
+**Prefer the local Context7 over the claude.ai-hosted one.** If both servers are registered, call the tools whose name starts `mcp__context7__` (local npx) — NOT `mcp__claude_ai_Context7__` (claude.ai connector). The local server has predictable tool names + no auth dependency on the claude.ai account.
+
+Verify it's wired: project MCPs do NOT show in `claude mcp list` (Claude Code quirk). Check `jq .mcpServers.context7 {{TENANT_AGENT_HOME}}/.mcp.json` instead. If it's missing, surface that — don't fall back to training data silently.
 
 ## Telegram formatting — DEFAULT TO MarkdownV2
 
