@@ -121,6 +121,12 @@ sudo -u "$LINUX_USER" cp "$RENDERED_DIR"/scripts/*.sh "$RENDERED_DIR"/scripts/*.
 sudo -u "$LINUX_USER" chmod +x "$AGENT_HOME"/scripts/*.sh
 [[ -f "$AGENT_HOME/tasks/README.md" ]] || sudo -u "$LINUX_USER" cp "$RENDERED_DIR/tasks/README.md" "$AGENT_HOME/tasks/README.md"
 
+# Post-render install scripts (idempotent — safe on re-bootstrap)
+if [[ -f "$AGENT_HOME/scripts/install-context7-cli-skill.sh" ]]; then
+  bash "$AGENT_HOME/scripts/install-context7-cli-skill.sh" || \
+    echo "[bootstrap] install-context7-cli-skill.sh failed (non-fatal — MCP path still works)" >&2
+fi
+
 # ---- step 6b: ACTIVATE self-service ops (sudoers + root-owned wrappers + SSH key) ----
 # This is what turns the inert ops/ templates into a working capability. The
 # agent gets passwordless sudo to ONLY the wrapper scripts in scripts/ops/,
