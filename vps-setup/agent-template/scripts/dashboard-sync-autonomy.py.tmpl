@@ -523,8 +523,74 @@ def sync_graph():
         "updated_at": now.isoformat(),
     })
 
+def sync_context7():
+    """Parse Claude Code session JSONLs for mcp__context7__* tool_use entries.
+    Aggregate calls_24h / calls_7d / top_libraries / last_queries. $0 — pure
+    log parsing on the free Context7 tier."""
+    from collections import Counter
+    projects_dir = Path(os.path.expanduser(f"/opt/{LINUX_USER}/.claude/projects"))
+    since_24h = now - timedelta(hours=24)
+    since_7d = now - timedelta(days=7)
+    calls = []
+    if projects_dir.is_dir():
+        for jsonl in projects_dir.glob("*/*.jsonl"):
+            try:
+                for ln in jsonl.read_text(errors="ignore").splitlines():
+                    ln = ln.strip()
+                    if not ln or '"mcp__context7__' not in ln:
+                        continue
+                    try:
+                        rec = json.loads(ln)
+                    except Exception:
+                        continue
+                    if rec.get("type") != "assistant":
+                        continue
+                    ts = rec.get("timestamp")
+                    if not ts:
+                        continue
+                    try:
+                        when = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                    except Exception:
+                        continue
+                    if when < since_7d:
+                        continue
+                    msg = rec.get("message", {}) or {}
+                    for blk in msg.get("content", []) or []:
+                        if not isinstance(blk, dict):
+                            continue
+                        name = blk.get("name") or ""
+                        if not name.startswith("mcp__context7__"):
+                            continue
+                        calls.append({
+                            "ts": ts, "when": when, "tool": name,
+                            "input": blk.get("input", {}) or {},
+                        })
+            except Exception:
+                continue
+    libs = Counter()
+    for c in calls:
+        lib = c["input"].get("libraryName") or c["input"].get("context7CompatibleLibraryID") or ""
+        if lib:
+            libs[str(lib)] += 1
+    calls_24h = [c for c in calls if c["when"] >= since_24h]
+    last5 = sorted(calls, key=lambda c: c["when"], reverse=True)[:5]
+    write("context7", {
+        "calls_24h": len(calls_24h),
+        "calls_7d": len(calls),
+        "top_libraries": [{"id": lib, "calls": n} for lib, n in libs.most_common(5)],
+        "last_queries": [
+            {"ts": c["ts"],
+             "library": c["input"].get("libraryName") or c["input"].get("context7CompatibleLibraryID") or "?",
+             "tool": c["tool"].replace("mcp__context7__", ""),
+             "query": str(c["input"].get("query") or c["input"].get("topic") or "")[:120]}
+            for c in last5
+        ],
+        "free_tier": True,
+        "updated_at": now.isoformat(),
+    })
+
 for fn in (sync_jobs, sync_growth, sync_proposals, sync_security, sync_watchers, sync_daily_brief,
-           sync_system, sync_agents, sync_graph):
+           sync_system, sync_agents, sync_graph, sync_context7):
     try:
         fn()
     except Exception as e:
