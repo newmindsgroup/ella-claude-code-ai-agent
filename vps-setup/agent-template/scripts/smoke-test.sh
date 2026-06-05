@@ -338,6 +338,44 @@ fi
 grep -q '/graph <question>' "{{TENANT_AGENT_HOME}}/CLAUDE.md" 2>/dev/null && ok "/graph wired into agent (CLAUDE.md)" || warn "/graph not in CLAUDE.md"
 
 # ───────────────────────────────────────────────────────────────────────────
+section "18. CONTEXT7 MCP (version-aware library docs)"
+# ───────────────────────────────────────────────────────────────────────────
+# Note: project-scoped MCPs from .mcp.json do NOT appear in 'claude mcp list'.
+# Verify via file + trust-list checks instead. Free tier requires no API key.
+MCP_JSON="{{TENANT_AGENT_HOME}}/.mcp.json"
+USER_CLAUDE_JSON="{{TENANT_USER_HOME}}/.claude.json"
+
+if [[ -f "$MCP_JSON" ]]; then
+  if jq -e '.mcpServers.context7' "$MCP_JSON" >/dev/null 2>&1; then
+    ok "context7 registered in .mcp.json"
+  else
+    fail "context7 missing from .mcp.json (run 10-install-context7-mcp.sh)"
+  fi
+else
+  fail ".mcp.json missing at $MCP_JSON"
+fi
+
+if [[ -f "$USER_CLAUDE_JSON" ]]; then
+  if jq -e --arg p "{{TENANT_AGENT_HOME}}" '.projects[$p].enabledMcpjsonServers | index("context7")' "$USER_CLAUDE_JSON" >/dev/null 2>&1; then
+    ok "context7 in projects[{{TENANT_AGENT_HOME}}].enabledMcpjsonServers (project trust list)"
+  else
+    fail "context7 NOT in enabledMcpjsonServers — agent will not load it (run installer with CLAUDE_PROJECT_ROOT set)"
+  fi
+fi
+
+if npx -y @upstash/context7-mcp@latest --help >/dev/null 2>&1; then
+  ok "Context7 MCP package fetchable via npx (free tier reachable)"
+else
+  warn "npx @upstash/context7-mcp@latest --help failed — network or npm registry issue"
+fi
+
+if grep -q "ALWAYS use Context7" "{{TENANT_AGENT_HOME}}/CLAUDE.md" 2>/dev/null; then
+  ok "CLAUDE.md has §Library/API docs rule (auto-use directive)"
+else
+  fail "CLAUDE.md missing §Library/API docs section"
+fi
+
+# ───────────────────────────────────────────────────────────────────────────
 section "FINAL"
 # ───────────────────────────────────────────────────────────────────────────
 echo
