@@ -68,6 +68,21 @@ Apply the Voice DNA documented in those files. If your draft conflicts with the 
 """
 
 
+def context7_block() -> str:
+    return """
+## 📚 Library Docs — Context7 First (read before generating code)
+
+Before generating any code that uses a third-party library, SDK, framework, CLI, or external API, call the Context7 MCP first:
+
+1. `mcp__context7__resolve-library-id` with the library/framework name → returns a Context7 ID like `/upstash/context7` or `/vercel/next.js`.
+2. `mcp__context7__get-library-docs` with that ID + your specific question → returns current, version-scoped documentation snippets.
+
+Ground the generated code in those snippets. Do NOT fall back to training-data guesses for APIs that ship from external packages — your training is months stale and the API surface drifts. Skip the lookup only for pure logic with no external dependency or for APIs already covered by the project's own canon.
+
+---
+"""
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--repo", required=True, type=Path,
@@ -117,7 +132,9 @@ def main() -> int:
 
         prefix = ""
         if agent.get("voice_aware") and voice_paths:
-            prefix = voice_block(voice_paths)
+            prefix += voice_block(voice_paths)
+        if agent.get("context7_aware"):
+            prefix += context7_block()
 
         sentinel = (
             f"<!-- installed-by: {INSTALL_TAG} | "
@@ -128,7 +145,12 @@ def main() -> int:
         target = args.target / f"{agent['name']}.md"
         target.write_text(out)
         installed.append(agent["name"])
-        marker = "  (voice-aware)" if agent.get("voice_aware") and voice_paths else ""
+        markers = []
+        if agent.get("voice_aware") and voice_paths:
+            markers.append("voice-aware")
+        if agent.get("context7_aware"):
+            markers.append("context7-aware")
+        marker = f"  ({', '.join(markers)})" if markers else ""
         print(f"  [OK]   {agent['name']}{marker}")
 
     print(f"\nInstalled {len(installed)} agents to {args.target}")

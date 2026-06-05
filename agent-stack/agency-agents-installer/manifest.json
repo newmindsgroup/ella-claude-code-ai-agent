@@ -1,17 +1,19 @@
 {
-  "_comment": "Cherry-picked agents from msitarzewski/agency-agents (MIT). Voice-DNA paths are NOT hardcoded here — they come from --voice-paths-file at install time so the same manifest works on Mac, VPS, or any future client install.",
+  "_comment": "Cherry-picked agents from msitarzewski/agency-agents (MIT). Voice-DNA paths are NOT hardcoded here \u2014 they come from --voice-paths-file at install time so the same manifest works on Mac, VPS, or any future client install.",
   "agents": [
     {
       "src": "engineering/engineering-ai-engineer.md",
       "name": "ai-engineer",
       "triggers": "Use PROACTIVELY when the user discusses ML model selection, LLM integration, RAG, embeddings, vector databases, fine-tuning, prompt engineering for production systems, AI feature design, or autonomous-agent reliability. Trigger on: 'AI feature', 'LLM', 'RAG', 'embedding', 'vector DB', 'fine-tune', 'model selection', 'autonomous agent reliability'.",
-      "voice_aware": false
+      "voice_aware": false,
+      "context7_aware": true
     },
     {
       "src": "engineering/engineering-autonomous-optimization-architect.md",
       "name": "autonomous-optimization-architect",
       "triggers": "Use PROACTIVELY when the user discusses LLM cost optimization, model routing, shadow testing, autonomous agent guardrails, multi-model orchestration, cost-per-task budgets, or token-spend analysis. Trigger on: 'LLM cost', 'model routing', 'shadow test', 'cost guardrail', 'optimize agent', 'autonomous stack', 'mission control'.",
-      "voice_aware": false
+      "voice_aware": false,
+      "context7_aware": true
     },
     {
       "src": "engineering/engineering-incident-response-commander.md",
@@ -29,13 +31,15 @@
       "src": "engineering/engineering-code-reviewer.md",
       "name": "code-reviewer",
       "triggers": "Use PROACTIVELY before any merge to a deployed branch, when reviewing a PR, or when the user asks to check code quality, security, or maintainability. Trigger on: 'review this', 'check this code', 'PR review', 'before merge', 'security check', 'code quality'.",
-      "voice_aware": false
+      "voice_aware": false,
+      "context7_aware": true
     },
     {
       "src": "engineering/engineering-database-optimizer.md",
       "name": "database-optimizer",
       "triggers": "Use PROACTIVELY when the user discusses slow queries, database tuning, schema design, indexing, migration planning, or PostgreSQL/MySQL performance. Trigger on: 'slow query', 'index', 'schema', 'database performance', 'migration', 'postgres', 'mysql', 'EXPLAIN'.",
-      "voice_aware": false
+      "voice_aware": false,
+      "context7_aware": true
     },
     {
       "src": "specialized/agents-orchestrator.md",
@@ -52,14 +56,15 @@
     {
       "src": "specialized/specialized-document-generator.md",
       "name": "document-generator",
-      "triggers": "Use PROACTIVELY when the user asks to generate a PDF, PPTX, DOCX, or XLSX programmatically — proposals, reports, decks, exports. Trigger on: 'generate PDF', 'create deck', 'export report', 'build a proposal', 'docx', 'pptx', 'xlsx', 'one-pager'.",
+      "triggers": "Use PROACTIVELY when the user asks to generate a PDF, PPTX, DOCX, or XLSX programmatically \u2014 proposals, reports, decks, exports. Trigger on: 'generate PDF', 'create deck', 'export report', 'build a proposal', 'docx', 'pptx', 'xlsx', 'one-pager'.",
       "voice_aware": true
     },
     {
       "src": "specialized/agentic-identity-trust.md",
       "name": "agentic-identity-trust",
       "triggers": "Use PROACTIVELY when the user discusses agent authentication, multi-agent authorization, audit trails for autonomous systems, or trust boundaries between agents. Trigger on: 'agent auth', 'agent identity', 'audit trail', 'agent permissions', 'trust boundary', 'agent verification'.",
-      "voice_aware": false
+      "voice_aware": false,
+      "context7_aware": true
     },
     {
       "src": "specialized/identity-graph-operator.md",
@@ -88,13 +93,13 @@
     {
       "src": "design/design-image-prompt-engineer.md",
       "name": "image-prompt-engineer",
-      "triggers": "Use PROACTIVELY when the user wants to generate AI imagery — Midjourney, DALL-E, Stable Diffusion, Imagen — or asks for prompt engineering for visual generation. Trigger on: 'image prompt', 'Midjourney', 'DALL-E', 'Stable Diffusion', 'generate image', 'visual prompt', 'photo prompt'.",
+      "triggers": "Use PROACTIVELY when the user wants to generate AI imagery \u2014 Midjourney, DALL-E, Stable Diffusion, Imagen \u2014 or asks for prompt engineering for visual generation. Trigger on: 'image prompt', 'Midjourney', 'DALL-E', 'Stable Diffusion', 'generate image', 'visual prompt', 'photo prompt'.",
       "voice_aware": true
     },
     {
       "src": "testing/testing-reality-checker.md",
       "name": "reality-checker",
-      "triggers": "Use PROACTIVELY before declaring any production-bound work complete — feature ready, deploy approved, release certified. Acts as the final evidence-based quality gate. Trigger on: 'ready to ship', 'production ready', 'final check', 'release approval', 'is this done', 'certify this'.",
+      "triggers": "Use PROACTIVELY before declaring any production-bound work complete \u2014 feature ready, deploy approved, release certified. Acts as the final evidence-based quality gate. Trigger on: 'ready to ship', 'production ready', 'final check', 'release approval', 'is this done', 'certify this'.",
       "voice_aware": false
     }
   ]
