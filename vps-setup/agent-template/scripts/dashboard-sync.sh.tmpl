@@ -964,6 +964,12 @@ if [[ -f "$SRC/state/cost-today.json" ]]; then
   copy "$SRC/state/cost-today.json" "$DST/cost-today.json"
 fi
 
+# Overview brief strip (Wave 1) — written by brief-summary.py on 5am/7pm
+# timer + on-demand via the dashboard refresh button.
+if [[ -f "$SRC/state/brief-summary-latest.json" ]]; then
+  copy "$SRC/state/brief-summary-latest.json" "$DST/brief.json"
+fi
+
 # Autonomy layer endpoints (Phases 2-5 + daily briefing):
 # jobs / growth / proposals / security / watchers / daily-brief.
 # Guarded with `|| true` — the writer never raises, but we never let a hiccup

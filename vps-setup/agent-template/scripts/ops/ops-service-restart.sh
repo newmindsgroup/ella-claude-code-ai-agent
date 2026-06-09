@@ -39,6 +39,7 @@ ALLOWED=(
   hot-lead-inbox-watcher
   calendar-conflict-watcher
   website-uptime-watcher
+  brief-summary
   graphify-rebuild
   telegram-poller-watchdog
   deploy-timeout-sweep

@@ -1,0 +1,15 @@
+[Unit]
+Description=Run brief-summary at 05:00 and 19:00 (tenant TZ) for the Overview brief strip
+
+[Timer]
+# Two daily ticks: 5 AM (morning anchor — same time as morning-brief)
+# and 7 PM (evening anchor — end-of-workday recap before winddown).
+# On-demand regen is also possible via the dashboard refresh button.
+OnCalendar=*-*-* 05:00:00 {{TENANT_TIMEZONE}}
+OnCalendar=*-*-* 19:00:00 {{TENANT_TIMEZONE}}
+Persistent=true
+RandomizedDelaySec=60
+Unit=brief-summary.service
+
+[Install]
+WantedBy=timers.target

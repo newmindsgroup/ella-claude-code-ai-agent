@@ -39,6 +39,7 @@ expected_timers=(
   "hot-lead-inbox-watcher.timer"
   "calendar-conflict-watcher.timer"
   "website-uptime-watcher.timer"
+  "brief-summary.timer"
   "graphify-rebuild.timer"
   "graphify-semantic.timer"
   "agent-skill@brand-drift-scanner.timer"
@@ -74,6 +75,7 @@ expected_scripts=(
   "hot-lead-inbox-watcher.sh"
   "calendar-conflict-watcher.sh"
   "website-uptime-watcher.sh"
+  "brief-summary.py"
   "graphify-rebuild.sh"
 )
 for s in "${expected_scripts[@]}"; do

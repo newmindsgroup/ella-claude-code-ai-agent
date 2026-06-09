@@ -1592,3 +1592,89 @@ def get_events_status():
         "queue_maxsize": _EVENT_QUEUE_MAXSIZE,
         "now": now_iso(),
     }
+
+
+# ── Overview brief strip (Wave 1) ──────────────────────────────────────────
+# POST /api/brief/regenerate-summary fires brief-summary.py on demand. The
+# scheduled path (5am/7pm timer) is independent — this endpoint exists so the
+# refresh icon in the dashboard's brief card can force a regen between ticks.
+
+_BRIEF_REGEN_LAST_RUN_TS = 0.0
+_BRIEF_REGEN_MIN_INTERVAL_SEC = 300  # 5 min
+
+
+@app.post("/api/brief/regenerate-summary")
+def regenerate_brief_summary():
+    """Force-regenerate the Overview brief strip. Throttled + frugal-aware."""
+    global _BRIEF_REGEN_LAST_RUN_TS
+
+    agent_home = Path(AGENT_HOME)
+    frugal_flag = agent_home / "state" / "frugal-mode"
+    brief_path = agent_home / "state" / "brief-summary-latest.json"
+    script_path = agent_home / "scripts" / "brief-summary.py"
+
+    if frugal_flag.exists():
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "reason": "frugal_mode",
+                "message": "LLM throttled — over today's spend cap. Brief refreshes tomorrow.",
+            },
+        )
+
+    now_ts = time.time()
+    since = now_ts - _BRIEF_REGEN_LAST_RUN_TS
+    if since < _BRIEF_REGEN_MIN_INTERVAL_SEC:
+        retry_in = int(_BRIEF_REGEN_MIN_INTERVAL_SEC - since)
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "reason": "throttled",
+                "retry_in_sec": retry_in,
+                "message": f"Brief regen is throttled — try again in {retry_in}s.",
+            },
+        )
+
+    if not script_path.exists():
+        raise HTTPException(
+            status_code=503,
+            detail={"reason": "script_missing", "message": "brief-summary.py not deployed yet."},
+        )
+
+    _BRIEF_REGEN_LAST_RUN_TS = now_ts
+    try:
+        proc = subprocess.run(
+            ["/usr/bin/python3", str(script_path), "--source=on_demand"],
+            capture_output=True,
+            text=True,
+            timeout=70,
+            cwd=str(agent_home),
+        )
+    except subprocess.TimeoutExpired:
+        raise HTTPException(
+            status_code=504,
+            detail={"reason": "timeout", "message": "Brief regen exceeded 70s."},
+        )
+
+    if proc.returncode != 0:
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "reason": "llm_error",
+                "stderr": (proc.stderr or "")[-300:],
+                "message": "Brief generator hit an error — keeping last cached.",
+            },
+        )
+
+    if not brief_path.exists():
+        raise HTTPException(
+            status_code=500,
+            detail={"reason": "no_output", "message": "brief-summary.py ran but wrote no file."},
+        )
+    try:
+        return json.loads(brief_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"reason": "read_error", "message": str(e)},
+        )
