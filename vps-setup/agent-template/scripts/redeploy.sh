@@ -71,6 +71,20 @@ if [[ $DO_PULL -eq 1 ]]; then
     git -C "$REPO" stash push -u -q -m "redeploy-autostash-$(date -u +%s)" 2>/dev/null || true
     git -C "$REPO" pull --ff-only -q origin main && say "  pulled clean" || say "  WARN: ff-only pull failed; restoring local state"
     git -C "$REPO" stash pop -q 2>/dev/null || true
+    # If the stash pop conflicted, git leaves conflict markers IN the working
+    # tree — and we'd then sync those broken files into the live agent dirs
+    # and publish a broken dashboard. Rendered files are generated output, so
+    # HEAD is always the correct resolution: take HEAD for any unmerged path
+    # and drop the now-stale stash entry.
+    unmerged=$(git -C "$REPO" diff --name-only --diff-filter=U 2>/dev/null)
+    if [[ -n "$unmerged" ]]; then
+      say "  WARN: stash pop conflicted — resolving to HEAD (rendered files are generated):"
+      while IFS= read -r f; do
+        say "    $f"
+        git -C "$REPO" checkout HEAD -- "$f" 2>/dev/null || true
+      done <<< "$unmerged"
+      git -C "$REPO" stash drop -q 2>/dev/null || true
+    fi
   fi
 else
   say "skipping git pull (--no-pull)"
